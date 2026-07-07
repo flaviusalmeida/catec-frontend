@@ -24,7 +24,7 @@ const BlankLayout = (props: Props) => {
   // Hooks
   const { settings } = useSettings()
 
-  useLayoutInit(systemMode)
+  useLayoutInit()
 
   return (
     <div className={classnames(blankLayoutClasses.root, 'is-full bs-full')} data-skin={settings.skin}>

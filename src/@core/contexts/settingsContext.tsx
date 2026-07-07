@@ -65,25 +65,28 @@ export const SettingsProvider = (props: Props) => {
 
   const updatedInitialSettings = {
     ...initialSettings,
-    mode: props.mode || themeConfig.mode
+    mode: 'light' as const
   }
+
+  const cookieSettings =
+    JSON.stringify(props.settingsCookie) !== '{}' ? { ...props.settingsCookie, mode: 'light' as const } : updatedInitialSettings
 
   // Cookies
   const [settingsCookie, updateSettingsCookie] = useObjectCookie<Settings>(
     themeConfig.settingsCookieName,
-    JSON.stringify(props.settingsCookie) !== '{}' ? props.settingsCookie : updatedInitialSettings
+    cookieSettings
   )
 
   // State
   const [_settingsState, _updateSettingsState] = useState<Settings>(
-    JSON.stringify(settingsCookie) !== '{}' ? settingsCookie : updatedInitialSettings
+    JSON.stringify(settingsCookie) !== '{}' ? { ...settingsCookie, mode: 'light' as const } : updatedInitialSettings
   )
 
   const updateSettings = (settings: Partial<Settings>, options?: UpdateSettingsOptions) => {
     const { updateCookie = true } = options || {}
 
     _updateSettingsState(prev => {
-      const newSettings = { ...prev, ...settings }
+      const newSettings = { ...prev, ...settings, mode: 'light' as const }
 
       // Update cookie if needed
       if (updateCookie) updateSettingsCookie(newSettings)

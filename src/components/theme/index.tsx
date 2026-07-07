@@ -12,7 +12,6 @@ import type {} from '@mui/material/themeCssVarsAugmentation' //! Do not remove t
 import type {} from '@mui/lab/themeAugmentation' //! Do not remove this import otherwise you will get type errors while making a production build
 
 // Third-party Imports
-import { useMedia } from 'react-use'
 import stylisRTLPlugin from 'stylis-plugin-rtl'
 
 // Type Imports
@@ -37,25 +36,12 @@ type Props = ChildrenType & {
 
 const CustomThemeProvider = (props: Props) => {
   // Props
-  const { children, direction, systemMode } = props
+  const { children, direction } = props
 
   // Hooks
   const { settings } = useSettings()
-  const isDark = useMedia('(prefers-color-scheme: dark)', systemMode === 'dark')
 
-  // Vars
-  const isServer = typeof window === 'undefined'
-  let currentMode: SystemMode
-
-  if (isServer) {
-    currentMode = systemMode
-  } else {
-    if (settings.mode === 'system') {
-      currentMode = isDark ? 'dark' : 'light'
-    } else {
-      currentMode = settings.mode as SystemMode
-    }
-  }
+  const currentMode: SystemMode = 'light'
 
   // Merge the primary color scheme override with the core theme
   const theme = useMemo(() => {
@@ -104,12 +90,12 @@ const CustomThemeProvider = (props: Props) => {
     >
       <ThemeProvider
         theme={theme}
-        defaultMode={systemMode}
-        modeStorageKey={`${themeConfig.templateName.toLowerCase().split(' ').join('-')}-mui-template-mode`}
+        defaultMode='light'
+        modeStorageKey={`${themeConfig.templateName.toLowerCase().split(' ').join('-')}-mui-template-mode-v2`}
         forceThemeRerender
       >
         <>
-          <ModeChanger systemMode={systemMode} />
+          <ModeChanger />
           <CssBaseline />
           {children}
         </>

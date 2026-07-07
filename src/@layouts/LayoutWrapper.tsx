@@ -23,7 +23,7 @@ const LayoutWrapper = (props: LayoutWrapperProps) => {
   // Hooks
   const { settings } = useSettings()
 
-  useLayoutInit(systemMode)
+  useLayoutInit()
 
   // Return the layout based on the layout context
   return (
