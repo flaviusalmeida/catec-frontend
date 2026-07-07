@@ -2,7 +2,6 @@
 
 // React Imports
 import { useRef, useState } from 'react'
-import type { MouseEvent } from 'react'
 
 // MUI Imports
 import { styled } from '@mui/material/styles'
@@ -54,8 +53,8 @@ const UserDropdown = () => {
     !open ? setOpen(true) : setOpen(false)
   }
 
-  const handleDropdownClose = (event?: MouseEvent | TouchEvent) => {
-    if (anchorRef.current && anchorRef.current.contains(event?.target as HTMLElement)) {
+  const handleDropdownClose = (event: MouseEvent | TouchEvent) => {
+    if (anchorRef.current && anchorRef.current.contains(event.target as Node)) {
       return
     }
 
