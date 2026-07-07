@@ -24,18 +24,22 @@ RUN pnpm build
 
 FROM node:20-alpine AS runner
 WORKDIR /app
-RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 ENV NODE_ENV=production
 
 RUN addgroup -S catec && adduser -S catec -G catec
 
-COPY --from=build /app/package.json /app/pnpm-lock.yaml /app/.npmrc ./
+COPY --from=build /app/package.json /app/pnpm-lock.yaml /app/.npmrc /app/pnpm-workspace.yaml ./
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/.next ./.next
 COPY --from=build /app/public ./public
 COPY --from=build /app/next.config.ts ./
 COPY --from=build /app/src ./src
 
+RUN chown -R catec:catec /app
+
+ENV HOSTNAME=0.0.0.0
+ENV PORT=3000
+
 USER catec
 EXPOSE 3000
-CMD ["pnpm", "start"]
+CMD ["node", "node_modules/next/dist/bin/next", "start"]
