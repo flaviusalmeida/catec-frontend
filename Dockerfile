@@ -4,10 +4,10 @@ FROM node:20-alpine AS build
 WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 
-COPY package.json pnpm-lock.yaml .npmrc ./
+COPY package.json pnpm-lock.yaml .npmrc pnpm-workspace.yaml ./
 COPY src/prisma src/prisma
 ENV DATABASE_URL=postgresql://build:build@localhost:5432/build
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --no-frozen-lockfile --ignore-scripts
 
 COPY . .
 
@@ -19,6 +19,7 @@ ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
 ENV NEXTAUTH_URL=$NEXTAUTH_URL
 ENV NEXTAUTH_SECRET=build-placeholder-not-used-at-runtime
 
+RUN pnpm exec prisma generate && pnpm exec tsx src/assets/iconify-icons/bundle-icons-css.ts
 RUN pnpm build
 
 FROM node:20-alpine AS runner
