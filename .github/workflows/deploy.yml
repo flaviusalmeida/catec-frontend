@@ -52,11 +52,12 @@ jobs:
       - name: Build
         run: pnpm build
 
-  deploy:
-    name: Build, push and deploy
+  build:
+    name: Build and push GHCR
     needs: ci
     runs-on: ubuntu-latest
-    environment: production
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -70,7 +71,6 @@ jobs:
           fi
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
           echo "image=ghcr.io/${{ github.repository_owner }}/catec-frontend" >> "$GITHUB_OUTPUT"
-          # Strip trailing slash from PUBLIC_URL if present
           PUBLIC_URL="${{ secrets.PUBLIC_URL }}"
           PUBLIC_URL="${PUBLIC_URL%/}"
           echo "public_url=${PUBLIC_URL}" >> "$GITHUB_OUTPUT"
@@ -100,21 +100,26 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Deploy over SSH
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.LINODE_HOST }}
-          username: ${{ secrets.LINODE_SSH_USER }}
-          key: ${{ secrets.LINODE_SSH_KEY }}
-          script_stop: true
-          envs: GHCR_READ_TOKEN,IMAGE_TAG
-          script: |
-            bash /opt/catec/backend/deploy/scripts/deploy-ghcr.sh frontend "${IMAGE_TAG}" "${GHCR_READ_TOKEN}"
+  deploy:
+    name: Deploy on VPS
+    needs: build
+    runs-on: [self-hosted, linux, catec-vps]
+    environment: production
+    steps:
+      - name: Pull image and restart service
         env:
           GHCR_READ_TOKEN: ${{ secrets.GHCR_READ_TOKEN }}
-          IMAGE_TAG: ${{ steps.meta.outputs.tag }}
+          IMAGE_TAG: ${{ needs.build.outputs.tag }}
+        run: |
+          set -euo pipefail
+          bash /opt/catec/backend/deploy/scripts/deploy-ghcr.sh frontend "${IMAGE_TAG}" "${GHCR_READ_TOKEN}"
 
-      - name: Smoke test
+  smoke:
+    name: Smoke test
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Health checks
         run: |
           set -euo pipefail
           BASE="${{ secrets.PUBLIC_URL }}"
