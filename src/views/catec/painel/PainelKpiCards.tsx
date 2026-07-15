@@ -36,26 +36,49 @@ const ICON_POR_STATUS: Record<CatecProjetoStatus, string> = {
 
 const PainelKpiCards = ({ painel, compact = false }: Props) => {
   return (
-    <Grid container spacing={compact ? 3 : 6}>
+    <Grid container spacing={compact ? 3 : 6} alignItems='stretch'>
       {ORDEM_STATUS_PROJETO.map(status => {
         const total = painel.totais.porStatus[status] ?? 0
         const cores = corPainelProjetoStatus(status)
         const rotulo = STATUS_PROJETO_ROTULO_BADGE[status]
 
         return (
-          <Grid key={status} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
+          <Grid key={status} size={{ xs: 12, sm: 6, md: 4, lg: 3 }} className='flex'>
             <Link
               href={`/catec/projetos?status=${status}`}
-              className='block text-inherit no-underline'
+              className='flex is-full text-inherit no-underline'
               aria-label={`Ver projetos: ${rotulo}`}
             >
-              <Card sx={{ cursor: 'pointer', height: '100%' }}>
-                <CardContent className={compact ? 'flex justify-between gap-1 !py-3 last:pb-3' : 'flex justify-between gap-1'}>
-                  <div className='flex grow flex-col gap-1'>
-                    <Typography color='text.primary'>{rotulo}</Typography>
-                    <Typography variant='h4'>{total}</Typography>
+              <Card
+                sx={{
+                  cursor: 'pointer',
+                  height: '100%',
+                  width: '100%',
+                  display: 'flex',
+                  flexDirection: 'column'
+                }}
+              >
+                <CardContent
+                  className={
+                    compact
+                      ? 'flex grow justify-between gap-2 !py-3 last:pb-3'
+                      : 'flex grow justify-between gap-2'
+                  }
+                >
+                  <div className='flex min-is-0 grow flex-col gap-1'>
+                    <Typography color='text.primary' className='leading-snug'>
+                      {rotulo}
+                    </Typography>
+                    <Typography variant='h4' className='mts-auto'>
+                      {total}
+                    </Typography>
                   </div>
-                  <CustomAvatar variant='rounded' size={42} sx={{ bgcolor: cores.light, color: cores.main }}>
+                  <CustomAvatar
+                    variant='rounded'
+                    size={42}
+                    className='shrink-0'
+                    sx={{ bgcolor: cores.light, color: cores.main }}
+                  >
                     <i className={classnames(ICON_POR_STATUS[status], 'text-[26px]')} />
                   </CustomAvatar>
                 </CardContent>

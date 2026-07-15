@@ -85,16 +85,29 @@ const PainelAlertaCards = ({ painel, compact = false }: Props) => {
   const { alertasPrazo } = painel.totais
 
   return (
-    <Grid container spacing={compact ? 3 : 6}>
+    <Grid container spacing={compact ? 3 : 6} alignItems='stretch'>
       {CARD_DEFS.map(def => (
-        <Grid key={def.key} size={{ xs: 12, sm: 6, md: 3 }}>
+        <Grid key={def.key} size={{ xs: 12, sm: 6, md: 3 }} className='flex'>
           <Link
             href={`/catec/projetos?faixaPrazo=${def.faixaPrazo}`}
-            className='block text-inherit no-underline'
+            className='flex is-full text-inherit no-underline'
             aria-label={`Ver projetos: ${def.title}`}
           >
-            <Card bordercolor={def.color} sx={{ cursor: 'pointer', height: '100%' }}>
-              <CardContent className={compact ? 'flex flex-col gap-1 !py-3 last:pb-3' : 'flex flex-col gap-1'}>
+            <Card
+              bordercolor={def.color}
+              sx={{
+                cursor: 'pointer',
+                height: '100%',
+                width: '100%',
+                display: 'flex',
+                flexDirection: 'column'
+              }}
+            >
+              <CardContent
+                className={
+                  compact ? 'flex grow flex-col gap-1 !py-3 last:pb-3' : 'flex grow flex-col gap-1'
+                }
+              >
                 <div className='flex items-center gap-4'>
                   <CustomAvatar color={def.color} skin='light' variant='rounded' size={40}>
                     <i className={classnames(def.avatarIcon, 'text-[28px]')} />
