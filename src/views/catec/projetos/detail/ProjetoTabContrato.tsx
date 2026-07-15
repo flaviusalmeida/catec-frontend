@@ -31,7 +31,7 @@ import { PermissaoCodigo } from '@/types/catec/permissao'
 import { projetoPermiteEditarContrato, projetoPermiteVisualizarContrato } from '../projetoFluxoHelpers'
 import ContratoStatusBadge from '../ContratoStatusBadge'
 import type { UseProjetoFluxoStore } from '../useProjetoFluxoStore'
-import { buildContratoDocumentoMetaItens, metaDocumentoResumo } from './contratoDocumentoHelpers'
+import { buildContratoDocumentoMetaItens, metaDocumentoResumo, resolverPrazosContratoMeta } from './contratoDocumentoHelpers'
 import ProjetoFileRow from './ProjetoFileRow'
 import ProjetoStateCard from './ProjetoStateCard'
 import ProjetoUploadCard from './ProjetoUploadCard'
@@ -51,15 +51,21 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
   const [dialogInteracaoCliente, setDialogInteracaoCliente] = useState<DialogInteracaoCliente>(null)
   const [textoInteracaoCliente, setTextoInteracaoCliente] = useState('')
 
+  const [prazoInicioExecucaoDias, setPrazoInicioExecucaoDias] = useState(
+    projeto.prazoInicioExecucaoDias != null ? String(projeto.prazoInicioExecucaoDias) : ''
+  )
   const [prazoConclusaoDias, setPrazoConclusaoDias] = useState(
     projeto.prazoConclusaoDias != null ? String(projeto.prazoConclusaoDias) : ''
   )
 
   useEffect(() => {
+    if (projeto.prazoInicioExecucaoDias != null) {
+      setPrazoInicioExecucaoDias(String(projeto.prazoInicioExecucaoDias))
+    }
     if (projeto.prazoConclusaoDias != null) {
       setPrazoConclusaoDias(String(projeto.prazoConclusaoDias))
     }
-  }, [projeto.id, projeto.prazoConclusaoDias])
+  }, [projeto.id, projeto.prazoInicioExecucaoDias, projeto.prazoConclusaoDias])
 
   const contrato = data.contrato
   const documentoAtual = contrato?.documentos[0] ?? null
@@ -140,15 +146,25 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
   }
 
   function handleEnviarContratoCliente() {
-    const dias = Number.parseInt(prazoConclusaoDias.trim(), 10)
+    const diasInicio = Number.parseInt(prazoInicioExecucaoDias.trim(), 10)
+    const diasConclusao = Number.parseInt(prazoConclusaoDias.trim(), 10)
 
-    if (!Number.isFinite(dias) || dias < 1) {
+    if (!Number.isFinite(diasInicio) || diasInicio < 1) {
+      toast.error('Informe o prazo para início da execução em dias.')
+
+      return
+    }
+
+    if (!Number.isFinite(diasConclusao) || diasConclusao < 1) {
       toast.error('Informe o prazo para conclusão do projeto em dias.')
 
       return
     }
 
-    void enviarContratoCliente(dias)
+    void enviarContratoCliente({
+      prazoInicioExecucaoDias: diasInicio,
+      prazoConclusaoDias: diasConclusao
+    })
       .then(() => toast.success('Contrato enviado ao cliente.'))
       .catch(err => toast.error(err instanceof Error ? err.message : 'Envio falhou.'))
   }
@@ -203,33 +219,57 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
         ]
       : undefined
 
-  const mostrarCampoPrazoConclusao =
+  const mostrarCampoPrazos =
     temAnexo &&
     (mostrarEnviarContratoCard ||
       (ajustandoContratoCliente && contrato?.status === 'RASCUNHO' && contrato.consideracoesPendentes))
 
-  const campoPrazoConclusao = mostrarCampoPrazoConclusao ? (
-    <div className='flex flex-col gap-2'>
-      <Typography variant='body2' color='text.primary'>
-        Prazo para conclusão do projeto
-      </Typography>
-      <div className='flex flex-wrap items-center gap-2'>
-        <CustomTextField
-          type='number'
-          inputProps={{ min: 1, step: 1 }}
-          placeholder='Ex.: 90'
-          value={prazoConclusaoDias}
-          onChange={e => setPrazoConclusaoDias(e.target.value)}
-          disabled={processando}
-          sx={{ width: 130, flexShrink: 0 }}
-        />
-        <Typography variant='body1' color='text.secondary'>
-          dias
+  const campoPrazos = mostrarCampoPrazos ? (
+    <div className='flex flex-col gap-4'>
+      <div className='flex flex-col gap-2'>
+        <Typography variant='body2' color='text.primary'>
+          Prazo para início da execução
+        </Typography>
+        <div className='flex flex-wrap items-center gap-2'>
+          <CustomTextField
+            type='number'
+            inputProps={{ min: 1, step: 1 }}
+            placeholder='Ex.: 15'
+            value={prazoInicioExecucaoDias}
+            onChange={e => setPrazoInicioExecucaoDias(e.target.value)}
+            disabled={processando}
+            sx={{ width: 130, flexShrink: 0 }}
+          />
+          <Typography variant='body1' color='text.secondary'>
+            dias
+          </Typography>
+        </div>
+        <Typography variant='body2' color='text.secondary'>
+          Contado a partir do aceite do contrato pelo cliente (enquanto o projeto aguarda execução).
         </Typography>
       </div>
-      <Typography variant='body2' color='text.secondary'>
-        O prazo começará a ser contado automaticamente após o aceite do contrato pelo cliente.
-      </Typography>
+      <div className='flex flex-col gap-2'>
+        <Typography variant='body2' color='text.primary'>
+          Prazo para conclusão do projeto
+        </Typography>
+        <div className='flex flex-wrap items-center gap-2'>
+          <CustomTextField
+            type='number'
+            inputProps={{ min: 1, step: 1 }}
+            placeholder='Ex.: 90'
+            value={prazoConclusaoDias}
+            onChange={e => setPrazoConclusaoDias(e.target.value)}
+            disabled={processando}
+            sx={{ width: 130, flexShrink: 0 }}
+          />
+          <Typography variant='body1' color='text.secondary'>
+            dias
+          </Typography>
+        </div>
+        <Typography variant='body2' color='text.secondary'>
+          Começa a contar apenas quando o projeto for marcado como em execução.
+        </Typography>
+      </div>
     </div>
   ) : null
 
@@ -239,10 +279,12 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
     contrato != null &&
     ['ENVIADO_AO_CLIENTE', 'ACEITO', 'RECUSADO', 'AGUARDANDO_AJUSTE'].includes(contrato.status)
 
+  const prazosMeta = resolverPrazosContratoMeta(projeto, prazoInicioExecucaoDias, prazoConclusaoDias)
+
   const propsDocumentoEstruturado =
     documentoAtual && usaLayoutContratoEstruturado && contrato
       ? {
-          metaItens: buildContratoDocumentoMetaItens(projeto, contrato),
+          metaItens: buildContratoDocumentoMetaItens(projeto, contrato, prazosMeta),
           statusDocumento: <ContratoStatusBadge status={contrato.status} />
         }
       : {}
@@ -283,7 +325,7 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
             disabled={processando}
             onDownload={downloadDocumento}
             {...previewDocumentoProps}
-            areaEntreArquivoEAcoes={campoPrazoConclusao}
+            areaEntreArquivoEAcoes={campoPrazos}
             acoes={acoesAjustarContratoCard}
           />
         </Grid>
@@ -315,7 +357,7 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
             disabled={processando}
             onDownload={downloadDocumento}
             {...previewDocumentoProps}
-            areaEntreArquivoEAcoes={campoPrazoConclusao}
+            areaEntreArquivoEAcoes={campoPrazos}
             acoes={[
               {
                 key: 'enviar-cliente',
@@ -391,7 +433,7 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
                 <ProjetoFileRow
                   key={doc.id}
                   nomeArquivo={doc.nomeOriginal}
-                  metaItens={buildContratoDocumentoMetaItens(projeto, contrato)}
+                  metaItens={buildContratoDocumentoMetaItens(projeto, contrato, prazosMeta)}
                   status={<ContratoStatusBadge status={contrato.status} />}
                   documentoId={doc.id}
                   previewTitulo='Contrato'

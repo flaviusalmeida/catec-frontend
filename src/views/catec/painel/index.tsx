@@ -39,12 +39,7 @@ const PainelView = () => {
           <PainelAlertaCards painel={painel} compact />
         </div>
         <div className='shrink-0'>
-          <PainelKpiCards
-            painel={painel}
-            statusSelecionado={statusFiltro}
-            onStatusClick={setStatusFiltro}
-            compact
-          />
+          <PainelKpiCards painel={painel} compact />
         </div>
         <div className='grid min-h-0 flex-1 grid-cols-12 gap-3'>
           <div className='col-span-12 flex min-h-0 w-full md:col-span-5 lg:col-span-4'>
@@ -66,11 +61,7 @@ const PainelView = () => {
           <PainelAlertaCards painel={painel} />
         </Grid>
         <Grid size={{ xs: 12 }}>
-          <PainelKpiCards
-            painel={painel}
-            statusSelecionado={statusFiltro}
-            onStatusClick={setStatusFiltro}
-          />
+          <PainelKpiCards painel={painel} />
         </Grid>
         <Grid size={{ xs: 12, md: 5, lg: 4 }}>
           <PainelStatusDonut

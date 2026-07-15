@@ -262,13 +262,13 @@ export async function uploadDocumentoContratoCatec(
 export async function enviarContratoClienteCatec(
   projetoId: number,
   contratoId: number,
-  prazoConclusaoDias: number
+  prazos: { prazoInicioExecucaoDias: number; prazoConclusaoDias: number }
 ): Promise<void> {
   const res = await catecApiFetch(
     `/api/v1/projetos/${projetoId}/contratos/${contratoId}/enviar-cliente`,
     {
       method: 'POST',
-      body: JSON.stringify({ prazoConclusaoDias })
+      body: JSON.stringify(prazos)
     }
   )
 

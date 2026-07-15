@@ -39,6 +39,7 @@ import {
   ROTULO_ALERTA_PRAZO,
   type FaixaFiltroPrazo,
   itemPassaFiltroPrazo,
+  previsaoAtivaPainelItem,
   rotuloFaixaFiltroPrazo
 } from './painelPrazoUtils'
 
@@ -136,12 +137,12 @@ const PainelProjetosTable = ({ projetos, statusFiltro, onStatusFiltroChange }: P
       }),
       columnHelper.display({
         id: 'previsao',
-        header: 'Previsão conclusão',
-        cell: ({ row }) => (
-          <Typography>
-            {row.original.previsaoConclusaoEm ? formatarDataCurta(row.original.previsaoConclusaoEm) : '—'}
-          </Typography>
-        )
+        header: 'Prazo ativo',
+        cell: ({ row }) => {
+          const previsao = previsaoAtivaPainelItem(row.original)
+
+          return <Typography>{previsao ? formatarDataCurta(previsao) : '—'}</Typography>
+        }
       }),
       columnHelper.display({
         id: 'alerta',

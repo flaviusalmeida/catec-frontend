@@ -13,7 +13,7 @@ import ProjetoStatusBadge from '@/views/catec/projetos/ProjetoStatusBadge'
 import type { CatecProjetoPainelItem } from '@/types/catec/projetoTypes'
 import { formatarDataCurta } from '@/views/catec/projetos/projetoFluxoHelpers'
 
-import { corProgressoPrazo, formatarDiasRestantes } from './painelPrazoUtils'
+import { corProgressoPrazo, formatarDiasRestantes, previsaoAtivaPainelItem } from './painelPrazoUtils'
 
 type Props = {
   projetos: CatecProjetoPainelItem[]
@@ -25,7 +25,7 @@ const PainelPrazoProximo = ({ projetos, compact = false }: Props) => {
     <Card className={compact ? 'flex h-full w-full flex-col' : 'bs-full'}>
       <CardHeader
         title='Projetos vencidos ou com prazo próximo'
-        subheader='Ordenados pela previsão de conclusão'
+        subheader='Ordenados pelo prazo ativo (início ou conclusão)'
         className={compact ? '!pb-2' : undefined}
       />
       <CardContent
@@ -37,10 +37,13 @@ const PainelPrazoProximo = ({ projetos, compact = false }: Props) => {
       >
         {projetos.length === 0 ? (
           <Typography color='text.secondary' className='text-center p-4'>
-            Nenhum projeto com previsão de conclusão definida.
+            Nenhum projeto com prazo ativo definido.
           </Typography>
         ) : (
-          projetos.map(item => (
+          projetos.map(item => {
+            const previsao = previsaoAtivaPainelItem(item)
+
+            return (
             <div key={item.id} className='flex items-center gap-4'>
               <CustomAvatar
                 skin='light'
@@ -58,7 +61,8 @@ const PainelPrazoProximo = ({ projetos, compact = false }: Props) => {
                   {item.titulo}
                 </Link>
                 <Typography variant='body2' color='text.secondary' className='line-clamp-1'>
-                  {item.clienteNome ?? 'Sem cliente'} · {formatarDataCurta(item.previsaoConclusaoEm!)}
+                  {item.clienteNome ?? 'Sem cliente'}
+                  {previsao ? ` · ${formatarDataCurta(previsao)}` : ''}
                 </Typography>
                 <div className='flex flex-wrap items-center gap-2'>
                   <ProjetoStatusBadge status={item.status} />
@@ -68,7 +72,8 @@ const PainelPrazoProximo = ({ projetos, compact = false }: Props) => {
                 </div>
               </div>
             </div>
-          ))
+            )
+          })
         )}
       </CardContent>
     </Card>

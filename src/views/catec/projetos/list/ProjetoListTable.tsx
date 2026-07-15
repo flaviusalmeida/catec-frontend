@@ -90,12 +90,7 @@ const ProjetoListTable = ({ lista, clientes, onAdd }: Props) => {
   const [filteredData, setFilteredData] = useState(lista)
   const [globalFilter, setGlobalFilter] = useState('')
 
-  
   const router = useRouter()
-
-  useEffect(() => {
-    setFilteredData(lista)
-  }, [lista])
 
   const columns = useMemo<ColumnDef<ProjetoRow, any>[]>(
     () => [

@@ -19,6 +19,7 @@ import HorizontalFooter from '@components/layout/horizontal/Footer'
 import Customizer from '@core/components/customizer'
 import ScrollToTop from '@core/components/scroll-to-top'
 import AuthGuard from '@/hocs/AuthGuard'
+import { SHOW_VUEXY_DEMOS } from '@configs/featureFlags'
 
 // Config Imports
 
@@ -66,7 +67,7 @@ const Layout = async (props: ChildrenType ) => {
             <i className='tabler-arrow-up' />
           </Button>
         </ScrollToTop>
-        <Customizer dir={direction} disableDirection />
+        {SHOW_VUEXY_DEMOS ? <Customizer dir={direction} disableDirection /> : null}
       </AuthGuard>
     </Providers>
   )

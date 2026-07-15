@@ -33,7 +33,7 @@ Variáveis mínimas para desenvolvimento:
 | `NEXTAUTH_SECRET` | string aleatória (32+ caracteres) |
 | `NEXTAUTH_URL` | `http://localhost:3000/api/auth` |
 
-Menus demo do template Vuexy ficam ocultos por padrão. Para exibir: `NEXT_PUBLIC_SHOW_VUEXY_DEMOS=true`.
+Menus demo do template Vuexy e o Theme Customizer ficam ocultos por padrão. Para exibir: `NEXT_PUBLIC_SHOW_VUEXY_DEMOS=true`.
 
 ### Problemas comuns
 

@@ -83,6 +83,13 @@ const ProjetoDetails = ({ projeto, onStatusAlterado }: Props) => {
               </DetalheCampo>
 
               <div className='flex flex-col gap-2'>
+                <DetalheCampo label='Início da execução previsto'>
+                  <Typography variant='body2' color='text.primary'>
+                    {projeto.previsaoInicioExecucaoEm
+                      ? formatarDataCurta(projeto.previsaoInicioExecucaoEm)
+                      : '—'}
+                  </Typography>
+                </DetalheCampo>
                 <DetalheCampo label='Conclusão prevista'>
                   <Typography variant='body2' color='text.primary'>
                     {projeto.previsaoConclusaoEm ? formatarDataCurta(projeto.previsaoConclusaoEm) : '—'}
