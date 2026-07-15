@@ -54,6 +54,7 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
   const [prazoInicioExecucaoDias, setPrazoInicioExecucaoDias] = useState(
     projeto.prazoInicioExecucaoDias != null ? String(projeto.prazoInicioExecucaoDias) : ''
   )
+
   const [prazoConclusaoDias, setPrazoConclusaoDias] = useState(
     projeto.prazoConclusaoDias != null ? String(projeto.prazoConclusaoDias) : ''
   )
@@ -62,6 +63,7 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
     if (projeto.prazoInicioExecucaoDias != null) {
       setPrazoInicioExecucaoDias(String(projeto.prazoInicioExecucaoDias))
     }
+
     if (projeto.prazoConclusaoDias != null) {
       setPrazoConclusaoDias(String(projeto.prazoConclusaoDias))
     }

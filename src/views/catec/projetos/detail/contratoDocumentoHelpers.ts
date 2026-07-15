@@ -55,6 +55,7 @@ export function buildContratoDocumentoMetaItens(
       prazosOverride?.prazoInicioExecucaoDias !== undefined
         ? prazosOverride.prazoInicioExecucaoDias
         : projeto.prazoInicioExecucaoDias
+
     const prazoConclusao =
       prazosOverride?.prazoConclusaoDias !== undefined
         ? prazosOverride.prazoConclusaoDias

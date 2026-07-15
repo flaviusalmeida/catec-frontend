@@ -41,6 +41,7 @@ const ProjetoTableFilters = ({ setData, tableData }: Props) => {
 
   const [titulo, setTitulo] = useState('')
   const [status, setStatus] = useState<CatecProjetoStatus | ''>(() => parseStatusFiltro(searchParams.get('status')))
+
   const [faixaPrazo, setFaixaPrazo] = useState<FaixaFiltroPrazo>(() =>
     parseFaixaFiltroPrazo(searchParams.get('faixaPrazo'))
   )
