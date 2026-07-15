@@ -128,23 +128,6 @@
     "tsx": "4.20.6",
     "typescript": "5.9.3"
   },
-  "resolutions": {
-    "rimraf": "5.0.7",
-    "unicorn-magic": "0.1.0",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
-    "eslint": "8.57.1",
-    "eslint-config-next": "15.1.2"
-  },
-  "overrides": {
-    "rimraf": "5.0.7",
-    "unicorn-magic": "0.1.0",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
-    "@emoji-mart/react": {
-      "react": "19.2.3"
-    }
-  },
   "prisma": {
     "schema": "./src/prisma/schema.prisma"
   }
