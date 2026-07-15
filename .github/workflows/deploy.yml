@@ -103,7 +103,7 @@ jobs:
   deploy:
     name: Deploy on VPS
     needs: build
-    runs-on: [self-hosted, linux, catec-vps]
+    runs-on: [self-hosted]
     environment: production
     steps:
       - name: Pull image and restart service
@@ -124,8 +124,10 @@ jobs:
           set -euo pipefail
           BASE="${{ secrets.PUBLIC_URL }}"
           for i in $(seq 1 24); do
-            if curl -fsS "${BASE}/api/v1/health-check" >/dev/null \
-              && curl -fsS "${BASE}/" -o /dev/null -w "%{http_code}" | grep -qE '200|301|302|307|308'; then
+            if curl -fsS --connect-timeout 3 --max-time 10 \
+              "${BASE}/api/v1/health-check" >/dev/null \
+              && curl -fsS --connect-timeout 3 --max-time 10 \
+              "${BASE}/" -o /dev/null -w "%{http_code}" | grep -qE '200|301|302|307|308'; then
               echo "Smoke test OK"
               exit 0
             fi
