@@ -1,19 +1,19 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 
 import Alert from '@mui/material/Alert'
 import Button from '@mui/material/Button'
 import Divider from '@mui/material/Divider'
 import Drawer from '@mui/material/Drawer'
 import IconButton from '@mui/material/IconButton'
-import MenuItem from '@mui/material/MenuItem'
 import Typography from '@mui/material/Typography'
 import { toast } from 'react-toastify'
 
 import type { CatecCliente } from '@/types/catec/clienteTypes'
 import type { CatecProjeto, CatecProjetoCreateInput } from '@/types/catec/projetoTypes'
 
+import CustomAutocomplete from '@core/components/mui/Autocomplete'
 import CustomTextField from '@core/components/mui/TextField'
 import { formatTelefoneBrasil } from '@/utils/catec/brFormat'
 
@@ -25,20 +25,15 @@ type Props = {
 }
 
 const ProjetoAddDrawer = ({ open, onClose, clientes, onAdd }: Props) => {
-  const [clienteId, setClienteId] = useState('')
+  const [clienteSelecionado, setClienteSelecionado] = useState<CatecCliente | null>(null)
   const [titulo, setTitulo] = useState('')
   const [escopo, setEscopo] = useState('')
   const [salvando, setSalvando] = useState(false)
 
-  const clienteSelecionado = useMemo(
-    () => clientes.find(c => String(c.id) === clienteId) ?? null,
-    [clienteId, clientes]
-  )
-
   const responsavel = clienteSelecionado?.responsaveis[0] ?? null
 
   function reset() {
-    setClienteId('')
+    setClienteSelecionado(null)
     setTitulo('')
     setEscopo('')
   }
@@ -109,22 +104,42 @@ const ProjetoAddDrawer = ({ open, onClose, clientes, onAdd }: Props) => {
       </div>
       <Divider />
       <form onSubmit={e => void handleSubmit(e)} className='flex flex-col gap-6 p-6'>
-        <CustomTextField
-          select
+        <CustomAutocomplete
           fullWidth
-          label='Cliente'
-          value={clienteId}
-          onChange={e => setClienteId(e.target.value)}
+          options={clientes}
+          value={clienteSelecionado}
+          onChange={(_, value) => setClienteSelecionado(value)}
+          getOptionLabel={option => option.razaoSocialOuNome}
+          isOptionEqualToValue={(option, value) => option.id === value.id}
+          filterOptions={(options, { inputValue }) => {
+            const query = inputValue.trim().toLowerCase()
+
+            if (!query) return options
+
+            return options.filter(cliente => {
+              const nome = cliente.razaoSocialOuNome.toLowerCase()
+              const fantasia = cliente.nomeFantasia?.toLowerCase() ?? ''
+              const documento = cliente.documento?.replace(/\D/g, '') ?? ''
+              const queryDigits = query.replace(/\D/g, '')
+
+              return (
+                nome.includes(query) ||
+                fantasia.includes(query) ||
+                (queryDigits.length > 0 && documento.includes(queryDigits))
+              )
+            })
+          }}
           disabled={salvando}
-          slotProps={{ select: { displayEmpty: true } }}
-        >
-          <MenuItem value=''>Sem cliente (demanda pendente)</MenuItem>
-          {clientes.map(c => (
-            <MenuItem key={c.id} value={String(c.id)}>
-              {c.razaoSocialOuNome}
-            </MenuItem>
-          ))}
-        </CustomTextField>
+          noOptionsText='Nenhum cliente encontrado'
+          renderInput={params => (
+            <CustomTextField
+              {...params}
+              label='Cliente'
+              placeholder='Digite para buscar…'
+              helperText='Deixe vazio para demanda pendente (sem cliente)'
+            />
+          )}
+        />
 
         <CustomTextField
           fullWidth
