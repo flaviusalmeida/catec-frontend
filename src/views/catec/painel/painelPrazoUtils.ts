@@ -20,7 +20,10 @@ export const FAIXAS_FILTRO_PRAZO: Exclude<FaixaFiltroPrazo, ''>[] = [
   'SEM_PREVISAO'
 ]
 
-type ProjetoPrazoLike = Pick<CatecProjeto, 'status' | 'previsaoConclusaoEm'>
+type ProjetoPrazoLike = Pick<
+  CatecProjeto,
+  'status' | 'previsaoInicioExecucaoEm' | 'previsaoConclusaoEm'
+>
 
 function dataLocalSaoPaulo(instantIso: string | Date): string {
   return new Date(instantIso).toLocaleDateString('en-CA', { timeZone: ZONA_SP })
@@ -39,13 +42,24 @@ function diasEntreDatasLocal(inicioYmd: string, fimYmd: string): number {
   return Math.round((fim - inicio) / 86_400_000)
 }
 
-/** Alinhado ao cálculo do painel (backend): projetos não terminais com previsão. */
+export function previsaoAtivaProjeto(projeto: ProjetoPrazoLike): string | null {
+  // Em execução, o prazo de início deixa de ser validado.
+  if (projeto.status === 'AGUARDANDO_EXECUCAO') return projeto.previsaoInicioExecucaoEm
+  if (projeto.status === 'EM_EXECUCAO') return projeto.previsaoConclusaoEm
+
+  return null
+}
+
+/** Alinhado ao cálculo do painel (backend): prazo ativo conforme o status. */
 export function calcularAlertaPrazoProjeto(projeto: ProjetoPrazoLike): CatecAlertaPrazoProjeto | null {
-  if (projeto.status === 'CANCELADO' || projeto.status === 'FINALIZADO') return null
-  if (!projeto.previsaoConclusaoEm) return null
+  if (projeto.status !== 'AGUARDANDO_EXECUCAO' && projeto.status !== 'EM_EXECUCAO') return null
+
+  const previsaoIso = previsaoAtivaProjeto(projeto)
+
+  if (!previsaoIso) return null
 
   const hoje = hojeSaoPaulo()
-  const previsao = dataLocalSaoPaulo(projeto.previsaoConclusaoEm)
+  const previsao = dataLocalSaoPaulo(previsaoIso)
   const diasRestantes = diasEntreDatasLocal(hoje, previsao)
 
   if (diasRestantes < 0) return 'ATRASADO'
@@ -56,7 +70,10 @@ export function calcularAlertaPrazoProjeto(projeto: ProjetoPrazoLike): CatecAler
 }
 
 export function projetoSemPrevisao(projeto: ProjetoPrazoLike): boolean {
-  return STATUS_EXECUCAO_PRAZO.includes(projeto.status) && projeto.previsaoConclusaoEm == null
+  if (projeto.status === 'AGUARDANDO_EXECUCAO') return projeto.previsaoInicioExecucaoEm == null
+  if (projeto.status === 'EM_EXECUCAO') return projeto.previsaoConclusaoEm == null
+
+  return false
 }
 
 export function projetoPassaFiltroPrazo(projeto: ProjetoPrazoLike, faixa: FaixaFiltroPrazo): boolean {
@@ -104,7 +121,18 @@ export function rotuloFaixaFiltroPrazo(faixa: FaixaFiltroPrazo): string {
 }
 
 export function itemSemPrevisao(item: CatecProjetoPainelItem): boolean {
-  return STATUS_EXECUCAO_PRAZO.includes(item.status) && item.previsaoConclusaoEm == null
+  if (item.status === 'AGUARDANDO_EXECUCAO') return item.previsaoInicioExecucaoEm == null
+  if (item.status === 'EM_EXECUCAO') return item.previsaoConclusaoEm == null
+
+  return false
+}
+
+export function previsaoAtivaPainelItem(item: CatecProjetoPainelItem): string | null {
+  // Em execução, o prazo de início deixa de ser validado.
+  if (item.status === 'AGUARDANDO_EXECUCAO') return item.previsaoInicioExecucaoEm
+  if (item.status === 'EM_EXECUCAO') return item.previsaoConclusaoEm
+
+  return null
 }
 
 export function itemPassaFiltroPrazo(item: CatecProjetoPainelItem, faixa: FaixaFiltroPrazo): boolean {

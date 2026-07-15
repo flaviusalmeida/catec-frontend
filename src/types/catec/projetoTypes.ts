@@ -28,6 +28,8 @@ export type CatecProjeto = {
   clienteAssociadoEm?: string | null
   clienteAssociadoPorId?: number | null
   clienteAssociadoPorNome?: string | null
+  prazoInicioExecucaoDias: number | null
+  previsaoInicioExecucaoEm: string | null
   prazoConclusaoDias: number | null
   previsaoConclusaoEm: string | null
   conclusaoEm: string | null
@@ -66,6 +68,10 @@ export function parseCatecProjeto(raw: unknown): CatecProjeto {
     clienteAssociadoPorId: data.clienteAssociadoPorId == null ? null : Number(data.clienteAssociadoPorId),
     clienteAssociadoPorNome:
       data.clienteAssociadoPorNome == null ? null : String(data.clienteAssociadoPorNome),
+    prazoInicioExecucaoDias:
+      data.prazoInicioExecucaoDias == null ? null : Number(data.prazoInicioExecucaoDias),
+    previsaoInicioExecucaoEm:
+      data.previsaoInicioExecucaoEm == null ? null : String(data.previsaoInicioExecucaoEm),
     prazoConclusaoDias: data.prazoConclusaoDias == null ? null : Number(data.prazoConclusaoDias),
     previsaoConclusaoEm: data.previsaoConclusaoEm == null ? null : String(data.previsaoConclusaoEm),
     conclusaoEm: data.conclusaoEm == null ? null : String(data.conclusaoEm)
@@ -123,6 +129,8 @@ export type CatecProjetoPainelItem = {
   clienteNome: string | null
   criadoPorNome: string | null
   status: CatecProjetoStatus
+  previsaoInicioExecucaoEm: string | null
+  prazoInicioExecucaoDias: number | null
   previsaoConclusaoEm: string | null
   prazoConclusaoDias: number | null
   diasRestantes: number | null
@@ -162,6 +170,10 @@ function parsePainelItem(raw: unknown): CatecProjetoPainelItem {
     clienteNome: data.clienteNome == null ? null : String(data.clienteNome),
     criadoPorNome: data.criadoPorNome == null ? null : String(data.criadoPorNome),
     status: String(data.status ?? 'PENDENTE_CLIENTE') as CatecProjetoStatus,
+    previsaoInicioExecucaoEm:
+      data.previsaoInicioExecucaoEm == null ? null : String(data.previsaoInicioExecucaoEm),
+    prazoInicioExecucaoDias:
+      data.prazoInicioExecucaoDias == null ? null : Number(data.prazoInicioExecucaoDias),
     previsaoConclusaoEm: data.previsaoConclusaoEm == null ? null : String(data.previsaoConclusaoEm),
     prazoConclusaoDias: data.prazoConclusaoDias == null ? null : Number(data.prazoConclusaoDias),
     diasRestantes: data.diasRestantes == null ? null : Number(data.diasRestantes),

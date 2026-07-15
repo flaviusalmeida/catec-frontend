@@ -51,7 +51,7 @@ const CARD_DEFS: CardDef[] = [
     key: 'atrasados',
     faixaPrazo: 'ATRASADO',
     title: 'Atrasados',
-    subtitle: 'Previsão de conclusão vencida',
+    subtitle: 'Prazo ativo vencido (início ou conclusão)',
     avatarIcon: 'tabler-alert-triangle',
     color: 'error'
   },
@@ -59,7 +59,7 @@ const CARD_DEFS: CardDef[] = [
     key: 'criticos7Dias',
     faixaPrazo: 'CRITICO',
     title: 'Críticos (≤7 dias)',
-    subtitle: 'Entrega prevista em até 7 dias',
+    subtitle: 'Prazo ativo em até 7 dias',
     avatarIcon: 'tabler-clock-exclamation',
     color: 'warning'
   },
@@ -67,7 +67,7 @@ const CARD_DEFS: CardDef[] = [
     key: 'atencao15Dias',
     faixaPrazo: 'ATENCAO',
     title: 'Atenção (8–15 dias)',
-    subtitle: 'Entrega prevista em até 15 dias',
+    subtitle: 'Prazo ativo em 8 a 15 dias',
     avatarIcon: 'tabler-clock',
     color: 'warning'
   },
@@ -75,7 +75,7 @@ const CARD_DEFS: CardDef[] = [
     key: 'semPrevisao',
     faixaPrazo: 'SEM_PREVISAO',
     title: 'Sem previsão',
-    subtitle: 'Aguardando execução sem data de conclusão',
+    subtitle: 'Sem data do prazo ativo na fase atual',
     avatarIcon: 'tabler-calendar-question',
     color: 'info'
   }

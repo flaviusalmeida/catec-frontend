@@ -17,8 +17,8 @@ const ProjetoMetaItensGrid = ({ itens }: Props) => {
   return (
     <div className='flex flex-col gap-1'>
       {itens.map(item => (
-        <div key={item.label} className='flex items-baseline gap-3 min-is-0'>
-          <Typography variant='caption' color='text.secondary' className='shrink-0 min-is-[7.5rem]'>
+        <div key={`${item.label}-${item.value}`} className='flex items-baseline gap-3 min-is-0'>
+          <Typography variant='caption' color='text.secondary' className='shrink-0 min-is-[10.5rem]'>
             {item.label}
           </Typography>
           <Typography variant='caption' color='text.primary' className='font-medium truncate'>
