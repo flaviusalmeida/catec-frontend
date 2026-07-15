@@ -1,5 +1,7 @@
 'use client'
 
+import Link from 'next/link'
+
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import Grid from '@mui/material/Grid'
@@ -14,8 +16,6 @@ import { corPainelProjetoStatus } from '@/utils/catec/projetoStatusCores'
 
 type Props = {
   painel: CatecProjetoPainel
-  statusSelecionado: CatecProjetoStatus | null
-  onStatusClick: (status: CatecProjetoStatus | null) => void
   compact?: boolean
 }
 
@@ -34,45 +34,33 @@ const ICON_POR_STATUS: Record<CatecProjetoStatus, string> = {
   FINALIZADO: 'tabler-circle-check'
 }
 
-const PainelKpiCards = ({ painel, statusSelecionado, onStatusClick, compact = false }: Props) => {
+const PainelKpiCards = ({ painel, compact = false }: Props) => {
   return (
     <Grid container spacing={compact ? 3 : 6}>
       {ORDEM_STATUS_PROJETO.map(status => {
         const total = painel.totais.porStatus[status] ?? 0
-        const selecionado = statusSelecionado === status
         const cores = corPainelProjetoStatus(status)
+        const rotulo = STATUS_PROJETO_ROTULO_BADGE[status]
 
         return (
           <Grid key={status} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
-            <div
-              className={selecionado ? 'ring-2 ring-primary rounded-md' : undefined}
-              onClick={() => onStatusClick(selecionado ? null : status)}
-              onKeyDown={e => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault()
-                  onStatusClick(selecionado ? null : status)
-                }
-              }}
-              role='button'
-              tabIndex={0}
-              style={{ cursor: 'pointer' }}
+            <Link
+              href={`/catec/projetos?status=${status}`}
+              className='block text-inherit no-underline'
+              aria-label={`Ver projetos: ${rotulo}`}
             >
-              <Card>
+              <Card sx={{ cursor: 'pointer', height: '100%' }}>
                 <CardContent className={compact ? 'flex justify-between gap-1 !py-3 last:pb-3' : 'flex justify-between gap-1'}>
                   <div className='flex grow flex-col gap-1'>
-                    <Typography color='text.primary'>{STATUS_PROJETO_ROTULO_BADGE[status]}</Typography>
+                    <Typography color='text.primary'>{rotulo}</Typography>
                     <Typography variant='h4'>{total}</Typography>
                   </div>
-                  <CustomAvatar
-                    variant='rounded'
-                    size={42}
-                    sx={{ bgcolor: cores.light, color: cores.main }}
-                  >
+                  <CustomAvatar variant='rounded' size={42} sx={{ bgcolor: cores.light, color: cores.main }}>
                     <i className={classnames(ICON_POR_STATUS[status], 'text-[26px]')} />
                   </CustomAvatar>
                 </CardContent>
               </Card>
-            </div>
+            </Link>
           </Grid>
         )
       })}
