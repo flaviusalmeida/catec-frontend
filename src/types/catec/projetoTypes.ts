@@ -196,6 +196,7 @@ export function parseCatecProjetoPainel(raw: unknown): CatecProjetoPainel {
   }
 
   const projetos = Array.isArray(data.projetos) ? data.projetos.map(parsePainelItem) : []
+
   const projetosPrazoProximo = Array.isArray(data.projetosPrazoProximo)
     ? data.projetosPrazoProximo.map(parsePainelItem)
     : []

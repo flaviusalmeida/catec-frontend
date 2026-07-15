@@ -44,6 +44,7 @@ const SEMANTICA_PROJETO: Record<CatecProjetoStatus, FluxoStatusSemantica> = {
 const SEMANTICA_PROPOSTA: Record<CatecPropostaStatus, FluxoStatusSemantica> = {
   RASCUNHO: 'neutro',
   PENDENTE_AVALIACAO: 'aguardandoAcao',
+
   /** Parecer positivo do sócio — marco concluído; próximo passo é envio ao cliente. */
   AGUARDANDO_ENVIO: 'concluidoSucesso',
   ENVIADA_AO_CLIENTE: 'emAndamento',

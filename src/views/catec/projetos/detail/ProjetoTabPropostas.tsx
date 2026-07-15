@@ -15,15 +15,17 @@ import Typography from '@mui/material/Typography'
 import { toast } from 'react-toastify'
 
 import type { CatecProjeto } from '@/types/catec/projetoTypes'
-import type { CatecPropostaWorkflowActionKey } from '@/types/catec/projetoFluxoTypes'
+import type {
+  CatecPropostaWorkflowActionKey,
+  CatecTipoInteracaoFluxo
+} from '@/types/catec/projetoFluxoTypes'
 import {
   STATUS_PROPOSTA_ENVIADA,
   STATUS_PROPOSTA_RESPOSTA_CLIENTE,
   STATUS_PROPOSTA_ROTULO,
   STATUS_PROPOSTA_UPLOAD,
   TIPO_INTERACAO_ROTULO_PROPOSTA,
-  propostaAguardandoEnvioAoCliente,
-  type CatecTipoInteracaoFluxo
+  propostaAguardandoEnvioAoCliente
 } from '@/types/catec/projetoFluxoTypes'
 
 import { downloadDocumentoCatec } from '@/utils/catec/downloadDocumento'
@@ -64,6 +66,7 @@ const ProjetoTabPropostas = ({ projeto, fluxo }: Props) => {
 
   const documentoAtual = propostaAtual?.documentos[0] ?? null
   const temAnexo = Boolean(documentoAtual)
+
   const temPropostaAtiva = data.propostas.some(
     p =>
       p.status === 'RASCUNHO' ||
@@ -98,6 +101,7 @@ const ProjetoTabPropostas = ({ projeto, fluxo }: Props) => {
     propostaAtual != null && STATUS_PROPOSTA_UPLOAD.includes(propostaAtual.status)
 
   const mostrarUpload = projetoTemCliente && (podeUploadExistente || podeIniciarProposta)
+
   const mostrarUploadCard =
     mostrarUpload &&
     (propostaAtual == null ||

@@ -28,7 +28,7 @@ import { downloadDocumentoCatec } from '@/utils/catec/downloadDocumento'
 import { useCatecPermission } from '@/hooks/useCatecPermission'
 import { PermissaoCodigo } from '@/types/catec/permissao'
 
-import { formatarDataCurta, projetoPermiteEditarContrato, projetoPermiteVisualizarContrato } from '../projetoFluxoHelpers'
+import { projetoPermiteEditarContrato, projetoPermiteVisualizarContrato } from '../projetoFluxoHelpers'
 import ContratoStatusBadge from '../ContratoStatusBadge'
 import type { UseProjetoFluxoStore } from '../useProjetoFluxoStore'
 import { buildContratoDocumentoMetaItens, metaDocumentoResumo } from './contratoDocumentoHelpers'
@@ -50,6 +50,7 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
   const { hasPermission } = useCatecPermission()
   const [dialogInteracaoCliente, setDialogInteracaoCliente] = useState<DialogInteracaoCliente>(null)
   const [textoInteracaoCliente, setTextoInteracaoCliente] = useState('')
+
   const [prazoConclusaoDias, setPrazoConclusaoDias] = useState(
     projeto.prazoConclusaoDias != null ? String(projeto.prazoConclusaoDias) : ''
   )
@@ -163,6 +164,7 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
   }
 
   const podeIniciarContrato = podeEditarContrato && !contrato
+
   const podeUploadExistente =
     podeEditarContrato && contrato != null && STATUS_CONTRATO_UPLOAD.includes(contrato.status)
 

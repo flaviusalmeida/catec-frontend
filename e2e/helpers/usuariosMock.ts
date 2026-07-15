@@ -50,7 +50,9 @@ export async function mockUsuariosApi(page: Page, { usuarios, onResetSenha }: Op
         telefone: string | null
         grupos: string[]
       }
+
       const agora = new Date().toISOString()
+
       const novo: UsuarioMock = {
         id: usuarios.length + 1,
         nome: body.nome,
@@ -107,6 +109,7 @@ export async function mockUsuariosApi(page: Page, { usuarios, onResetSenha }: Op
 
     if (idx < 0) {
       await route.fulfill({ status: 404 })
+
       return
     }
 

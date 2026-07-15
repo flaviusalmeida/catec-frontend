@@ -5,6 +5,7 @@ import { mockUsuariosApi, type UsuarioMock } from './helpers/usuariosMock'
 
 test('crud funcional básico na tela de usuários', async ({ page }) => {
   const agora = '2026-04-20T00:00:00Z'
+
   const usuarios: UsuarioMock[] = [
     {
       id: 1,

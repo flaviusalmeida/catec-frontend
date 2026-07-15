@@ -42,6 +42,7 @@ export function itemSemPrevisao(item: CatecProjetoPainelItem): boolean {
 export function itemPassaFiltroPrazo(item: CatecProjetoPainelItem, faixa: FaixaFiltroPrazo): boolean {
   if (!faixa) return true
   if (faixa === 'SEM_PREVISAO') return itemSemPrevisao(item)
+
   return item.alertaPrazo === faixa
 }
 
@@ -49,6 +50,7 @@ export function corProgressoPrazo(item: CatecProjetoPainelItem): ThemeColor {
   if (item.alertaPrazo === 'ATRASADO') return 'error'
   if (item.alertaPrazo === 'CRITICO') return 'warning'
   if (item.alertaPrazo === 'ATENCAO') return 'warning'
+
   return 'success'
 }
 

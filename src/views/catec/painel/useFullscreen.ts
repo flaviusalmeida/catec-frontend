@@ -23,6 +23,7 @@ export function useFullscreen<T extends HTMLElement>() {
 
     if (document.fullscreenElement === el) {
       await document.exitFullscreen()
+
       return
     }
 

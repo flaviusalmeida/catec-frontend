@@ -61,6 +61,7 @@ const ProjetoEncerrarStatus = ({ projeto, onStatusAlterado }: Props) => {
     PermissaoCodigo.ACAO_CLIENTE_CRIAR,
     PermissaoCodigo.ACAO_SOCIO_PROPOSTA_APROVAR
   ])
+
   const podeAlterarStatus =
     temPermissao && isStatusComBotao(projeto.status)
 

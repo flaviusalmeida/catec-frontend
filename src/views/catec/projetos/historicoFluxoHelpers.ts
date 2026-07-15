@@ -39,12 +39,14 @@ function tituloAcaoAuditoria(acao: string, tipoEntidade: string): string {
     case 'CRIAR':
       if (ent === 'CONTRATO') return 'Contrato criado'
       if (ent === 'PROPOSTA') return 'Proposta comercial iniciada'
+
       return 'Projeto criado'
     case 'SINCRONIZAR_PROPOSTA':
     case 'ATUALIZACAO_MANUAL_STATUS':
       return 'Status atualizado'
     case 'ENVIAR_CLIENTE':
       if (ent === 'CONTRATO') return 'Contrato enviado ao cliente'
+
       return 'Proposta enviada ao cliente'
     case 'SUBMETER_AVALIACAO_SOCIO':
       return 'Proposta enviada para revisão'
@@ -153,6 +155,7 @@ function iconeRegistroInteracao(acao: string, tipoEntidade: string): string | nu
 
   return iconeInteracao(tipo, tipoEntidade)
 }
+
 export function iconeHistoricoItem(item: CatecHistoricoFluxoItem): string {
   if (item.origem === 'INTERACAO' && item.tipoInteracao) {
     return iconeInteracao(item.tipoInteracao, item.tipoEntidade)

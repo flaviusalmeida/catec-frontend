@@ -20,6 +20,7 @@ export async function aprovarPropostaSocioCatec(
     method: 'POST',
     body: JSON.stringify(body)
   })
+
   const data = await readCatecJsonBody(res)
 
   assertCatecOk(res, data, 'Não foi possível aprovar a proposta.')
@@ -33,6 +34,7 @@ export async function devolverPropostaSocioCatec(
     method: 'POST',
     body: JSON.stringify(body)
   })
+
   const data = await readCatecJsonBody(res)
 
   assertCatecOk(res, data, 'Não foi possível reprovar a proposta.')

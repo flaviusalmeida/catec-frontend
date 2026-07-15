@@ -5,6 +5,7 @@ import { mockUsuariosApi, type UsuarioMock } from './helpers/usuariosMock'
 
 test('modal de reset: cancelar não chama endpoint e confirmar chama', async ({ page }) => {
   const agora = '2026-04-20T00:00:00Z'
+
   const usuarios: UsuarioMock[] = [
     {
       id: 1,

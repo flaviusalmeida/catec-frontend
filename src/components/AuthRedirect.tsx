@@ -12,6 +12,7 @@ const AuthRedirect = () => {
 
   useEffect(() => {
     const safePath = stripLocalePrefix(pathname)
+
     router.replace(getCatecLoginUrl(safePath === '/login' ? undefined : safePath))
   }, [pathname, router])
 
