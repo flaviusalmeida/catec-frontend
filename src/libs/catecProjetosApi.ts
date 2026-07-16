@@ -106,6 +106,13 @@ export async function atualizarProjetoCatec(id: number, body: CatecProjetoUpdate
   return parseCatecProjeto(data)
 }
 
+export async function excluirProjetoCatec(id: number): Promise<void> {
+  const res = await catecApiFetch(`/api/v1/projetos/${id}`, { method: 'DELETE' })
+  const data = await readCatecJsonBody(res)
+
+  assertCatecOk(res, data, 'Não foi possível excluir o projeto.')
+}
+
 export async function associarClienteProjetoCatec(id: number, clienteId: number): Promise<CatecProjeto> {
   const res = await catecApiFetch(`/api/v1/projetos/${id}/cliente`, {
     method: 'PUT',

@@ -1,5 +1,7 @@
 'use client'
 
+import { useState } from 'react'
+
 import Link from 'next/link'
 
 import Button from '@mui/material/Button'
@@ -8,6 +10,8 @@ import CardContent from '@mui/material/CardContent'
 import Divider from '@mui/material/Divider'
 import Typography from '@mui/material/Typography'
 
+import { useCatecPermission } from '@/hooks/useCatecPermission'
+import { PermissaoCodigo } from '@/types/catec/permissao'
 import type { CatecProjeto } from '@/types/catec/projetoTypes'
 import { STATUS_PROJETO_ROTULO } from '@/types/catec/projetoTypes'
 
@@ -17,6 +21,7 @@ import { getInitials } from '@/utils/getInitials'
 
 import ProjetoStatusBadge from '../ProjetoStatusBadge'
 import { formatarDataCurta } from '../projetoFluxoHelpers'
+import ProjetoEditDialog from './ProjetoEditDialog'
 import ProjetoEncerrarStatus from './ProjetoEncerrarStatus'
 
 type Props = {
@@ -36,7 +41,23 @@ function DetalheCampo({ label, children }: { label: string; children: React.Reac
 }
 
 const ProjetoDetails = ({ projeto, onStatusAlterado }: Props) => {
-  
+  const { hasPermission, hasAnyPermission } = useCatecPermission()
+  const [editOpen, setEditOpen] = useState(false)
+
+  const encerrado = projeto.status === 'FINALIZADO' || projeto.status === 'CANCELADO'
+
+  const podeEditar =
+    !encerrado &&
+    hasAnyPermission([
+      PermissaoCodigo.ACAO_PROJETO_EDITAR,
+      PermissaoCodigo.ACAO_PROJETO_ASSOCIAR_CLIENTE
+    ])
+
+  // Fora da pendência de cliente, só o administrativo pode trocar o cliente do projeto.
+  const podeAlterarCliente =
+    projeto.status === 'PENDENTE_CLIENTE'
+      ? hasPermission(PermissaoCodigo.ACAO_PROJETO_ASSOCIAR_CLIENTE)
+      : hasPermission(PermissaoCodigo.ACAO_CLIENTE_CRIAR)
 
   return (
     <Card>
@@ -119,7 +140,7 @@ const ProjetoDetails = ({ projeto, onStatusAlterado }: Props) => {
             </div>
           </div>
 
-          <div className='flex gap-4 justify-center'>
+          <div className='flex gap-4 justify-center flex-wrap'>
           <Button
             variant='tonal'
             color='secondary'
@@ -129,9 +150,28 @@ const ProjetoDetails = ({ projeto, onStatusAlterado }: Props) => {
           >
             Voltar à lista
           </Button>
+          {podeEditar ? (
+            <Button
+              variant='contained'
+              onClick={() => setEditOpen(true)}
+              startIcon={<i className='tabler-edit' />}
+            >
+              Editar projeto
+            </Button>
+          ) : null}
           </div>
         </div>
       </CardContent>
+
+      {podeEditar ? (
+        <ProjetoEditDialog
+          projeto={projeto}
+          open={editOpen}
+          onClose={() => setEditOpen(false)}
+          onSalvo={onStatusAlterado}
+          podeAlterarCliente={podeAlterarCliente}
+        />
+      ) : null}
     </Card>
   )
 }

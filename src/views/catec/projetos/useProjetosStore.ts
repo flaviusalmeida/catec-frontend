@@ -6,6 +6,7 @@ import {
   associarClienteProjetoCatec,
   atualizarProjetoCatec,
   criarProjetoCatec,
+  excluirProjetoCatec,
   listarProjetosCatec,
   obterProjetoCatec,
   obterProjetosResumoCatec
@@ -129,6 +130,14 @@ async function associarClienteStore(id: number, clienteId: number): Promise<Cate
   return atualizado
 }
 
+async function removeProjetoStore(id: number): Promise<void> {
+  await excluirProjetoCatec(id)
+
+  setState({ lista: state.lista.filter(p => p.id !== id) })
+
+  void carregarStore()
+}
+
 async function refreshProjetoStore(id: number): Promise<CatecProjeto | null> {
   try {
     const projeto = await obterProjetoCatec(id)
@@ -192,6 +201,8 @@ export function useProjetosStore() {
     []
   )
 
+  const removeProjeto = useCallback(async (id: number) => removeProjetoStore(id), [])
+
   const obterProjeto = useCallback(async (id: number) => obterProjetoStore(id), [])
 
   const refreshProjeto = useCallback(async (id: number) => refreshProjetoStore(id), [])
@@ -206,6 +217,7 @@ export function useProjetosStore() {
     updateProjeto,
     atualizarStatusProjeto,
     associarCliente,
+    removeProjeto,
     obterProjeto,
     refreshProjeto
   }
