@@ -141,15 +141,6 @@ const ProjetoDetails = ({ projeto, onStatusAlterado }: Props) => {
           </div>
 
           <div className='flex gap-4 justify-center flex-wrap'>
-          {podeEditar ? (
-            <Button
-              variant='contained'
-              onClick={() => setEditOpen(true)}
-              startIcon={<i className='tabler-edit' />}
-            >
-              Editar projeto
-            </Button>
-          ) : null}
           <Button
             variant='tonal'
             color='secondary'
@@ -159,6 +150,15 @@ const ProjetoDetails = ({ projeto, onStatusAlterado }: Props) => {
           >
             Voltar à lista
           </Button>
+          {podeEditar ? (
+            <Button
+              variant='contained'
+              onClick={() => setEditOpen(true)}
+              startIcon={<i className='tabler-edit' />}
+            >
+              Editar projeto
+            </Button>
+          ) : null}
           </div>
         </div>
       </CardContent>

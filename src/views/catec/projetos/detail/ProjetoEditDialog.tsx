@@ -2,11 +2,14 @@
 
 import { useEffect, useMemo, useState } from 'react'
 
+import { useRouter } from 'next/navigation'
+
 import Button from '@mui/material/Button'
 import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
 import DialogTitle from '@mui/material/DialogTitle'
+import Typography from '@mui/material/Typography'
 import { toast } from 'react-toastify'
 
 import type { CatecCliente } from '@/types/catec/clienteTypes'
@@ -27,8 +30,9 @@ type Props = {
 }
 
 const ProjetoEditDialog = ({ projeto, open, onClose, onSalvo, podeAlterarCliente }: Props) => {
+  const router = useRouter()
   const { lista: clientes } = useClientesStore()
-  const { updateProjeto, associarCliente } = useProjetosStore()
+  const { updateProjeto, associarCliente, removeProjeto } = useProjetosStore()
 
   const pendenteCliente = projeto.status === 'PENDENTE_CLIENTE'
 
@@ -41,6 +45,8 @@ const ProjetoEditDialog = ({ projeto, open, onClose, onSalvo, podeAlterarCliente
   const [titulo, setTitulo] = useState('')
   const [escopo, setEscopo] = useState('')
   const [salvando, setSalvando] = useState(false)
+  const [confirmandoExclusao, setConfirmandoExclusao] = useState(false)
+  const [excluindo, setExcluindo] = useState(false)
 
   useEffect(() => {
     if (!open) return
@@ -48,12 +54,26 @@ const ProjetoEditDialog = ({ projeto, open, onClose, onSalvo, podeAlterarCliente
     setClienteSelecionado(clienteAtual)
     setTitulo(projeto.titulo)
     setEscopo(projeto.escopo)
+    setConfirmandoExclusao(false)
   }, [open, projeto, clienteAtual])
 
   function handleClose() {
-    if (salvando) return
+    if (salvando || excluindo) return
 
     onClose()
+  }
+
+  async function handleExcluir() {
+    setExcluindo(true)
+
+    try {
+      await removeProjeto(projeto.id)
+      toast.success('Projeto excluído.')
+      router.push('/catec/projetos')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Não foi possível excluir o projeto.')
+      setExcluindo(false)
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -127,7 +147,8 @@ const ProjetoEditDialog = ({ projeto, open, onClose, onSalvo, podeAlterarCliente
   }
 
   return (
-    <Dialog open={open} onClose={handleClose} fullWidth maxWidth='sm'>
+    <>
+    <Dialog open={open && !confirmandoExclusao} onClose={handleClose} fullWidth maxWidth='sm'>
       <DialogTitle>Editar projeto</DialogTitle>
       <form onSubmit={e => void handleSubmit(e)}>
         <DialogContent className='flex flex-col gap-6'>
@@ -190,16 +211,57 @@ const ProjetoEditDialog = ({ projeto, open, onClose, onSalvo, podeAlterarCliente
             disabled={salvando}
           />
         </DialogContent>
-        <DialogActions>
-          <Button variant='tonal' color='secondary' type='button' onClick={handleClose} disabled={salvando}>
-            Cancelar
+        <DialogActions className='justify-between'>
+          <Button
+            variant='tonal'
+            color='error'
+            type='button'
+            onClick={() => setConfirmandoExclusao(true)}
+            disabled={salvando}
+            startIcon={<i className='tabler-trash' />}
+          >
+            Excluir
           </Button>
-          <Button variant='contained' type='submit' disabled={salvando}>
-            {salvando ? 'Salvando…' : 'Salvar'}
-          </Button>
+          <div className='flex gap-4'>
+            <Button variant='tonal' color='secondary' type='button' onClick={handleClose} disabled={salvando}>
+              Cancelar
+            </Button>
+            <Button variant='contained' type='submit' disabled={salvando}>
+              {salvando ? 'Salvando…' : 'Salvar'}
+            </Button>
+          </div>
         </DialogActions>
       </form>
     </Dialog>
+
+    <Dialog
+      open={open && confirmandoExclusao}
+      onClose={() => !excluindo && setConfirmandoExclusao(false)}
+      fullWidth
+      maxWidth='xs'
+    >
+      <DialogTitle>Excluir projeto</DialogTitle>
+      <DialogContent>
+        <Typography>
+          Deseja excluir o projeto <strong>{projeto.titulo}</strong>? Ele deixará de aparecer nas listagens e nas
+          métricas do painel.
+        </Typography>
+      </DialogContent>
+      <DialogActions>
+        <Button
+          variant='tonal'
+          color='secondary'
+          onClick={() => setConfirmandoExclusao(false)}
+          disabled={excluindo}
+        >
+          Voltar
+        </Button>
+        <Button variant='contained' color='error' onClick={() => void handleExcluir()} disabled={excluindo}>
+          {excluindo ? 'Excluindo…' : 'Excluir'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+    </>
   )
 }
 
