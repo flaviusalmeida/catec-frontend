@@ -82,8 +82,7 @@ async function addClienteStore(body: CatecClienteRequest): Promise<CatecCliente>
 }
 
 async function updateClienteStore(id: number, patch: Partial<CatecCliente>): Promise<CatecCliente> {
-  const atual = state.lista.find(c => c.id === id)
-  const base = atual ?? (await obterClienteCatec(id))
+  const base = await obterClienteCatec(id)
   const merged = { ...base, ...patch }
   const atualizado = await atualizarClienteCatec(id, clienteToRequest(merged))
 
@@ -104,16 +103,13 @@ async function removeClienteStore(id: number): Promise<void> {
 }
 
 async function obterClienteStore(id: number): Promise<CatecCliente | null> {
-  const cached = state.lista.find(c => c.id === id)
-
-  if (cached) return cached
-
   try {
     const cliente = await obterClienteCatec(id)
+    const exists = state.lista.some(c => c.id === cliente.id)
 
-    if (!state.lista.some(c => c.id === cliente.id)) {
-      setState({ lista: [...state.lista, cliente] })
-    }
+    setState({
+      lista: exists ? state.lista.map(c => (c.id === cliente.id ? cliente : c)) : [...state.lista, cliente]
+    })
 
     return cliente
   } catch {

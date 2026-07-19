@@ -22,9 +22,7 @@ type Props = {
 }
 
 const ClienteView = ({ id }: Props) => {
-  const { lista, carregando: storeCarregando, updateCliente, obterCliente } = useClientesStore()
-  
-
+  const { updateCliente, obterCliente } = useClientesStore()
   const [cliente, setCliente] = useState<CatecCliente | null>(null)
   const [carregando, setCarregando] = useState(true)
   const [naoEncontrado, setNaoEncontrado] = useState(false)
@@ -38,18 +36,6 @@ const ClienteView = ({ id }: Props) => {
 
       return
     }
-
-    const cached = lista.find(c => c.id === clienteId)
-
-    if (cached) {
-      setCliente(cached)
-      setNaoEncontrado(false)
-      setCarregando(false)
-
-      return
-    }
-
-    if (storeCarregando) return
 
     let cancelled = false
 
@@ -67,17 +53,9 @@ const ClienteView = ({ id }: Props) => {
     return () => {
       cancelled = true
     }
-  }, [clienteId, lista, storeCarregando, obterCliente])
+  }, [clienteId, obterCliente])
 
-  useEffect(() => {
-    if (!cliente) return
-
-    const atualizado = lista.find(c => c.id === cliente.id)
-
-    if (atualizado) setCliente(atualizado)
-  }, [lista, cliente?.id])
-
-  if (carregando || storeCarregando) {
+  if (carregando) {
     return (
       <div className='flex justify-center p-12'>
         <CircularProgress />
@@ -89,11 +67,7 @@ const ClienteView = ({ id }: Props) => {
     return (
       <div className='flex flex-col items-center gap-4 p-12'>
         <Typography variant='h5'>Cliente não encontrado</Typography>
-        <Button
-          variant='contained'
-          component={Link}
-          href={'/catec/clientes'}
-        >
+        <Button variant='contained' component={Link} href={'/catec/clientes'}>
           Voltar à lista
         </Button>
       </div>
