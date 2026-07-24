@@ -7,6 +7,9 @@ import { useRouter } from 'next/navigation'
 import Avatar from '@mui/material/Avatar'
 import Button from '@mui/material/Button'
 import Dialog from '@mui/material/Dialog'
+import DialogActions from '@mui/material/DialogActions'
+import DialogContent from '@mui/material/DialogContent'
+import DialogTitle from '@mui/material/DialogTitle'
 import IconButton from '@mui/material/IconButton'
 import Menu from '@mui/material/Menu'
 import MenuItem from '@mui/material/MenuItem'
@@ -155,6 +158,7 @@ const AtividadeDrawer = ({
   const [prazo, setPrazo] = useState('')
   const [usuarios, setUsuarios] = useState<CatecAdminUsuario[]>([])
   const [salvando, setSalvando] = useState(false)
+  const [confirmandoExclusao, setConfirmandoExclusao] = useState(false)
   const [filhaTitulo, setFilhaTitulo] = useState('')
   const [criandoFilha, setCriandoFilha] = useState(false)
   const [mostrandoFilha, setMostrandoFilha] = useState(false)
@@ -214,6 +218,7 @@ const AtividadeDrawer = ({
     setMostrandoFilha(false)
     setEditandoResponsavel(false)
     setEditandoPrazo(false)
+    setConfirmandoExclusao(false)
   }, [atividade])
 
   useEffect(() => {
@@ -407,13 +412,12 @@ const AtividadeDrawer = ({
   const handleDelete = async () => {
     if (!atividade || !podeExcluir) return
 
-    if (!window.confirm('Excluir esta atividade?')) return
-
     setSalvando(true)
 
     try {
       await onDelete(atividade.id)
       toast.success('Atividade excluída.')
+      setConfirmandoExclusao(false)
       onClose()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Não foi possível excluir a atividade.')
@@ -1049,7 +1053,7 @@ const AtividadeDrawer = ({
                     <button
                       type='button'
                       className={styles.detalheExcluir}
-                      onClick={handleDelete}
+                      onClick={() => setConfirmandoExclusao(true)}
                       disabled={salvando}
                     >
                       Excluir atividade
@@ -1061,6 +1065,33 @@ const AtividadeDrawer = ({
           </div>
         </div>
       ) : null}
+
+      <Dialog
+        open={open && confirmandoExclusao && atividade != null}
+        onClose={() => !salvando && setConfirmandoExclusao(false)}
+        fullWidth
+        maxWidth='xs'
+      >
+        <DialogTitle>Excluir atividade</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Deseja excluir a atividade <strong>{atividade?.titulo}</strong>? Ela será removida do board.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            variant='tonal'
+            color='secondary'
+            onClick={() => setConfirmandoExclusao(false)}
+            disabled={salvando}
+          >
+            Voltar
+          </Button>
+          <Button variant='contained' color='error' onClick={() => void handleDelete()} disabled={salvando}>
+            {salvando ? 'Excluindo…' : 'Excluir'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Dialog>
   )
 }
