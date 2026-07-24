@@ -57,7 +57,7 @@ const AtividadeNovaNaColuna = ({ onAdd, disabled }: Props) => {
         className='flex items-center gap-1 cursor-pointer'
       >
         <i className='tabler-plus text-base' />
-        <span>Adicionar novo item</span>
+        <span>Nova atividade</span>
       </Typography>
       {aberto ? (
         <form className='flex flex-col gap-4 min-is-[16.5rem]' onSubmit={handleSubmit}>

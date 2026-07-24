@@ -107,7 +107,7 @@ const AtividadeColuna = ({
               className='flex items-center gap-1 cursor-pointer'
             >
               <i className='tabler-plus text-base' />
-              <span>Adicionar novo item</span>
+              <span>Nova atividade</span>
             </Typography>
           )}
         </div>
