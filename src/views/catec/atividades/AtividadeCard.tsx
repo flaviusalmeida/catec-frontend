@@ -1,5 +1,7 @@
 'use client'
 
+import { useMemo } from 'react'
+
 import Chip from '@mui/material/Chip'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
@@ -12,6 +14,7 @@ import classnames from 'classnames'
 import type { CatecAtividade } from '@/types/catec/atividadeTypes'
 import { PRIORIDADE_ATIVIDADE_COR, PRIORIDADE_ATIVIDADE_ROTULO } from '@/types/catec/atividadeTypes'
 
+import { useAtividadesStore } from './useAtividadesStore'
 import styles from './styles.module.css'
 
 type Props = {
@@ -30,7 +33,19 @@ function iniciais(nome: string): string {
   return `${partes[0][0]}${partes[partes.length - 1][0]}`.toUpperCase()
 }
 
-function formatarPrazo(iso: string): string {
+function formatarPrazoCurto(iso: string): string {
+  const d = new Date(iso)
+
+  if (Number.isNaN(d.getTime())) return ''
+
+  const dia = String(d.getDate()).padStart(2, '0')
+  const mes = String(d.getMonth() + 1).padStart(2, '0')
+  const ano = String(d.getFullYear()).slice(-2)
+
+  return `${dia}/${mes}/${ano}`
+}
+
+function formatarPrazoTooltip(iso: string): string {
   return new Date(iso).toLocaleDateString('pt-BR', {
     day: 'numeric',
     month: 'short',
@@ -46,7 +61,22 @@ function prioridadeIcone(prioridade: CatecAtividade['prioridade']): string {
 }
 
 const AtividadeCard = ({ atividade, onOpen, podeMover }: Props) => {
-  const prazo = atividade.prazoEm ? formatarPrazo(atividade.prazoEm) : null
+  const { board } = useAtividadesStore()
+  const prazo = atividade.prazoEm ? formatarPrazoCurto(atividade.prazoEm) : null
+  const prazoTooltip = atividade.prazoEm ? formatarPrazoTooltip(atividade.prazoEm) : null
+
+  const progresso = useMemo(() => {
+    if (atividade.nivel !== 1) return null
+
+    const filhas = board.flatMap(coluna => coluna.atividades).filter(item => item.paiId === atividade.id)
+
+    if (filhas.length === 0) return null
+
+    const concluidas = filhas.filter(f => f.status === 'CONCLUIDA').length
+    const percentual = Math.round((concluidas / filhas.length) * 100)
+
+    return { concluidas, total: filhas.length, percentual }
+  }, [board, atividade.id, atividade.nivel])
 
   return (
     <Card
@@ -63,30 +93,13 @@ const AtividadeCard = ({ atividade, onOpen, podeMover }: Props) => {
         </Typography>
 
         <Typography
-          color='text.primary'
           title={atividade.titulo}
-          className='is-full wrap-break-word font-medium line-clamp-2'
+          className={`is-full wrap-break-word line-clamp-2 ${styles.cardTitulo}`}
         >
           {atividade.titulo}
         </Typography>
 
-        {prazo ? (
-          <Tooltip title={`A ser entregue em ${prazo}`}>
-            <span
-              className={classnames(
-                'inline-flex items-center gap-1.5 rounded border border-solid px-2 py-0.5',
-                'border-divider text-textSecondary'
-              )}
-            >
-              <i className='tabler-calendar text-base' />
-              <Typography variant='caption' color='text.secondary' component='span'>
-                {prazo}
-              </Typography>
-            </span>
-          </Tooltip>
-        ) : null}
-
-        <div className='flex flex-wrap items-center gap-2 is-full'>
+        <div className={styles.cardMetaLinha}>
           <Chip
             variant='tonal'
             size='small'
@@ -98,7 +111,38 @@ const AtividadeCard = ({ atividade, onOpen, podeMover }: Props) => {
             }
             color={PRIORIDADE_ATIVIDADE_COR[atividade.prioridade]}
           />
+
+          {prazo && prazoTooltip ? (
+            <Tooltip title={`A ser entregue em ${prazoTooltip}`}>
+              <span className={styles.cardPrazo}>
+                <i className='tabler-calendar text-base' />
+                <Typography variant='caption' color='text.secondary' component='span'>
+                  {prazo}
+                </Typography>
+              </span>
+            </Tooltip>
+          ) : (
+            <span aria-hidden />
+          )}
         </div>
+
+        {progresso ? (
+          <div
+            className={styles.cardProgresso}
+            aria-label={`${progresso.percentual}% concluído (${progresso.concluidas}/${progresso.total} subatividades)`}
+            title={`${progresso.percentual}% · ${progresso.concluidas}/${progresso.total} subatividades concluídas`}
+          >
+            <div className={styles.cardProgressoBarra}>
+              <div
+                className={styles.cardProgressoPreenchimento}
+                style={{ width: `${progresso.percentual}%` }}
+              />
+            </div>
+            <span className={styles.cardProgressoTexto}>
+              {progresso.percentual}% ({progresso.concluidas}/{progresso.total})
+            </span>
+          </div>
+        ) : null}
 
         <div className='flex justify-between items-center gap-2 is-full'>
           <Typography variant='caption' color='text.secondary' className='font-medium leading-none'>
@@ -111,7 +155,13 @@ const AtividadeCard = ({ atividade, onOpen, podeMover }: Props) => {
                 {iniciais(atividade.responsavelNome)}
               </Avatar>
             </Tooltip>
-          ) : null}
+          ) : (
+            <Tooltip title='Não atribuído'>
+              <Avatar className={`bs-6 is-6 text-xs ${styles.avatarNaoAtribuido}`}>
+                <i className='tabler-user text-sm' />
+              </Avatar>
+            </Tooltip>
+          )}
         </div>
       </CardContent>
     </Card>

@@ -74,7 +74,7 @@ const AtividadeNovaDialog = ({ open, onClose, projetos, projetoIdFixo, statusIni
   }
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth='sm'>
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth='sm' transitionDuration={200}>
       <form onSubmit={handleSubmit}>
         <DialogTitle>Nova atividade</DialogTitle>
         <DialogContent className='flex flex-col gap-4 pt-2'>

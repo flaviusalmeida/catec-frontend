@@ -46,7 +46,10 @@ const AtividadeColuna = ({
   const [listaRef, lista, setLista] = useDragAndDrop<HTMLDivElement, CatecAtividade>(atividades, {
     group: 'atividades',
     plugins: [animations()],
-    draggable: el => podeMover && el.classList.contains('item-draggable')
+    draggable: el => podeMover && el.classList.contains('item-draggable'),
+    draggingClass: styles.cardDragging,
+    dropZoneParentClass: styles.columnDropTarget,
+    dragPlaceholderClass: styles.cardPlaceholder
   })
 
   useEffect(() => {

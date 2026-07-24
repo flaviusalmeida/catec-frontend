@@ -462,6 +462,7 @@ const AtividadeDrawer = ({
       fullWidth
       maxWidth='lg'
       scroll='body'
+      transitionDuration={200}
       PaperProps={{ className: styles.detalheDialog }}
     >
       {atividade ? (
