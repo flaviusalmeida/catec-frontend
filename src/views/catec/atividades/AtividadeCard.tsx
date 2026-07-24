@@ -38,6 +38,13 @@ function formatarPrazo(iso: string): string {
   })
 }
 
+function prioridadeIcone(prioridade: CatecAtividade['prioridade']): string {
+  if (prioridade === 'ALTA') return 'tabler-chevrons-up'
+  if (prioridade === 'BAIXA') return 'tabler-chevrons-down'
+
+  return 'tabler-equal'
+}
+
 const AtividadeCard = ({ atividade, onOpen, podeMover }: Props) => {
   const prazo = atividade.prazoEm ? formatarPrazo(atividade.prazoEm) : null
 
@@ -83,7 +90,12 @@ const AtividadeCard = ({ atividade, onOpen, podeMover }: Props) => {
           <Chip
             variant='tonal'
             size='small'
-            label={PRIORIDADE_ATIVIDADE_ROTULO[atividade.prioridade]}
+            label={
+              <span className='inline-flex items-center gap-1'>
+                <i className={`${prioridadeIcone(atividade.prioridade)} text-sm`} />
+                {PRIORIDADE_ATIVIDADE_ROTULO[atividade.prioridade]}
+              </span>
+            }
             color={PRIORIDADE_ATIVIDADE_COR[atividade.prioridade]}
           />
         </div>

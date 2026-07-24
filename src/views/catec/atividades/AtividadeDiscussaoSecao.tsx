@@ -121,7 +121,7 @@ const AtividadeDiscussaoSecao = ({ atividadeId, podeComentar, disabled = false }
     try {
       const criado = await criarComentarioAtividadeCatec(atividadeId, valor)
 
-      setComentarios(prev => [...prev, criado])
+      setComentarios(prev => [criado, ...prev])
       setTexto('')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Não foi possível adicionar o comentário.')
