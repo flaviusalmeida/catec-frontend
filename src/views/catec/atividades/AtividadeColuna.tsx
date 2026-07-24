@@ -9,7 +9,7 @@ import { animations } from '@formkit/drag-and-drop'
 import { useDragAndDrop } from '@formkit/drag-and-drop/react'
 import { toast } from 'react-toastify'
 
-import type { CatecAtividade, CatecAtividadeStatus } from '@/types/catec/atividadeTypes'
+import { ORDEM_STATUS_ATIVIDADE, type CatecAtividade, type CatecAtividadeStatus } from '@/types/catec/atividadeTypes'
 
 import AtividadeCard from './AtividadeCard'
 import AtividadeNovaNaColuna from './AtividadeNovaNaColuna'
@@ -28,6 +28,16 @@ type Props = {
   podeCriarNaColuna: boolean
 }
 
+/**
+ * FormKit só dispara onDragstart/onDragend na coluna de origem.
+ * Flag compartilhada para todas as colunas do board ignorarem sync/commit mid-drag.
+ */
+let boardArrastando = false
+
+function isStatusColuna(value: unknown): value is CatecAtividadeStatus {
+  return typeof value === 'string' && (ORDEM_STATUS_ATIVIDADE as string[]).includes(value)
+}
+
 const AtividadeColuna = ({
   status,
   rotulo,
@@ -41,37 +51,27 @@ const AtividadeColuna = ({
   podeCriarNaColuna
 }: Props) => {
   const processandoRef = useRef<Set<number>>(new Set())
-  const syncingRef = useRef(false)
+  const onMoverStatusRef = useRef(onMoverStatus)
+  const podeMoverRef = useRef(podeMover)
+  const statusRef = useRef(status)
 
-  const [listaRef, lista, setLista] = useDragAndDrop<HTMLDivElement, CatecAtividade>(atividades, {
-    group: 'atividades',
-    plugins: [animations()],
-    draggable: el => podeMover && el.classList.contains('item-draggable'),
-    draggingClass: styles.cardDragging,
-    dropZoneParentClass: styles.columnDropTarget,
-    dragPlaceholderClass: styles.cardPlaceholder
-  })
+  onMoverStatusRef.current = onMoverStatus
+  podeMoverRef.current = podeMover
+  statusRef.current = status
 
-  useEffect(() => {
-    syncingRef.current = true
-    setLista(atividades)
-    queueMicrotask(() => {
-      syncingRef.current = false
-    })
-  }, [atividades, setLista])
+  const commitMovimentos = (itens: CatecAtividade[], statusDestino: CatecAtividadeStatus) => {
+    if (!podeMoverRef.current) return
 
-  useEffect(() => {
-    if (syncingRef.current || !podeMover) return
+    for (let i = 0; i < itens.length; i++) {
+      const item = itens[i]
 
-    for (let i = 0; i < lista.length; i++) {
-      const item = lista[i]
-
-      if (!item || item.status === status) continue
+      if (!item || item.status === statusDestino) continue
       if (processandoRef.current.has(item.id)) continue
 
       processandoRef.current.add(item.id)
 
-      void onMoverStatus(item.id, status, i)
+      void onMoverStatusRef
+        .current(item.id, statusDestino, i)
         .catch(err => {
           toast.error(err instanceof Error ? err.message : 'Não foi possível mover a atividade.')
         })
@@ -79,7 +79,35 @@ const AtividadeColuna = ({
           processandoRef.current.delete(item.id)
         })
     }
-  }, [lista, status, onMoverStatus, podeMover])
+  }
+
+  const [listaRef, lista, setLista] = useDragAndDrop<HTMLDivElement, CatecAtividade>(atividades, {
+    group: 'atividades',
+    name: status,
+    plugins: [animations()],
+    draggable: el => podeMoverRef.current && el.classList.contains('item-draggable'),
+    draggingClass: styles.cardDragging,
+    dropZoneParentClass: styles.columnDropTarget,
+    dragPlaceholderClass: styles.cardPlaceholder,
+    onDragstart: () => {
+      boardArrastando = true
+    },
+    onDragend: data => {
+      boardArrastando = false
+
+      const statusDestino = isStatusColuna(data.parent.data.config.name)
+        ? data.parent.data.config.name
+        : statusRef.current
+
+      commitMovimentos(data.values as CatecAtividade[], statusDestino)
+    }
+  })
+
+  useEffect(() => {
+    if (boardArrastando) return
+
+    setLista(atividades)
+  }, [atividades, setLista])
 
   return (
     <div className={styles.column}>
