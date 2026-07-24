@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 
+import Avatar from '@mui/material/Avatar'
 import CircularProgress from '@mui/material/CircularProgress'
 import Typography from '@mui/material/Typography'
 import { toast } from 'react-toastify'
@@ -29,6 +30,16 @@ type Props = {
   disabled?: boolean
 }
 
+function iniciais(nome: string): string {
+  const partes = nome.trim().split(/\s+/).filter(Boolean)
+
+  if (partes.length === 0) return '?'
+
+  if (partes.length === 1) return partes[0].slice(0, 2).toUpperCase()
+
+  return `${partes[0][0]}${partes[partes.length - 1][0]}`.toUpperCase()
+}
+
 function formatarQuando(iso: string): string {
   const d = new Date(iso)
 
@@ -46,6 +57,7 @@ function formatarQuando(iso: string): string {
 const AtividadeDiscussaoSecao = ({ atividadeId, podeComentar, disabled = false }: Props) => {
   const { session, hasPermission } = useCatecPermission()
   const usuarioId = Number(session?.user?.id ?? 0)
+  const usuarioNome = session?.user?.name?.trim() || 'Você'
   const podeEditar = hasPermission(PermissaoCodigo.ACAO_ATIVIDADE_EDITAR)
 
   const [aba, setAba] = useState<Aba>('comentarios')
@@ -162,31 +174,36 @@ const AtividadeDiscussaoSecao = ({ atividadeId, podeComentar, disabled = false }
         <div className={styles.discussaoPainel} role='tabpanel'>
           {podeComentar ? (
             <div className={styles.comentarioComposer}>
-              <CustomTextField
-                fullWidth
-                multiline
-                minRows={2}
-                maxRows={6}
-                placeholder='Adicionar comentário...'
-                value={texto}
-                disabled={disabled || enviando}
-                onChange={e => setTexto(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-                    e.preventDefault()
-                    void handleEnviar()
-                  }
-                }}
-              />
-              <div className={styles.comentarioComposerAcoes}>
-                <button
-                  type='button'
-                  className={styles.comentarioEnviar}
-                  disabled={disabled || enviando || !texto.trim()}
-                  onClick={() => void handleEnviar()}
-                >
-                  {enviando ? 'Enviando…' : 'Comentar'}
-                </button>
+              <Avatar className={`${styles.comentarioAvatar} ${styles.avatarUsuario}`}>
+                {iniciais(usuarioNome)}
+              </Avatar>
+              <div className={styles.comentarioComposerCorpo}>
+                <CustomTextField
+                  fullWidth
+                  multiline
+                  minRows={2}
+                  maxRows={6}
+                  placeholder='Adicionar comentário...'
+                  value={texto}
+                  disabled={disabled || enviando}
+                  onChange={e => setTexto(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                      e.preventDefault()
+                      void handleEnviar()
+                    }
+                  }}
+                />
+                <div className={styles.comentarioComposerAcoes}>
+                  <button
+                    type='button'
+                    className={styles.comentarioEnviar}
+                    disabled={disabled || enviando || !texto.trim()}
+                    onClick={() => void handleEnviar()}
+                  >
+                    {enviando ? 'Enviando…' : 'Comentar'}
+                  </button>
+                </div>
               </div>
             </div>
           ) : null}
@@ -196,8 +213,8 @@ const AtividadeDiscussaoSecao = ({ atividadeId, podeComentar, disabled = false }
               <CircularProgress size={22} />
             </div>
           ) : comentarios.length === 0 ? (
-            <Typography variant='body2' color='text.disabled' className={styles.trabalhoVazio}>
-              Nenhum comentário
+            <Typography variant='body2' className={styles.trabalhoVazio}>
+              Nenhum comentário ainda.
             </Typography>
           ) : (
             <ul className={styles.comentarioLista}>
@@ -206,21 +223,26 @@ const AtividadeDiscussaoSecao = ({ atividadeId, podeComentar, disabled = false }
 
                 return (
                   <li key={comentario.id} className={styles.comentarioItem}>
-                    <div className={styles.comentarioCabecalho}>
-                      <span className={styles.comentarioAutor}>{comentario.criadoPorNome}</span>
-                      <span className={styles.comentarioQuando}>{formatarQuando(comentario.criadoEm)}</span>
+                    <Avatar className={`${styles.comentarioAvatar} ${styles.avatarUsuario}`}>
+                      {iniciais(comentario.criadoPorNome)}
+                    </Avatar>
+                    <div className={styles.comentarioConteudo}>
+                      <div className={styles.comentarioMeta}>
+                        <span className={styles.comentarioAutor}>{comentario.criadoPorNome}</span>
+                        <span className={styles.comentarioQuando}>{formatarQuando(comentario.criadoEm)}</span>
+                      </div>
+                      <p className={styles.comentarioTexto}>{comentario.texto}</p>
+                      {podeRemover ? (
+                        <button
+                          type='button'
+                          className={styles.comentarioRemover}
+                          disabled={disabled || removendoId === comentario.id}
+                          onClick={() => void handleRemover(comentario)}
+                        >
+                          Excluir
+                        </button>
+                      ) : null}
                     </div>
-                    <p className={styles.comentarioTexto}>{comentario.texto}</p>
-                    {podeRemover ? (
-                      <button
-                        type='button'
-                        className={styles.comentarioRemover}
-                        disabled={disabled || removendoId === comentario.id}
-                        onClick={() => void handleRemover(comentario)}
-                      >
-                        Excluir
-                      </button>
-                    ) : null}
                   </li>
                 )
               })}
@@ -234,7 +256,7 @@ const AtividadeDiscussaoSecao = ({ atividadeId, podeComentar, disabled = false }
               <CircularProgress size={22} />
             </div>
           ) : historico.length === 0 ? (
-            <Typography variant='body2' color='text.disabled' className={styles.trabalhoVazio}>
+            <Typography variant='body2' className={styles.trabalhoVazio}>
               Nenhum evento no histórico
             </Typography>
           ) : (

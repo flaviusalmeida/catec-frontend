@@ -193,8 +193,8 @@
 .detalheMain {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  padding: 0.5rem 1.75rem 1.5rem;
+  gap: 1.75rem;
+  padding: 0.5rem 1.75rem 1.75rem;
   overflow: auto;
   min-inline-size: 0;
 }
@@ -304,21 +304,22 @@
   letter-spacing: 0;
 }
 
-/* Rótulo do campo Descrição — estilo do heading de campo do Jira */
+/* Título padrão das seções da coluna principal (Descrição, Anexos, …) */
 .descricaoCampoTitulo {
   margin: 0 !important;
-  padding: 0 !important;
-  font-size: 0.875rem !important;
+  padding: 0 0 0.5rem !important;
+  font-size: 1rem !important;
   font-weight: 600 !important;
-  line-height: 1.35 !important;
-  color: #000 !important;
+  line-height: 1.25 !important;
+  color: #172b4d !important;
   letter-spacing: 0;
+  border-block-end: 1px solid #ebecf0;
 }
 
 .descricaoSecao {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.75rem;
   margin-block: 0;
 }
 
@@ -522,7 +523,7 @@
 .subatividadesSecao {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.75rem;
   margin-block: 0;
 }
 
@@ -747,7 +748,7 @@
 .trabalhoSecao {
   display: flex;
   flex-direction: column;
-  gap: 0.625rem;
+  gap: 0.75rem;
   margin-block: 0;
 }
 
@@ -759,6 +760,9 @@
 
 .trabalhoVazio {
   margin: 0 !important;
+  font-size: 0.875rem !important;
+  line-height: 1.45 !important;
+  color: #6b778c !important;
 }
 
 .trabalhoAdicionar {
@@ -869,21 +873,22 @@
 .discussaoAbas {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.125rem;
   border-block-end: 1px solid #ebecf0;
-  margin-block-end: 0.25rem;
+  padding-block-end: 0;
 }
 
 .discussaoAba,
 .discussaoAbaAtiva {
-  padding: 0.5rem 0.75rem;
+  padding: 0.35rem 0.75rem 0.5rem;
   border: none;
   border-block-end: 2px solid transparent;
   margin-block-end: -1px;
   background: none;
   font: inherit;
-  font-size: 0.875rem;
+  font-size: 1rem;
   font-weight: 600;
+  line-height: 1.25;
   color: #6b778c;
   cursor: pointer;
 }
@@ -900,11 +905,19 @@
 .discussaoPainel {
   display: flex;
   flex-direction: column;
-  gap: 0.875rem;
-  padding-block-start: 0.5rem;
+  gap: 1.25rem;
+  padding-block-start: 0.875rem;
 }
 
 .comentarioComposer {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.comentarioComposerCorpo {
+  flex: 1 1 auto;
+  min-inline-size: 0;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -943,48 +956,68 @@
   padding: 0;
   display: flex;
   flex-direction: column;
+  gap: 1.25rem;
 }
 
-.comentarioItem,
+.comentarioItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0;
+  border: none;
+}
+
 .historicoItem {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-  padding-block: 0.875rem;
-  border-block-end: 1px solid #ebecf0;
+  gap: 0.25rem;
+  padding-block: 0.75rem;
+  border-block-end: 1px solid #f0f1f2;
 }
 
-.comentarioItem:last-child,
 .historicoItem:last-child {
   border-block-end: none;
 }
 
-.comentarioCabecalho,
-.historicoCabecalho {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.75rem;
+.comentarioAvatar {
+  flex-shrink: 0;
+  inline-size: 2rem !important;
+  block-size: 2rem !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
 }
 
-.comentarioAutor,
-.historicoTitulo {
+.comentarioConteudo {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.comentarioMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+}
+
+.comentarioAutor {
   font-size: 0.875rem;
   font-weight: 700;
+  line-height: 1.3;
   color: #172b4d;
 }
 
-.comentarioQuando,
-.historicoQuando,
-.historicoAutor {
+.comentarioQuando {
   font-size: 0.75rem;
+  line-height: 1.3;
   color: #6b778c;
 }
 
 .comentarioTexto {
-  margin: 0;
+  margin: 0.15rem 0 0;
   font-size: 0.875rem;
-  line-height: 1.5;
+  line-height: 1.55;
   color: #172b4d;
   white-space: pre-wrap;
   word-break: break-word;
@@ -992,6 +1025,7 @@
 
 .comentarioRemover {
   align-self: flex-start;
+  margin-block-start: 0.25rem;
   padding: 0;
   border: none;
   background: none;
@@ -1010,6 +1044,25 @@
 .comentarioRemover:disabled {
   cursor: default;
   opacity: 0.6;
+}
+
+.historicoCabecalho {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.historicoTitulo {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #172b4d;
+}
+
+.historicoQuando,
+.historicoAutor {
+  font-size: 0.75rem;
+  color: #6b778c;
 }
 
 .detalheStatusBtn {

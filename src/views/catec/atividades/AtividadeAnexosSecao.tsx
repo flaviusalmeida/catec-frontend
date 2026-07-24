@@ -93,7 +93,7 @@ const AtividadeAnexosSecao = ({ atividadeId, podeGerir, disabled = false }: Prop
   return (
     <section className={styles.trabalhoSecao}>
       <h2 className={styles.descricaoCampoTitulo}>
-        Anexos{carregando ? '' : ` (${anexos.length})`}
+        Anexos{!carregando && anexos.length > 0 ? ` (${anexos.length})` : ''}
       </h2>
 
       {carregando ? (
@@ -128,8 +128,8 @@ const AtividadeAnexosSecao = ({ atividadeId, podeGerir, disabled = false }: Prop
               ))}
             </ul>
           ) : (
-            <Typography variant='body2' color='text.disabled' className={styles.trabalhoVazio}>
-              Nenhum anexo
+            <Typography variant='body2' className={styles.trabalhoVazio}>
+              Nenhum arquivo anexado.
             </Typography>
           )}
 
