@@ -30,6 +30,15 @@ export const catecNavItems: CatecNavItem[] = [
     permission: PermissaoCodigo.TELA_PROJETOS
   },
   {
+    id: 'atividades',
+    name: 'Atividades',
+    url: '/catec/atividades',
+    icon: 'tabler-layout-kanban',
+    section: 'Projetos',
+    subtitle: 'Board Kanban de atividades',
+    permission: PermissaoCodigo.TELA_ATIVIDADES
+  },
+  {
     id: 'socio-propostas',
     name: 'Propostas pendentes',
     url: '/catec/socio/propostas',

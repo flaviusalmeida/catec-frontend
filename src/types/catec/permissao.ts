@@ -3,10 +3,16 @@ export const PermissaoCodigo = {
   TELA_PAINEL: 'tela.painel',
   TELA_PROJETOS: 'tela.projetos',
   TELA_PROJETO_DETALHE: 'tela.projeto.detalhe',
+  TELA_ATIVIDADES: 'tela.atividades',
   TELA_CLIENTES: 'tela.clientes',
   TELA_USUARIOS: 'tela.usuarios',
   TELA_SOCIO_PROPOSTAS: 'tela.socio.propostas',
   TELA_GRUPOS: 'tela.grupos',
+
+  ACAO_ATIVIDADE_CRIAR: 'acao.atividade.criar',
+  ACAO_ATIVIDADE_EDITAR: 'acao.atividade.editar',
+  ACAO_ATIVIDADE_MOVER_STATUS: 'acao.atividade.mover_status',
+  ACAO_ATIVIDADE_EXCLUIR: 'acao.atividade.excluir',
 
   ACAO_PROJETO_CRIAR: 'acao.projeto.criar',
   ACAO_PROJETO_EDITAR: 'acao.projeto.editar',

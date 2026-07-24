@@ -15,12 +15,13 @@ import type { CatecProjeto } from '@/types/catec/projetoTypes'
 import CustomTabList from '@core/components/mui/TabList'
 
 import type { UseProjetoFluxoStore } from '../useProjetoFluxoStore'
+import ProjetoTabAtividades from './ProjetoTabAtividades'
 import ProjetoTabContrato from './ProjetoTabContrato'
 import ProjetoTabGeral from './ProjetoTabGeral'
 import ProjetoTabHistorico from './ProjetoTabHistorico'
 import ProjetoTabPropostas from './ProjetoTabPropostas'
 
-const TAB_IDS = ['geral', 'propostas', 'contrato', 'historico'] as const
+const TAB_IDS = ['geral', 'propostas', 'contrato', 'atividades', 'historico'] as const
 
 type TabId = (typeof TAB_IDS)[number]
 
@@ -80,6 +81,12 @@ const ProjetoRight = ({ projeto, fluxo }: Props) => {
               label='Contrato'
               iconPosition='start'
             />
+            <Tab
+              icon={<i className='tabler-list-check' />}
+              value='atividades'
+              label='Atividades'
+              iconPosition='start'
+            />
             <Tab icon={<i className='tabler-history' />} value='historico' label='Histórico' iconPosition='start' />
           </CustomTabList>
         </Grid>
@@ -88,6 +95,7 @@ const ProjetoRight = ({ projeto, fluxo }: Props) => {
             {activeTab === 'geral' ? <ProjetoTabGeral projeto={projeto} /> : null}
             {activeTab === 'propostas' ? <ProjetoTabPropostas projeto={projeto} fluxo={fluxo} /> : null}
             {activeTab === 'contrato' ? <ProjetoTabContrato projeto={projeto} fluxo={fluxo} /> : null}
+            {activeTab === 'atividades' ? <ProjetoTabAtividades projeto={projeto} /> : null}
             {activeTab === 'historico' ? <ProjetoTabHistorico fluxo={fluxo} /> : null}
           </TabPanel>
         </Grid>

@@ -31,6 +31,11 @@ const CatecNavMenuItems = ({ withIcons = false }: Props) => {
           Projetos
         </MenuItem>
       </CanPermission>
+      <CanPermission code={PermissaoCodigo.TELA_ATIVIDADES}>
+        <MenuItem href='/catec/atividades' icon={icon('tabler-layout-kanban')}>
+          Atividades
+        </MenuItem>
+      </CanPermission>
       <CanPermission code={PermissaoCodigo.TELA_SOCIO_PROPOSTAS}>
         <MenuItem href='/catec/socio/propostas' icon={icon('tabler-file-check')}>
           Propostas pendentes
