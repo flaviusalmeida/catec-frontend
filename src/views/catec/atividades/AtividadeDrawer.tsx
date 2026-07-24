@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react'
 import { useRouter } from 'next/navigation'
 
@@ -38,7 +38,10 @@ import type { CatecAdminUsuario } from '@/types/catec/usuarioTypes'
 import CustomAutocomplete from '@core/components/mui/Autocomplete'
 import CustomTextField from '@core/components/mui/TextField'
 
+import AtividadeAnexosSecao from './AtividadeAnexosSecao'
 import AtividadeDescricaoEditor from './AtividadeDescricaoEditor'
+import AtividadeDiscussaoSecao from './AtividadeDiscussaoSecao'
+import { useAtividadesStore } from './useAtividadesStore'
 import styles from './styles.module.css'
 
 type Props = {
@@ -136,9 +139,13 @@ const AtividadeDrawer = ({
 }: Props) => {
   const router = useRouter()
   const { hasPermission } = useCatecPermission()
+  const { board } = useAtividadesStore()
   const podeEditar = hasPermission(PermissaoCodigo.ACAO_ATIVIDADE_EDITAR)
   const podeCriar = hasPermission(PermissaoCodigo.ACAO_ATIVIDADE_CRIAR)
   const podeExcluir = hasPermission(PermissaoCodigo.ACAO_ATIVIDADE_EXCLUIR)
+  const podeGerirAnexos =
+    hasPermission(PermissaoCodigo.ACAO_ATIVIDADE_EDITAR) ||
+    hasPermission(PermissaoCodigo.ACAO_DOCUMENTO_UPLOAD)
 
   const [titulo, setTitulo] = useState('')
   const [descricao, setDescricao] = useState('')
@@ -151,21 +158,20 @@ const AtividadeDrawer = ({
   const [filhaTitulo, setFilhaTitulo] = useState('')
   const [criandoFilha, setCriandoFilha] = useState(false)
   const [mostrandoFilha, setMostrandoFilha] = useState(false)
-
   const [statusAnchor, setStatusAnchor] = useState<null | HTMLElement>(null)
   const [prioAnchor, setPrioAnchor] = useState<null | HTMLElement>(null)
-  const [sidebarWidth, setSidebarWidth] = useState(360)
-  const [arrastandoDivider, setArrastandoDivider] = useState(false)
+  const [sidebarWidth, setSidebarWidth] = useState(330)
   const [infoAberta, setInfoAberta] = useState(true)
   const [projetoAberto, setProjetoAberto] = useState(true)
   const [editandoResponsavel, setEditandoResponsavel] = useState(false)
   const [editandoPrazo, setEditandoPrazo] = useState(false)
   const [projeto, setProjeto] = useState<CatecProjeto | null>(null)
   const [carregandoProjeto, setCarregandoProjeto] = useState(false)
+  const [arrastandoDivider, setArrastandoDivider] = useState(false)
   const bodyRef = useRef<HTMLDivElement>(null)
   const arrastandoRef = useRef(false)
 
-  const SIDEBAR_MIN = 260
+  const SIDEBAR_MIN = 280
   const SIDEBAR_MAX = 560
 
   const estadoRef = useRef({
@@ -176,6 +182,24 @@ const AtividadeDrawer = ({
     responsavelId: '' as number | '',
     prazo: ''
   })
+
+  const filhas = useMemo(() => {
+    if (!atividade) return []
+
+    return board
+      .flatMap(coluna => coluna.atividades)
+      .filter(item => item.paiId === atividade.id)
+      .sort((a, b) => a.ordem - b.ordem || a.id - b.id)
+  }, [board, atividade])
+
+  const progressoFilhas = useMemo(() => {
+    if (filhas.length === 0) return null
+
+    const concluidas = filhas.filter(f => f.status === 'CONCLUIDA').length
+    const percentual = Math.round((concluidas / filhas.length) * 100)
+
+    return { concluidas, total: filhas.length, percentual }
+  }, [filhas])
 
   useEffect(() => {
     if (!atividade) return
@@ -422,7 +446,6 @@ const AtividadeDrawer = ({
       toast.success('Atividade filha criada.')
       setFilhaTitulo('')
       setMostrandoFilha(false)
-      onClose()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Não foi possível criar a atividade filha.')
     } finally {
@@ -550,9 +573,116 @@ const AtividadeDrawer = ({
                 }}
               />
 
+              <AtividadeAnexosSecao
+                key={`anexos-${atividade.id}`}
+                atividadeId={atividade.id}
+                podeGerir={podeGerirAnexos}
+                disabled={salvando}
+              />
+
               {atividade.nivel === 1 ? (
                 <section className={styles.subatividadesSecao}>
-                  <h2 className={styles.descricaoCampoTitulo}>Subatividades</h2>
+                  <h2 className={styles.descricaoCampoTitulo}>
+                    Subatividades{filhas.length > 0 ? ` (${filhas.length})` : ''}
+                  </h2>
+
+                  {progressoFilhas ? (
+                    <div className={styles.subatividadeProgresso} aria-label={`${progressoFilhas.percentual}% concluído`}>
+                      <div className={styles.subatividadeProgressoBarra}>
+                        <div
+                          className={styles.subatividadeProgressoPreenchimento}
+                          style={{ width: `${progressoFilhas.percentual}%` }}
+                        />
+                      </div>
+                      <span className={styles.subatividadeProgressoTexto}>
+                        {progressoFilhas.percentual}% concluído
+                      </span>
+                    </div>
+                  ) : null}
+
+                  {filhas.length > 0 ? (
+                    <div className={styles.subatividadeTabelaWrap}>
+                      <table className={styles.subatividadeTabela}>
+                        <thead>
+                          <tr>
+                            <th>Ticket</th>
+                            <th>Prioridade</th>
+                            <th>Responsável</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filhas.map(filha => (
+                            <tr
+                              key={filha.id}
+                              className={styles.subatividadeLinha}
+                              onClick={() => void irParaAtividade(filha.id)}
+                            >
+                              <td>
+                                <div className={styles.subatividadeColTicket}>
+                                  <button
+                                    type='button'
+                                    className={styles.subatividadeTicketCodigo}
+                                    onClick={e => {
+                                      e.stopPropagation()
+                                      void irParaAtividade(filha.id)
+                                    }}
+                                    disabled={salvando || !onAbrirAtividade}
+                                  >
+                                    {filha.codigo}
+                                  </button>
+                                  <span className={styles.subatividadeTicketTitulo}>{filha.titulo}</span>
+                                </div>
+                              </td>
+                              <td>
+                                <div className={styles.subatividadeColPrio}>
+                                  <i
+                                    className={`${prioridadeIcone(filha.prioridade)} text-base ${prioridadeCorClass(filha.prioridade)}`}
+                                  />
+                                  <span>{PRIORIDADE_ATIVIDADE_ROTULO[filha.prioridade]}</span>
+                                </div>
+                              </td>
+                              <td>
+                                <div className={styles.subatividadeColResp}>
+                                  {filha.responsavelNome ? (
+                                    <>
+                                      <Avatar className={`bs-6 is-6 text-xs ${styles.avatarUsuario}`}>
+                                        {iniciais(filha.responsavelNome)}
+                                      </Avatar>
+                                      <span className={styles.subatividadeRespNome}>{filha.responsavelNome}</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Avatar className={`bs-6 is-6 text-xs ${styles.avatarNaoAtribuido}`}>
+                                        <i className='tabler-user text-sm' />
+                                      </Avatar>
+                                      <span className={styles.subatividadeRespVazio}>Não atribuído</span>
+                                    </>
+                                  )}
+                                </div>
+                              </td>
+                              <td>
+                                <span
+                                  className={[
+                                    styles.subatividadeStatusPill,
+                                    filha.status === 'A_FAZER' ? styles.subatividadeStatusAFazer : '',
+                                    filha.status === 'EM_ANDAMENTO' ? styles.subatividadeStatusEmAndamento : '',
+                                    filha.status === 'AGUARDANDO' ? styles.subatividadeStatusAguardando : '',
+                                    filha.status === 'CONCLUIDA' ? styles.subatividadeStatusConcluida : ''
+                                  ]
+                                    .filter(Boolean)
+                                    .join(' ')}
+                                >
+                                  {STATUS_ATIVIDADE_ROTULO[filha.status]}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : null}
+
                   {mostrandoFilha && podeCriar ? (
                     <div className='flex items-center gap-2'>
                       <CustomTextField
@@ -586,13 +716,20 @@ const AtividadeDrawer = ({
                     >
                       Adicionar subtarefa
                     </button>
-                  ) : (
+                  ) : filhas.length === 0 ? (
                     <Typography variant='body2' color='text.disabled'>
                       Nenhuma
                     </Typography>
-                  )}
+                  ) : null}
                 </section>
               ) : null}
+
+              <AtividadeDiscussaoSecao
+                key={`discussao-${atividade.id}`}
+                atividadeId={atividade.id}
+                podeComentar={podeEditar}
+                disabled={salvando}
+              />
             </div>
 
             <div
@@ -646,9 +783,6 @@ const AtividadeDrawer = ({
                 >
                   <i className={infoAberta ? 'tabler-chevron-down' : 'tabler-chevron-right'} />
                   <span className={styles.detalheInfoHeadingTitle}>Informações</span>
-                  {!infoAberta ? (
-                    <span className={styles.detalheInfoPreview}>Prioridade, Responsável, Prazo, Criação,...</span>
-                  ) : null}
                 </button>
 
                 {infoAberta ? (
@@ -843,9 +977,6 @@ const AtividadeDrawer = ({
                 >
                   <i className={projetoAberto ? 'tabler-chevron-down' : 'tabler-chevron-right'} />
                   <span className={styles.detalheInfoHeadingTitle}>Projeto</span>
-                  {!projetoAberto ? (
-                    <span className={styles.detalheInfoPreview}>Título, Cliente, Status,...</span>
-                  ) : null}
                 </button>
 
                 {projetoAberto ? (
@@ -913,15 +1044,14 @@ const AtividadeDrawer = ({
 
               {podeExcluir ? (
                 <CanPermission code={PermissaoCodigo.ACAO_ATIVIDADE_EXCLUIR}>
-                  <Button
-                    color='error'
-                    size='small'
-                    className='self-start mbs-auto'
+                  <button
+                    type='button'
+                    className={styles.detalheExcluir}
                     onClick={handleDelete}
                     disabled={salvando}
                   >
                     Excluir atividade
-                  </Button>
+                  </button>
                 </CanPermission>
               ) : null}
             </aside>

@@ -458,8 +458,8 @@ const AtividadeDescricaoEditor = ({ value, disabled = false, salvando = false, o
               dangerouslySetInnerHTML={{ __html: paraConteudoEditor(value) }}
             />
           ) : (
-            <Typography variant='body2' color='text.disabled'>
-              Adicionar descrição…
+            <Typography variant='body2' color='text.disabled' className={styles.descricaoPlaceholder}>
+              Clique para adicionar uma descrição...
             </Typography>
           )}
         </button>

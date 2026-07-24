@@ -6,7 +6,10 @@ import type {
   CatecAtividade,
   CatecAtividadeBoardColuna,
   CatecAtividadeBoardFiltros,
+  CatecAtividadeComentario,
   CatecAtividadeCreateInput,
+  CatecAtividadeDocumento,
+  CatecAtividadeHistoricoItem,
   CatecAtividadeStatus,
   CatecAtividadeStatusPatchInput,
   CatecAtividadeUpdateInput
@@ -14,6 +17,11 @@ import type {
 import {
   parseCatecAtividade,
   parseCatecAtividadeBoard,
+  parseCatecAtividadeComentario,
+  parseCatecAtividadeComentarioList,
+  parseCatecAtividadeDocumento,
+  parseCatecAtividadeDocumentoList,
+  parseCatecAtividadeHistoricoList,
   parseCatecAtividadeList
 } from '@/types/catec/atividadeTypes'
 
@@ -149,4 +157,83 @@ export async function excluirAtividadeCatec(id: number): Promise<void> {
   const data = await readCatecJsonBody(res)
 
   assertCatecOk(res, data, 'Não foi possível excluir a atividade.')
+}
+
+export async function listarDocumentosAtividadeCatec(atividadeId: number): Promise<CatecAtividadeDocumento[]> {
+  const res = await catecApiFetch(`/api/v1/atividades/${atividadeId}/documentos`)
+  const data = await readCatecJsonBody(res)
+
+  assertCatecOk(res, data, 'Não foi possível carregar os anexos.')
+
+  return parseCatecAtividadeDocumentoList(data)
+}
+
+export async function uploadDocumentoAtividadeCatec(
+  atividadeId: number,
+  file: File
+): Promise<CatecAtividadeDocumento> {
+  const fd = new FormData()
+
+  fd.append('file', file)
+
+  const res = await catecApiFetch(`/api/v1/atividades/${atividadeId}/documentos`, {
+    method: 'POST',
+    body: fd
+  })
+  const data = await readCatecJsonBody(res)
+
+  assertCatecOk(res, data, 'Não foi possível anexar o arquivo.')
+
+  return parseCatecAtividadeDocumento(data)
+}
+
+export async function excluirDocumentoAtividadeCatec(atividadeId: number, documentoId: number): Promise<void> {
+  const res = await catecApiFetch(`/api/v1/atividades/${atividadeId}/documentos/${documentoId}`, {
+    method: 'DELETE'
+  })
+  const data = await readCatecJsonBody(res)
+
+  assertCatecOk(res, data, 'Não foi possível remover o anexo.')
+}
+
+export async function listarComentariosAtividadeCatec(atividadeId: number): Promise<CatecAtividadeComentario[]> {
+  const res = await catecApiFetch(`/api/v1/atividades/${atividadeId}/comentarios`)
+  const data = await readCatecJsonBody(res)
+
+  assertCatecOk(res, data, 'Não foi possível carregar os comentários.')
+
+  return parseCatecAtividadeComentarioList(data)
+}
+
+export async function criarComentarioAtividadeCatec(
+  atividadeId: number,
+  texto: string
+): Promise<CatecAtividadeComentario> {
+  const res = await catecApiFetch(`/api/v1/atividades/${atividadeId}/comentarios`, {
+    method: 'POST',
+    body: JSON.stringify({ texto })
+  })
+  const data = await readCatecJsonBody(res)
+
+  assertCatecOk(res, data, 'Não foi possível adicionar o comentário.')
+
+  return parseCatecAtividadeComentario(data)
+}
+
+export async function excluirComentarioAtividadeCatec(atividadeId: number, comentarioId: number): Promise<void> {
+  const res = await catecApiFetch(`/api/v1/atividades/${atividadeId}/comentarios/${comentarioId}`, {
+    method: 'DELETE'
+  })
+  const data = await readCatecJsonBody(res)
+
+  assertCatecOk(res, data, 'Não foi possível excluir o comentário.')
+}
+
+export async function listarHistoricoAtividadeCatec(atividadeId: number): Promise<CatecAtividadeHistoricoItem[]> {
+  const res = await catecApiFetch(`/api/v1/atividades/${atividadeId}/historico`)
+  const data = await readCatecJsonBody(res)
+
+  assertCatecOk(res, data, 'Não foi possível carregar o histórico.')
+
+  return parseCatecAtividadeHistoricoList(data)
 }
