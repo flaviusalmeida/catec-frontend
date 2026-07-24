@@ -99,7 +99,7 @@ const AtividadeNovaDialog = ({ open, onClose, projetos, projetoIdFixo, statusIni
       transitionDuration={200}
       PaperProps={{ className: styles.novaDialog }}
     >
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className={styles.novaDialogForm}>
         <DialogTitle>Nova atividade</DialogTitle>
         <DialogContent className={styles.novaDialogContent}>
           <CustomTextField
@@ -110,6 +110,14 @@ const AtividadeNovaDialog = ({ open, onClose, projetos, projetoIdFixo, statusIni
             onChange={e => setProjetoId(e.target.value === '' ? '' : Number(e.target.value))}
             disabled={projetoIdFixo != null}
             required
+            slotProps={{
+              select: {
+                MenuProps: {
+                  disableScrollLock: true,
+                  PaperProps: { className: styles.novaDialogSelectMenu }
+                }
+              }
+            }}
           >
             <MenuItem value=''>
               <em>Selecione</em>
@@ -147,6 +155,9 @@ const AtividadeNovaDialog = ({ open, onClose, projetos, projetoIdFixo, statusIni
               onChange={e => setPrioridade(e.target.value as CatecAtividadePrioridade)}
               slotProps={{
                 select: {
+                  MenuProps: {
+                    disableScrollLock: true
+                  },
                   renderValue: value => {
                     const key = value as CatecAtividadePrioridade
 
