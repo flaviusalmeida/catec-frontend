@@ -17,6 +17,23 @@ import type { CatecProjeto } from '@/types/catec/projetoTypes'
 
 import CustomTextField from '@core/components/mui/TextField'
 
+import AtividadeDescricaoEditor from './AtividadeDescricaoEditor'
+import styles from './styles.module.css'
+
+function prioridadeIcone(prioridade: CatecAtividadePrioridade): string {
+  if (prioridade === 'ALTA') return 'tabler-chevrons-up'
+  if (prioridade === 'BAIXA') return 'tabler-chevrons-down'
+
+  return 'tabler-equal'
+}
+
+function prioridadeCorClass(prioridade: CatecAtividadePrioridade): string {
+  if (prioridade === 'ALTA') return styles.prioAlta
+  if (prioridade === 'BAIXA') return styles.prioBaixa
+
+  return styles.prioMedia
+}
+
 type Props = {
   open: boolean
   onClose: () => void
@@ -29,7 +46,7 @@ type Props = {
 const AtividadeNovaDialog = ({ open, onClose, projetos, projetoIdFixo, statusInicial, onCreate }: Props) => {
   const [projetoId, setProjetoId] = useState<number | ''>(projetoIdFixo ?? '')
   const [titulo, setTitulo] = useState('')
-  const [descricao, setDescricao] = useState('')
+  const [descricao, setDescricao] = useState<string | null>(null)
   const [prioridade, setPrioridade] = useState<CatecAtividadePrioridade>('MEDIA')
   const [prazo, setPrazo] = useState('')
   const [salvando, setSalvando] = useState(false)
@@ -39,7 +56,7 @@ const AtividadeNovaDialog = ({ open, onClose, projetos, projetoIdFixo, statusIni
 
     setProjetoId(projetoIdFixo ?? '')
     setTitulo('')
-    setDescricao('')
+    setDescricao(null)
     setPrioridade('MEDIA')
     setPrazo('')
   }, [open, projetoIdFixo])
@@ -60,7 +77,7 @@ const AtividadeNovaDialog = ({ open, onClose, projetos, projetoIdFixo, statusIni
     try {
       await onCreate(pid, {
         titulo: titulo.trim(),
-        descricao: descricao.trim() || null,
+        descricao,
         prioridade,
         status: statusInicial ?? undefined,
         prazoEm: prazo ? new Date(`${prazo}T12:00:00`).toISOString() : null
@@ -74,10 +91,17 @@ const AtividadeNovaDialog = ({ open, onClose, projetos, projetoIdFixo, statusIni
   }
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth='sm' transitionDuration={200}>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      fullWidth
+      maxWidth='sm'
+      transitionDuration={200}
+      PaperProps={{ className: styles.novaDialog }}
+    >
       <form onSubmit={handleSubmit}>
         <DialogTitle>Nova atividade</DialogTitle>
-        <DialogContent className='flex flex-col gap-4 pt-2'>
+        <DialogContent className={styles.novaDialogContent}>
           <CustomTextField
             select
             fullWidth
@@ -99,41 +123,64 @@ const AtividadeNovaDialog = ({ open, onClose, projetos, projetoIdFixo, statusIni
           <CustomTextField
             fullWidth
             label='Título'
+            placeholder='Ex.: Elaborar proposta comercial'
             value={titulo}
             onChange={e => setTitulo(e.target.value)}
             required
+            autoFocus
           />
-          <CustomTextField
-            fullWidth
-            label='Descrição'
-            value={descricao}
-            onChange={e => setDescricao(e.target.value)}
-            multiline
-            rows={3}
-          />
-          <CustomTextField
-            select
-            fullWidth
-            label='Prioridade'
-            value={prioridade}
-            onChange={e => setPrioridade(e.target.value as CatecAtividadePrioridade)}
-          >
-            {(Object.keys(PRIORIDADE_ATIVIDADE_ROTULO) as CatecAtividadePrioridade[]).map(key => (
-              <MenuItem key={key} value={key}>
-                {PRIORIDADE_ATIVIDADE_ROTULO[key]}
-              </MenuItem>
-            ))}
-          </CustomTextField>
-          <CustomTextField
-            fullWidth
-            label='Prazo'
-            type='date'
-            value={prazo}
-            onChange={e => setPrazo(e.target.value)}
-            slotProps={{ inputLabel: { shrink: true } }}
-          />
+          {open ? (
+            <AtividadeDescricaoEditor
+              key='nova-atividade-descricao'
+              value={descricao}
+              modoFormulario
+              compacto
+              onChange={setDescricao}
+            />
+          ) : null}
+          <div className={styles.novaDialogLinha}>
+            <CustomTextField
+              select
+              fullWidth
+              label='Prioridade'
+              value={prioridade}
+              onChange={e => setPrioridade(e.target.value as CatecAtividadePrioridade)}
+              slotProps={{
+                select: {
+                  renderValue: value => {
+                    const key = value as CatecAtividadePrioridade
+
+                    return (
+                      <span className='inline-flex items-center gap-2'>
+                        <i className={`${prioridadeIcone(key)} text-base ${prioridadeCorClass(key)}`} />
+                        {PRIORIDADE_ATIVIDADE_ROTULO[key]}
+                      </span>
+                    )
+                  }
+                }
+              }}
+            >
+              {(Object.keys(PRIORIDADE_ATIVIDADE_ROTULO) as CatecAtividadePrioridade[]).map(key => (
+                <MenuItem key={key} value={key}>
+                  <span className='inline-flex items-center gap-2'>
+                    <i className={`${prioridadeIcone(key)} text-lg ${prioridadeCorClass(key)}`} />
+                    {PRIORIDADE_ATIVIDADE_ROTULO[key]}
+                  </span>
+                </MenuItem>
+              ))}
+            </CustomTextField>
+            <CustomTextField
+              fullWidth
+              label='Prazo'
+              type='date'
+              value={prazo}
+              onChange={e => setPrazo(e.target.value)}
+              className={styles.novaDialogPrazo}
+              slotProps={{ inputLabel: { shrink: true } }}
+            />
+          </div>
         </DialogContent>
-        <DialogActions>
+        <DialogActions className={styles.novaDialogActions}>
           <Button onClick={onClose} color='secondary' disabled={salvando}>
             Cancelar
           </Button>

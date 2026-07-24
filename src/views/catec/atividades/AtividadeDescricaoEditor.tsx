@@ -27,7 +27,12 @@ type Props = {
   value: string | null
   disabled?: boolean
   salvando?: boolean
-  onSalvar: (html: string | null) => Promise<void>
+  onSalvar?: (html: string | null) => Promise<void>
+  /** Editor sempre aberto, sem Salvar/Cancelar — para formulários (ex.: Nova atividade). */
+  modoFormulario?: boolean
+  /** Altura de conteúdo menor, para modais compactos. */
+  compacto?: boolean
+  onChange?: (html: string | null) => void
 }
 
 type ElementoInserivel = {
@@ -375,8 +380,16 @@ const EditorToolbar = ({ editor }: { editor: Editor | null }) => {
   )
 }
 
-const AtividadeDescricaoEditor = ({ value, disabled = false, salvando = false, onSalvar }: Props) => {
-  const [editando, setEditando] = useState(false)
+const AtividadeDescricaoEditor = ({
+  value,
+  disabled = false,
+  salvando = false,
+  onSalvar,
+  modoFormulario = false,
+  compacto = false,
+  onChange
+}: Props) => {
+  const [editando, setEditando] = useState(modoFormulario)
   const [persistindo, setPersistindo] = useState(false)
 
   const editor = useEditor({
@@ -391,12 +404,17 @@ const AtividadeDescricaoEditor = ({ value, disabled = false, salvando = false, o
       })
     ],
     immediatelyRender: false,
-    editable: !disabled,
-    content: paraConteudoEditor(value)
+    editable: !disabled && (modoFormulario || false),
+    content: paraConteudoEditor(value),
+    onUpdate: ({ editor: ed }) => {
+      if (!modoFormulario) return
+
+      onChange?.(normalizarDescricao(ed.getHTML()))
+    }
   })
 
   useEffect(() => {
-    if (!editor || editando) return
+    if (!editor || editando || modoFormulario) return
 
     const atual = paraConteudoEditor(value)
     const noEditor = editor.getHTML()
@@ -404,13 +422,13 @@ const AtividadeDescricaoEditor = ({ value, disabled = false, salvando = false, o
     if (normalizarDescricao(noEditor) !== normalizarDescricao(atual)) {
       editor.commands.setContent(atual, { emitUpdate: false })
     }
-  }, [editor, value, editando])
+  }, [editor, value, editando, modoFormulario])
 
   useEffect(() => {
     if (!editor) return
 
-    editor.setEditable(!disabled && editando)
-  }, [editor, disabled, editando])
+    editor.setEditable(!disabled && (modoFormulario || editando))
+  }, [editor, disabled, editando, modoFormulario])
 
   const iniciarEdicao = () => {
     if (disabled || !editor) return
@@ -421,14 +439,14 @@ const AtividadeDescricaoEditor = ({ value, disabled = false, salvando = false, o
   }
 
   const cancelar = () => {
-    if (!editor) return
+    if (!editor || modoFormulario) return
 
     editor.commands.setContent(paraConteudoEditor(value), { emitUpdate: false })
     setEditando(false)
   }
 
   const salvar = async () => {
-    if (!editor || persistindo || salvando) return
+    if (!editor || persistindo || salvando || !onSalvar) return
 
     const html = normalizarDescricao(editor.getHTML())
 
@@ -442,7 +460,7 @@ const AtividadeDescricaoEditor = ({ value, disabled = false, salvando = false, o
     }
   }
 
-  if (!editando) {
+  if (!editando && !modoFormulario) {
     return (
       <section className={styles.descricaoSecao}>
         <h2 className={styles.descricaoCampoTitulo}>Descrição</h2>
@@ -470,29 +488,31 @@ const AtividadeDescricaoEditor = ({ value, disabled = false, salvando = false, o
   return (
     <section className={styles.descricaoSecao}>
       <h2 className={styles.descricaoCampoTitulo}>Descrição</h2>
-      <div className={styles.descricaoEditor}>
+      <div className={compacto ? `${styles.descricaoEditor} ${styles.descricaoEditorCompacto}` : styles.descricaoEditor}>
         <EditorToolbar editor={editor} />
         <Divider />
         <EditorContent editor={editor} className={styles.descricaoEditorContent} />
-        <div className={styles.descricaoAcoes}>
-          <Button
-            variant='contained'
-            size='small'
-            onClick={() => void salvar()}
-            disabled={persistindo || salvando}
-          >
-            Salvar
-          </Button>
-          <Button
-            variant='text'
-            color='secondary'
-            size='small'
-            onClick={cancelar}
-            disabled={persistindo || salvando}
-          >
-            Cancelar
-          </Button>
-        </div>
+        {!modoFormulario ? (
+          <div className={styles.descricaoAcoes}>
+            <Button
+              variant='contained'
+              size='small'
+              onClick={() => void salvar()}
+              disabled={persistindo || salvando}
+            >
+              Salvar
+            </Button>
+            <Button
+              variant='text'
+              color='secondary'
+              size='small'
+              onClick={cancelar}
+              disabled={persistindo || salvando}
+            >
+              Cancelar
+            </Button>
+          </div>
+        ) : null}
       </div>
     </section>
   )
