@@ -1516,23 +1516,28 @@
   min-inline-size: 0;
 }
 
+.detalheExcluirWrap {
+  margin-block-start: 0.25rem;
+  padding-block-start: 1rem;
+  border-block-start: 1px solid var(--mui-palette-divider);
+}
+
 .detalheExcluir {
-  align-self: flex-start;
-  margin-block-start: 1.75rem;
-  padding: 0.25rem 0;
+  display: inline;
+  padding: 0;
   border: none;
   background: none;
   font: inherit;
   font-size: 0.8125rem;
-  font-weight: 400;
+  font-weight: 500;
   line-height: 1.4;
-  color: #8993a4;
+  color: var(--mui-palette-error-main);
   cursor: pointer;
   text-decoration: none;
 }
 
 .detalheExcluir:hover:not(:disabled) {
-  color: #ae2e24;
+  color: var(--mui-palette-error-dark);
   text-decoration: underline;
 }
 

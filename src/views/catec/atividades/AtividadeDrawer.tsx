@@ -1045,14 +1045,16 @@ const AtividadeDrawer = ({
 
               {podeExcluir ? (
                 <CanPermission code={PermissaoCodigo.ACAO_ATIVIDADE_EXCLUIR}>
-                  <button
-                    type='button'
-                    className={styles.detalheExcluir}
-                    onClick={handleDelete}
-                    disabled={salvando}
-                  >
-                    Excluir atividade
-                  </button>
+                  <div className={styles.detalheExcluirWrap}>
+                    <button
+                      type='button'
+                      className={styles.detalheExcluir}
+                      onClick={handleDelete}
+                      disabled={salvando}
+                    >
+                      Excluir atividade
+                    </button>
+                  </div>
                 </CanPermission>
               ) : null}
             </aside>
