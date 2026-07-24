@@ -13,17 +13,20 @@
   min-block-size: calc(100vh - 12rem);
   padding: 0.75rem;
   border-radius: 0.5rem;
-  background-color: var(--mui-palette-grey-100);
+  border: 1px solid #e3ebf2;
+  background-color: #f5f8fb;
   gap: 0.5rem;
   transition:
     background-color 200ms ease,
     opacity 200ms ease,
-    box-shadow 200ms ease;
+    box-shadow 200ms ease,
+    border-color 200ms ease;
 }
 
 .column:has(.columnDropTarget) {
-  background-color: color-mix(in srgb, var(--mui-palette-primary-main) 7%, var(--mui-palette-grey-100));
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--mui-palette-primary-main) 22%, transparent);
+  background-color: color-mix(in srgb, #002e4b 6%, #f5f8fb);
+  border-color: color-mix(in srgb, #002e4b 18%, #e3ebf2);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #002e4b 14%, transparent);
 }
 
 .board:has(.cardDragging) .column:not(:has(.columnDropTarget)) {
@@ -40,7 +43,9 @@
   justify-content: space-between;
   gap: 0.5rem;
   padding-inline: 0.125rem;
+  padding-block-end: 0.5rem;
   min-block-size: 2rem;
+  border-bottom: 1px solid #e3ebf2;
 }
 
 .columnTitle {
