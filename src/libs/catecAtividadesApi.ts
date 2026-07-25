@@ -4,7 +4,7 @@ import { catecApiFetch } from '@/libs/catecApi'
 import { assertCatecOk, readCatecJsonBody } from '@/libs/catecApiHelpers'
 import type {
   CatecAtividade,
-  CatecAtividadeBoardColuna,
+  CatecAtividadeBoard,
   CatecAtividadeBoardFiltros,
   CatecAtividadeComentario,
   CatecAtividadeCreateInput,
@@ -38,20 +38,63 @@ function buildQuery(params: Record<string, string | number | null | undefined>):
   return qs ? `?${qs}` : ''
 }
 
+export type CatecBoardComCatalogo = {
+  board: CatecAtividadeBoard
+  /** Lista completa (todos os tipos) com os mesmos filtros do board — usada para filhas/progresso. */
+  catalogo: CatecAtividade[]
+}
+
 export async function obterBoardAtividadesCatec(
   filtros: CatecAtividadeBoardFiltros = {}
-): Promise<CatecAtividadeBoardColuna[]> {
+): Promise<CatecBoardComCatalogo> {
   const qs = buildQuery({
     projetoId: filtros.projetoId ?? undefined,
     responsavelId: filtros.responsavelId ?? undefined,
-    q: filtros.q?.trim() || undefined
+    q: filtros.q?.trim() || undefined,
+    agrupar: filtros.agrupar ?? 'NENHUM'
   })
-  const res = await catecApiFetch(`/api/v1/atividades/board${qs}`)
-  const data = await readCatecJsonBody(res)
 
-  assertCatecOk(res, data, 'Não foi possível carregar o board de atividades.')
+  const [boardRes, catalogo] = await Promise.all([
+    catecApiFetch(`/api/v1/atividades/board${qs}`),
+    listarAtividadesCatec({
+      projetoId: filtros.projetoId ?? undefined,
+      responsavelId: filtros.responsavelId ?? undefined,
+      q: filtros.q ?? undefined
+    }).catch(() => [] as CatecAtividade[])
+  ])
 
-  return parseCatecAtividadeBoard(data)
+  const data = await readCatecJsonBody(boardRes)
+
+  assertCatecOk(boardRes, data, 'Não foi possível carregar o board de atividades.')
+
+  let board = parseCatecAtividadeBoard(data)
+  const precisaEnriquecer = board.faixas.some(
+    f => f.atividadeId != null && (f.status == null || (f.responsavelId != null && !f.responsavelNome))
+  )
+
+  if (precisaEnriquecer && catalogo.length > 0) {
+    const porId = new Map(catalogo.map(a => [a.id, a]))
+
+    board = {
+      ...board,
+      faixas: board.faixas.map(faixa => {
+        if (faixa.atividadeId == null) return faixa
+
+        const origem = porId.get(faixa.atividadeId)
+
+        if (!origem) return faixa
+
+        return {
+          ...faixa,
+          status: faixa.status ?? origem.status,
+          responsavelId: faixa.responsavelId ?? origem.responsavelId,
+          responsavelNome: faixa.responsavelNome ?? origem.responsavelNome
+        }
+      })
+    }
+  }
+
+  return { board, catalogo }
 }
 
 export async function listarAtividadesCatec(filtros: {
@@ -102,7 +145,7 @@ export async function criarAtividadeRaizCatec(
   })
   const data = await readCatecJsonBody(res)
 
-  assertCatecOk(res, data, 'Não foi possível criar a atividade.')
+  assertCatecOk(res, data, 'Não foi possível criar o épico.')
 
   return parseCatecAtividade(data)
 }
@@ -117,7 +160,7 @@ export async function criarAtividadeFilhaCatec(
   })
   const data = await readCatecJsonBody(res)
 
-  assertCatecOk(res, data, 'Não foi possível criar a atividade filha.')
+  assertCatecOk(res, data, 'Não foi possível criar o item filho.')
 
   return parseCatecAtividade(data)
 }

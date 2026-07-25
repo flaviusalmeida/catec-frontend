@@ -14,6 +14,7 @@ import classnames from 'classnames'
 import type { CatecAtividade } from '@/types/catec/atividadeTypes'
 import { PRIORIDADE_ATIVIDADE_COR, PRIORIDADE_ATIVIDADE_ROTULO } from '@/types/catec/atividadeTypes'
 
+import AtividadeTipoIcone from './AtividadeTipoIcone'
 import { useAtividadesStore } from './useAtividadesStore'
 import styles from './styles.module.css'
 
@@ -61,22 +62,23 @@ function prioridadeIcone(prioridade: CatecAtividade['prioridade']): string {
 }
 
 const AtividadeCard = ({ atividade, onOpen, podeMover }: Props) => {
-  const { board } = useAtividadesStore()
+  const { catalogo } = useAtividadesStore()
   const prazo = atividade.prazoEm ? formatarPrazoCurto(atividade.prazoEm) : null
   const prazoTooltip = atividade.prazoEm ? formatarPrazoTooltip(atividade.prazoEm) : null
 
   const progresso = useMemo(() => {
-    if (atividade.nivel !== 1) return null
+    if (atividade.tipo !== 'EPICO' && atividade.tipo !== 'ATIVIDADE') return null
 
-    const filhas = board.flatMap(coluna => coluna.atividades).filter(item => item.paiId === atividade.id)
+    const filhas = catalogo.filter(item => item.paiId === atividade.id)
 
     if (filhas.length === 0) return null
 
     const concluidas = filhas.filter(f => f.status === 'CONCLUIDA').length
     const percentual = Math.round((concluidas / filhas.length) * 100)
+    const rotuloFilhos = atividade.tipo === 'EPICO' ? 'atividades' : 'subatividades'
 
-    return { concluidas, total: filhas.length, percentual }
-  }, [board, atividade.id, atividade.nivel])
+    return { concluidas, total: filhas.length, percentual, rotuloFilhos }
+  }, [catalogo, atividade.id, atividade.tipo])
 
   return (
     <Card
@@ -129,8 +131,8 @@ const AtividadeCard = ({ atividade, onOpen, podeMover }: Props) => {
         {progresso ? (
           <div
             className={styles.cardProgresso}
-            aria-label={`${progresso.percentual}% concluído (${progresso.concluidas}/${progresso.total} subatividades)`}
-            title={`${progresso.percentual}% · ${progresso.concluidas}/${progresso.total} subatividades concluídas`}
+            aria-label={`${progresso.percentual}% concluído (${progresso.concluidas}/${progresso.total} ${progresso.rotuloFilhos})`}
+            title={`${progresso.percentual}% · ${progresso.concluidas}/${progresso.total} ${progresso.rotuloFilhos} concluídas`}
           >
             <div className={styles.cardProgressoBarra}>
               <div
@@ -145,9 +147,12 @@ const AtividadeCard = ({ atividade, onOpen, podeMover }: Props) => {
         ) : null}
 
         <div className='flex justify-between items-center gap-2 is-full'>
-          <Typography variant='caption' color='text.secondary' className='font-medium leading-none'>
-            {atividade.codigo}
-          </Typography>
+          <div className='flex items-center gap-1.5 min-is-0'>
+            <AtividadeTipoIcone tipo={atividade.tipo} />
+            <Typography variant='caption' color='text.secondary' className='font-medium leading-none'>
+              {atividade.codigo}
+            </Typography>
+          </div>
 
           {atividade.responsavelNome ? (
             <Tooltip title={atividade.responsavelNome}>

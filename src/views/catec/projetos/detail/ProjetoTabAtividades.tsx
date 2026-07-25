@@ -34,6 +34,8 @@ import type { CatecProjeto, CatecProjetoStatus } from '@/types/catec/projetoType
 
 import CustomTextField from '@core/components/mui/TextField'
 
+import AtividadeTipoIcone from '@/views/catec/atividades/AtividadeTipoIcone'
+
 type Props = {
   projeto: CatecProjeto
 }
@@ -120,12 +122,12 @@ const ProjetoTabAtividades = ({ projeto }: Props) => {
 
     try {
       await criarAtividadeRaizCatec(projeto.id, { titulo: t })
-      toast.success('Atividade criada.')
+      toast.success('Épico criado.')
       setDialogOpen(false)
       setTitulo('')
       await carregar()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Não foi possível criar a atividade.')
+      toast.error(err instanceof Error ? err.message : 'Não foi possível criar o épico.')
     } finally {
       setSalvando(false)
     }
@@ -156,7 +158,7 @@ const ProjetoTabAtividades = ({ projeto }: Props) => {
           <CanPermission code={PermissaoCodigo.ACAO_ATIVIDADE_CRIAR}>
             {permiteCriacao ? (
               <Button variant='contained' startIcon={<i className='tabler-plus' />} onClick={() => setDialogOpen(true)}>
-                Nova atividade
+                Novo épico
               </Button>
             ) : null}
           </CanPermission>
@@ -209,9 +211,12 @@ const ProjetoTabAtividades = ({ projeto }: Props) => {
                 <Card key={atividade.id} variant='outlined'>
                   <CardContent className='flex flex-wrap items-center justify-between gap-3 py-3'>
                     <div className='flex flex-col gap-1 min-is-0'>
-                      <Typography variant='caption' color='text.secondary' className='font-medium'>
-                        {atividade.codigo}
-                      </Typography>
+                      <div className='flex items-center gap-1.5'>
+                        <AtividadeTipoIcone tipo={atividade.tipo} />
+                        <Typography variant='caption' color='text.secondary' className='font-medium'>
+                          {atividade.codigo}
+                        </Typography>
+                      </div>
                       <Typography className='font-medium wrap-break-word'>{atividade.titulo}</Typography>
                       <div className='flex flex-wrap gap-2 items-center'>
                         <Chip
@@ -226,8 +231,10 @@ const ProjetoTabAtividades = ({ projeto }: Props) => {
                           color={PRIORIDADE_ATIVIDADE_COR[atividade.prioridade]}
                           label={PRIORIDADE_ATIVIDADE_ROTULO[atividade.prioridade]}
                         />
-                        {atividade.nivel > 1 ? (
-                          <Chip size='small' variant='tonal' color='secondary' label='Filha' />
+                        {atividade.paiCodigo ? (
+                          <Typography variant='caption' color='text.secondary'>
+                            Pai: {atividade.paiCodigo}
+                          </Typography>
                         ) : null}
                       </div>
                     </div>
@@ -249,7 +256,7 @@ const ProjetoTabAtividades = ({ projeto }: Props) => {
 
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} fullWidth maxWidth='xs'>
         <form onSubmit={handleCriar}>
-          <DialogTitle>Nova atividade</DialogTitle>
+          <DialogTitle>Novo épico</DialogTitle>
           <DialogContent>
             <CustomTextField
               autoFocus

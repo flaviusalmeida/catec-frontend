@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 
 import Avatar from '@mui/material/Avatar'
 import Button from '@mui/material/Button'
+import Chip from '@mui/material/Chip'
 import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
@@ -44,6 +45,7 @@ import CustomTextField from '@core/components/mui/TextField'
 import AtividadeAnexosSecao from './AtividadeAnexosSecao'
 import AtividadeDescricaoEditor from './AtividadeDescricaoEditor'
 import AtividadeDiscussaoSecao from './AtividadeDiscussaoSecao'
+import AtividadeTipoIcone from './AtividadeTipoIcone'
 import { useAtividadesStore } from './useAtividadesStore'
 import styles from './styles.module.css'
 
@@ -142,7 +144,7 @@ const AtividadeDrawer = ({
 }: Props) => {
   const router = useRouter()
   const { hasPermission } = useCatecPermission()
-  const { board } = useAtividadesStore()
+  const { catalogo } = useAtividadesStore()
   const podeEditar = hasPermission(PermissaoCodigo.ACAO_ATIVIDADE_EDITAR)
   const podeCriar = hasPermission(PermissaoCodigo.ACAO_ATIVIDADE_CRIAR)
   const podeExcluir = hasPermission(PermissaoCodigo.ACAO_ATIVIDADE_EXCLUIR)
@@ -190,11 +192,16 @@ const AtividadeDrawer = ({
   const filhas = useMemo(() => {
     if (!atividade) return []
 
-    return board
-      .flatMap(coluna => coluna.atividades)
+    return catalogo
       .filter(item => item.paiId === atividade.id)
       .sort((a, b) => a.ordem - b.ordem || a.id - b.id)
-  }, [board, atividade])
+  }, [catalogo, atividade])
+
+  const podeTerFilhas = atividade?.tipo === 'EPICO' || atividade?.tipo === 'ATIVIDADE'
+  const rotuloFilhas = atividade?.tipo === 'EPICO' ? 'Atividades' : 'Subatividades'
+  const rotuloNovaFilha = atividade?.tipo === 'EPICO' ? 'Nova atividade' : 'Nova subatividade'
+  const placeholderFilha =
+    atividade?.tipo === 'EPICO' ? 'Título da atividade' : 'Título da subatividade'
 
   const progressoFilhas = useMemo(() => {
     if (filhas.length === 0) return null
@@ -432,7 +439,9 @@ const AtividadeDrawer = ({
     const t = filhaTitulo.trim()
 
     if (!t) {
-      toast.error('Informe o título da atividade filha.')
+      toast.error(
+        atividade.tipo === 'EPICO' ? 'Informe o título da atividade.' : 'Informe o título da subatividade.'
+      )
 
       return
     }
@@ -447,11 +456,15 @@ const AtividadeDrawer = ({
       }
 
       await onCreateFilha(atividade.id, { titulo: t })
-      toast.success('Atividade filha criada.')
+      toast.success(atividade.tipo === 'EPICO' ? 'Atividade criada.' : 'Subatividade criada.')
       setFilhaTitulo('')
       setMostrandoFilha(false)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Não foi possível criar a atividade filha.')
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : `Não foi possível criar a ${atividade.tipo === 'EPICO' ? 'atividade' : 'subatividade'}.`
+      )
     } finally {
       setCriandoFilha(false)
     }
@@ -503,9 +516,12 @@ const AtividadeDrawer = ({
               <Typography variant='body2' color='text.disabled' component='span'>
                 /
               </Typography>
-              <Typography variant='body2' color='text.secondary' className='font-medium shrink-0'>
-                {atividade.codigo}
-              </Typography>
+              <span className='inline-flex items-center gap-1.5 shrink-0'>
+                <AtividadeTipoIcone tipo={atividade.tipo} />
+                <Typography variant='body2' color='text.secondary' className='font-medium'>
+                  {atividade.codigo}
+                </Typography>
+              </span>
             </div>
 
             <IconButton size='small' onClick={() => void handleClose()} aria-label='Fechar' disabled={salvando}>
@@ -585,10 +601,11 @@ const AtividadeDrawer = ({
                 disabled={salvando}
               />
 
-              {atividade.nivel === 1 ? (
+              {podeTerFilhas ? (
                 <section className={styles.subatividadesSecao}>
                   <h2 className={styles.descricaoCampoTitulo}>
-                    Subatividades{filhas.length > 0 ? ` (${filhas.length})` : ''}
+                    {rotuloFilhas}
+                    {filhas.length > 0 ? ` (${filhas.length})` : ''}
                   </h2>
 
                   {progressoFilhas ? (
@@ -610,7 +627,7 @@ const AtividadeDrawer = ({
                       <table className={styles.subatividadeTabela}>
                         <thead>
                           <tr>
-                            <th>Ticket</th>
+                            <th>Código</th>
                             <th>Prioridade</th>
                             <th>Responsável</th>
                             <th>Status</th>
@@ -625,6 +642,7 @@ const AtividadeDrawer = ({
                             >
                               <td>
                                 <div className={styles.subatividadeColTicket}>
+                                  <AtividadeTipoIcone tipo={filha.tipo} />
                                   <button
                                     type='button'
                                     className={styles.subatividadeTicketCodigo}
@@ -667,19 +685,25 @@ const AtividadeDrawer = ({
                                 </div>
                               </td>
                               <td>
-                                <span
+                                <Chip
+                                  size='small'
+                                  label={STATUS_ATIVIDADE_ROTULO[filha.status]}
+                                  variant={
+                                    filha.status === 'A_FAZER' || filha.status === 'EM_ANDAMENTO'
+                                      ? 'filled'
+                                      : 'tonal'
+                                  }
+                                  color={
+                                    filha.status === 'A_FAZER' ? 'secondary' : STATUS_ATIVIDADE_COR[filha.status]
+                                  }
                                   className={[
-                                    styles.subatividadeStatusPill,
-                                    filha.status === 'A_FAZER' ? styles.subatividadeStatusAFazer : '',
-                                    filha.status === 'EM_ANDAMENTO' ? styles.subatividadeStatusEmAndamento : '',
-                                    filha.status === 'AGUARDANDO' ? styles.subatividadeStatusAguardando : '',
-                                    filha.status === 'CONCLUIDA' ? styles.subatividadeStatusConcluida : ''
+                                    styles.subatividadeStatusChip,
+                                    filha.status === 'A_FAZER' ? styles.detalheStatusAFazer : '',
+                                    filha.status === 'EM_ANDAMENTO' ? styles.detalheStatusEmAndamento : ''
                                   ]
                                     .filter(Boolean)
                                     .join(' ')}
-                                >
-                                  {STATUS_ATIVIDADE_ROTULO[filha.status]}
-                                </span>
+                                />
                               </td>
                             </tr>
                           ))}
@@ -693,7 +717,7 @@ const AtividadeDrawer = ({
                       <CustomTextField
                         fullWidth
                         size='small'
-                        placeholder='Título da subatividade'
+                        placeholder={placeholderFilha}
                         value={filhaTitulo}
                         onChange={e => setFilhaTitulo(e.target.value)}
                         autoFocus
@@ -719,7 +743,7 @@ const AtividadeDrawer = ({
                       onClick={() => setMostrandoFilha(true)}
                       disabled={salvando}
                     >
-                      Adicionar subtarefa
+                      {rotuloNovaFilha}
                     </button>
                   ) : filhas.length === 0 ? (
                     <Typography variant='body2' color='text.disabled'>

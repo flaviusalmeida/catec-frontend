@@ -100,7 +100,7 @@ const AtividadeNovaDialog = ({ open, onClose, projetos, projetoIdFixo, statusIni
       PaperProps={{ className: styles.novaDialog }}
     >
       <form onSubmit={handleSubmit} className={styles.novaDialogForm}>
-        <DialogTitle>Nova atividade</DialogTitle>
+        <DialogTitle>Novo épico</DialogTitle>
         <DialogContent className={styles.novaDialogContent}>
           <CustomTextField
             select

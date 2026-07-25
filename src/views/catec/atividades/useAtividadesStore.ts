@@ -12,16 +12,18 @@ import {
 } from '@/libs/catecAtividadesApi'
 import type {
   CatecAtividade,
-  CatecAtividadeBoardColuna,
+  CatecAtividadeBoard,
   CatecAtividadeBoardFiltros,
   CatecAtividadeCreateInput,
   CatecAtividadeStatus,
   CatecAtividadeUpdateInput
 } from '@/types/catec/atividadeTypes'
-import { boardColunasVazias } from '@/types/catec/atividadeTypes'
+import { boardVazio, flatAtividadesDoBoard } from '@/types/catec/atividadeTypes'
 
 type StoreState = {
-  board: CatecAtividadeBoardColuna[]
+  board: CatecAtividadeBoard
+  /** Todos os tipos (inclui Subatividade mesmo quando o Agrupar do board as omite). */
+  catalogo: CatecAtividade[]
   filtros: CatecAtividadeBoardFiltros
   carregando: boolean
   erro: string | null
@@ -29,8 +31,9 @@ type StoreState = {
 }
 
 const initialState: StoreState = {
-  board: boardColunasVazias(),
-  filtros: {},
+  board: boardVazio(),
+  catalogo: [],
+  filtros: { agrupar: 'NENHUM' },
   carregando: false,
   erro: null,
   inicializado: false
@@ -66,12 +69,17 @@ function sameFiltros(a: CatecAtividadeBoardFiltros, b: CatecAtividadeBoardFiltro
   return (
     (a.projetoId ?? null) === (b.projetoId ?? null) &&
     (a.responsavelId ?? null) === (b.responsavelId ?? null) &&
-    (a.q ?? '') === (b.q ?? '')
+    (a.q ?? '') === (b.q ?? '') &&
+    (a.agrupar ?? 'NENHUM') === (b.agrupar ?? 'NENHUM')
   )
 }
 
 async function carregarBoardStore(filtros?: CatecAtividadeBoardFiltros) {
-  const nextFiltros = filtros ?? state.filtros
+  const nextFiltros = {
+    ...state.filtros,
+    ...(filtros ?? {}),
+    agrupar: filtros?.agrupar ?? state.filtros.agrupar ?? 'NENHUM'
+  }
 
   filtrosPendentes = nextFiltros
 
@@ -89,12 +97,13 @@ async function carregarBoardStore(filtros?: CatecAtividadeBoardFiltros) {
     setState({ carregando: true, erro: null, filtros: nextFiltros })
 
     try {
-      const board = await obterBoardAtividadesCatec(nextFiltros)
+      const { board, catalogo } = await obterBoardAtividadesCatec(nextFiltros)
 
-      setState({ board, carregando: false, erro: null, inicializado: true })
+      setState({ board, catalogo, carregando: false, erro: null, inicializado: true })
     } catch (err) {
       setState({
-        board: boardColunasVazias(),
+        board: boardVazio(nextFiltros.agrupar ?? 'NENHUM'),
+        catalogo: [],
         carregando: false,
         erro: err instanceof Error ? err.message : 'Não foi possível carregar o board de atividades.',
         inicializado: true
@@ -108,36 +117,52 @@ async function carregarBoardStore(filtros?: CatecAtividadeBoardFiltros) {
 }
 
 function moverNoBoardOptimistic(id: number, status: CatecAtividadeStatus, ordem?: number | null) {
+  const boardAntes = state.board
   let movida: CatecAtividade | undefined
+  let faixaChave: string | null = null
 
-  const semItem = state.board.map(coluna => {
-    const found = coluna.atividades.find(a => a.id === id)
+  for (const faixa of boardAntes.faixas) {
+    for (const coluna of faixa.colunas) {
+      const found = coluna.atividades.find(a => a.id === id)
 
-    if (!found) return coluna
-
-    movida = found
-
-    return {
-      ...coluna,
-      atividades: coluna.atividades.filter(a => a.id !== id)
+      if (found) {
+        movida = found
+        faixaChave = faixa.chave
+        break
+      }
     }
-  })
 
-  if (!movida) return
+    if (movida) break
+  }
 
-  const base = movida
+  if (!movida || !faixaChave) return
+
   const atualizada: CatecAtividade = {
-    ...base,
+    ...movida,
     status,
-    ordem: ordem ?? base.ordem
+    ordem: ordem ?? movida.ordem
   }
 
   setState({
-    board: semItem.map(coluna => {
-      if (coluna.status !== status) return coluna
+    board: {
+      ...boardAntes,
+      faixas: boardAntes.faixas.map(faixa => {
+        if (faixa.chave !== faixaChave) return faixa
 
-      return { ...coluna, atividades: [...coluna.atividades, atualizada] }
-    })
+        return {
+          ...faixa,
+          colunas: faixa.colunas.map(coluna => {
+            const sem = coluna.atividades.filter(a => a.id !== id)
+
+            if (coluna.status !== status) {
+              return { ...coluna, atividades: sem }
+            }
+
+            return { ...coluna, atividades: [...sem, atualizada] }
+          })
+        }
+      })
+    }
   })
 }
 
@@ -190,13 +215,9 @@ async function excluirStore(id: number): Promise<void> {
 }
 
 function encontrarAtividade(id: number): CatecAtividade | null {
-  for (const coluna of state.board) {
-    const found = coluna.atividades.find(a => a.id === id)
-
-    if (found) return found
-  }
-
-  return null
+  return (
+    state.catalogo.find(a => a.id === id) ?? flatAtividadesDoBoard(state.board).find(a => a.id === id) ?? null
+  )
 }
 
 export function useAtividadesStore() {
@@ -239,6 +260,7 @@ export function useAtividadesStore() {
 
   return {
     board: snapshot.board,
+    catalogo: snapshot.catalogo,
     filtros: snapshot.filtros,
     carregando: snapshot.carregando,
     erro: snapshot.erro,

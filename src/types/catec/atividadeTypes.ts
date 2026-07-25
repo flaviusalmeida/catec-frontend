@@ -4,6 +4,10 @@ export type CatecAtividadeStatus = 'A_FAZER' | 'EM_ANDAMENTO' | 'AGUARDANDO' | '
 
 export type CatecAtividadePrioridade = 'BAIXA' | 'MEDIA' | 'ALTA'
 
+export type CatecAtividadeTipo = 'EPICO' | 'ATIVIDADE' | 'SUBATIVIDADE'
+
+export type CatecAtividadeBoardAgrupar = 'NENHUM' | 'EPICO' | 'ATIVIDADE' | 'RESPONSAVEL'
+
 export type CatecAtividade = {
   id: number
   numero: number
@@ -13,6 +17,7 @@ export type CatecAtividade = {
   paiId: number | null
   paiCodigo: string | null
   nivel: number
+  tipo: CatecAtividadeTipo
   titulo: string
   descricao: string | null
   status: CatecAtividadeStatus
@@ -31,6 +36,23 @@ export type CatecAtividadeBoardColuna = {
   status: CatecAtividadeStatus
   rotulo: string
   atividades: CatecAtividade[]
+}
+
+export type CatecAtividadeBoardFaixa = {
+  chave: string
+  titulo: string
+  atividadeId: number | null
+  tipo: CatecAtividadeTipo | null
+  status: CatecAtividadeStatus | null
+  responsavelId: number | null
+  responsavelNome: string | null
+  colunas: CatecAtividadeBoardColuna[]
+}
+
+export type CatecAtividadeBoard = {
+  agrupar: CatecAtividadeBoardAgrupar
+  colunas: { status: CatecAtividadeStatus; rotulo: string }[]
+  faixas: CatecAtividadeBoardFaixa[]
 }
 
 export type CatecAtividadeCreateInput = {
@@ -62,6 +84,7 @@ export type CatecAtividadeBoardFiltros = {
   projetoId?: number | null
   responsavelId?: number | null
   q?: string | null
+  agrupar?: CatecAtividadeBoardAgrupar | null
 }
 
 export type CatecAtividadeDocumento = {
@@ -115,6 +138,32 @@ export const PRIORIDADE_ATIVIDADE_ROTULO: Record<CatecAtividadePrioridade, strin
   ALTA: 'Alta'
 }
 
+export const TIPO_ATIVIDADE_ROTULO: Record<CatecAtividadeTipo, string> = {
+  EPICO: 'Épico',
+  ATIVIDADE: 'Atividade',
+  SUBATIVIDADE: 'Subatividade'
+}
+
+export const TIPO_ATIVIDADE_SIGLA: Record<CatecAtividadeTipo, string> = {
+  EPICO: 'E',
+  ATIVIDADE: 'A',
+  SUBATIVIDADE: 'S'
+}
+
+export const AGRUPAR_BOARD_ROTULO: Record<CatecAtividadeBoardAgrupar, string> = {
+  NENHUM: 'Nenhum',
+  EPICO: 'Épico',
+  ATIVIDADE: 'Atividade',
+  RESPONSAVEL: 'Responsável'
+}
+
+export const ORDEM_AGRUPAR_BOARD: CatecAtividadeBoardAgrupar[] = [
+  'NENHUM',
+  'EPICO',
+  'ATIVIDADE',
+  'RESPONSAVEL'
+]
+
 export const PRIORIDADE_ATIVIDADE_COR: Record<CatecAtividadePrioridade, ThemeColor> = {
   BAIXA: 'info',
   MEDIA: 'warning',
@@ -128,8 +177,26 @@ export const STATUS_ATIVIDADE_COR: Record<CatecAtividadeStatus, ThemeColor> = {
   CONCLUIDA: 'success'
 }
 
+export const TIPO_ATIVIDADE_COR: Record<CatecAtividadeTipo, ThemeColor> = {
+  EPICO: 'warning',
+  ATIVIDADE: 'primary',
+  SUBATIVIDADE: 'secondary'
+}
+
+function inferTipo(nivel: number, rawTipo: unknown): CatecAtividadeTipo {
+  if (rawTipo === 'EPICO' || rawTipo === 'ATIVIDADE' || rawTipo === 'SUBATIVIDADE') {
+    return rawTipo
+  }
+
+  if (nivel === 2) return 'ATIVIDADE'
+  if (nivel === 3) return 'SUBATIVIDADE'
+
+  return 'EPICO'
+}
+
 export function parseCatecAtividade(raw: unknown): CatecAtividade {
   const data = raw as Record<string, unknown>
+  const nivel = Number(data.nivel ?? 1)
 
   return {
     id: Number(data.id),
@@ -139,7 +206,8 @@ export function parseCatecAtividade(raw: unknown): CatecAtividade {
     projetoTitulo: String(data.projetoTitulo ?? ''),
     paiId: data.paiId == null ? null : Number(data.paiId),
     paiCodigo: data.paiCodigo == null ? null : String(data.paiCodigo),
-    nivel: Number(data.nivel ?? 1),
+    nivel,
+    tipo: inferTipo(nivel, data.tipo),
     titulo: String(data.titulo ?? ''),
     descricao: data.descricao == null ? null : String(data.descricao),
     status: String(data.status ?? 'A_FAZER') as CatecAtividadeStatus,
@@ -161,19 +229,89 @@ export function parseCatecAtividadeList(raw: unknown): CatecAtividade[] {
   return raw.map(parseCatecAtividade)
 }
 
-export function parseCatecAtividadeBoard(raw: unknown): CatecAtividadeBoardColuna[] {
-  if (!Array.isArray(raw)) return []
+function parseColuna(raw: unknown): CatecAtividadeBoardColuna {
+  const data = raw as Record<string, unknown>
+  const status = String(data.status ?? 'A_FAZER') as CatecAtividadeStatus
+  const itens = data.itens ?? data.atividades
 
-  return raw.map(item => {
-    const data = item as Record<string, unknown>
-    const status = String(data.status ?? 'A_FAZER') as CatecAtividadeStatus
+  return {
+    status,
+    rotulo: String(data.rotulo ?? STATUS_ATIVIDADE_ROTULO[status] ?? status),
+    atividades: parseCatecAtividadeList(itens)
+  }
+}
+
+export function parseCatecAtividadeBoard(raw: unknown): CatecAtividadeBoard {
+  if (Array.isArray(raw)) {
+    return {
+      agrupar: 'NENHUM',
+      colunas: ORDEM_STATUS_ATIVIDADE.map(status => ({
+        status,
+        rotulo: STATUS_ATIVIDADE_ROTULO[status]
+      })),
+      faixas: [
+        {
+          chave: 'todos',
+          titulo: 'Todas',
+          atividadeId: null,
+          tipo: null,
+          status: null,
+          responsavelId: null,
+          responsavelNome: null,
+          colunas: raw.map(parseColuna)
+        }
+      ]
+    }
+  }
+
+  const data = (raw ?? {}) as Record<string, unknown>
+  const agruparRaw = String(data.agrupar ?? 'NENHUM')
+  const agrupar = (ORDEM_AGRUPAR_BOARD.includes(agruparRaw as CatecAtividadeBoardAgrupar)
+    ? agruparRaw
+    : 'NENHUM') as CatecAtividadeBoardAgrupar
+
+  const colunasMeta = Array.isArray(data.colunas)
+    ? (data.colunas as Record<string, unknown>[]).map(c => {
+        const status = String(c.status ?? 'A_FAZER') as CatecAtividadeStatus
+
+        return {
+          status,
+          rotulo: String(c.rotulo ?? STATUS_ATIVIDADE_ROTULO[status] ?? status)
+        }
+      })
+    : ORDEM_STATUS_ATIVIDADE.map(status => ({
+        status,
+        rotulo: STATUS_ATIVIDADE_ROTULO[status]
+      }))
+
+  const faixasRaw = Array.isArray(data.faixas) ? data.faixas : []
+
+  const faixas: CatecAtividadeBoardFaixa[] = faixasRaw.map(item => {
+    const f = item as Record<string, unknown>
+    const tipoRaw = f.tipo
+    const statusRaw = f.status
+    const status =
+      statusRaw === 'A_FAZER' ||
+      statusRaw === 'EM_ANDAMENTO' ||
+      statusRaw === 'AGUARDANDO' ||
+      statusRaw === 'CONCLUIDA'
+        ? statusRaw
+        : null
 
     return {
+      chave: String(f.chave ?? ''),
+      titulo: String(f.titulo ?? ''),
+      atividadeId: f.atividadeId == null ? null : Number(f.atividadeId),
+      tipo:
+        tipoRaw === 'EPICO' || tipoRaw === 'ATIVIDADE' || tipoRaw === 'SUBATIVIDADE' ? tipoRaw : null,
       status,
-      rotulo: String(data.rotulo ?? STATUS_ATIVIDADE_ROTULO[status] ?? status),
-      atividades: parseCatecAtividadeList(data.atividades)
+      responsavelId: f.responsavelId == null ? null : Number(f.responsavelId),
+      responsavelNome: f.responsavelNome == null ? null : String(f.responsavelNome),
+      colunas: Array.isArray(f.colunas) ? f.colunas.map(parseColuna) : boardColunasVazias()
     }
   })
+
+  return { agrupar, colunas: colunasMeta, faixas }
 }
 
 export function boardColunasVazias(): CatecAtividadeBoardColuna[] {
@@ -182,6 +320,32 @@ export function boardColunasVazias(): CatecAtividadeBoardColuna[] {
     rotulo: STATUS_ATIVIDADE_ROTULO[status],
     atividades: []
   }))
+}
+
+export function boardVazio(agrupar: CatecAtividadeBoardAgrupar = 'NENHUM'): CatecAtividadeBoard {
+  return {
+    agrupar,
+    colunas: ORDEM_STATUS_ATIVIDADE.map(status => ({
+      status,
+      rotulo: STATUS_ATIVIDADE_ROTULO[status]
+    })),
+    faixas: [
+      {
+        chave: 'todos',
+        titulo: 'Todas',
+        atividadeId: null,
+        tipo: null,
+        status: null,
+        responsavelId: null,
+        responsavelNome: null,
+        colunas: boardColunasVazias()
+      }
+    ]
+  }
+}
+
+export function flatAtividadesDoBoard(board: CatecAtividadeBoard): CatecAtividade[] {
+  return board.faixas.flatMap(f => f.colunas.flatMap(c => c.atividades))
 }
 
 export function parseCatecAtividadeDocumento(raw: unknown): CatecAtividadeDocumento {
@@ -261,9 +425,9 @@ function rotuloPrioridadeHistorico(codigo: string | null): string {
 export function tituloHistoricoAtividade(item: CatecAtividadeHistoricoItem): string {
   switch (item.acao) {
     case 'CRIAR':
-      return 'Atividade criada'
+      return 'Item criado'
     case 'EXCLUIR':
-      return 'Atividade excluída'
+      return 'Item excluído'
     case 'ALTERAR_STATUS':
       return `Status: ${rotuloStatusHistorico(item.statusAnterior)} → ${rotuloStatusHistorico(item.statusNovo)}`
     case 'ALTERAR_RESPONSAVEL':

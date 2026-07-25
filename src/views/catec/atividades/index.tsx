@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
-import { useSearchParams } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
 import Alert from '@mui/material/Alert'
 import CircularProgress from '@mui/material/CircularProgress'
@@ -11,7 +11,8 @@ import { toast } from 'react-toastify'
 
 import { useCatecPermission } from '@/hooks/useCatecPermission'
 import { listarProjetosCatec } from '@/libs/catecProjetosApi'
-import type { CatecAtividadeStatus } from '@/types/catec/atividadeTypes'
+import type { CatecAtividadeBoardAgrupar, CatecAtividadeStatus } from '@/types/catec/atividadeTypes'
+import { ORDEM_AGRUPAR_BOARD } from '@/types/catec/atividadeTypes'
 import { PermissaoCodigo } from '@/types/catec/permissao'
 import type { CatecProjeto } from '@/types/catec/projetoTypes'
 import { commonLayoutClasses } from '@layouts/utils/layoutClasses'
@@ -29,12 +30,23 @@ function parseProjetoId(value: string | null): number | null {
   return Number.isFinite(n) && n > 0 ? n : null
 }
 
+function parseAgrupar(value: string | null): CatecAtividadeBoardAgrupar {
+  if (value && ORDEM_AGRUPAR_BOARD.includes(value as CatecAtividadeBoardAgrupar)) {
+    return value as CatecAtividadeBoardAgrupar
+  }
+
+  return 'NENHUM'
+}
+
 const AtividadesView = () => {
   const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
   const { hasPermission } = useCatecPermission()
   const { board, carregando, erro, carregar, criarRaiz } = useAtividadesStore()
 
   const projetoIdUrl = useMemo(() => parseProjetoId(searchParams.get('projetoId')), [searchParams])
+  const agruparUrl = useMemo(() => parseAgrupar(searchParams.get('agrupar')), [searchParams])
   const [projetos, setProjetos] = useState<CatecProjeto[]>([])
   const [dialogOpen, setDialogOpen] = useState(false)
   const [statusPrefill, setStatusPrefill] = useState<CatecAtividadeStatus | null>(null)
@@ -52,9 +64,27 @@ const AtividadesView = () => {
   useEffect(() => {
     void carregar({
       projetoId: projetoIdUrl,
-      q: null
+      q: null,
+      agrupar: agruparUrl
     })
-  }, [projetoIdUrl, carregar])
+  }, [projetoIdUrl, agruparUrl, carregar])
+
+  const setAgrupar = useCallback(
+    (agrupar: CatecAtividadeBoardAgrupar) => {
+      const params = new URLSearchParams(searchParams.toString())
+
+      if (agrupar === 'NENHUM') {
+        params.delete('agrupar')
+      } else {
+        params.set('agrupar', agrupar)
+      }
+
+      const qs = params.toString()
+
+      router.replace(qs ? `${pathname}?${qs}` : pathname)
+    },
+    [pathname, router, searchParams]
+  )
 
   const handleCriarNaColuna = useCallback(
     async (titulo: string, status: CatecAtividadeStatus) => {
@@ -67,14 +97,16 @@ const AtividadesView = () => {
 
       try {
         await criarRaiz(projetoIdUrl, { titulo, status })
-        toast.success('Atividade criada.')
+        toast.success('Épico criado.')
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : 'Não foi possível criar a atividade.')
+        toast.error(err instanceof Error ? err.message : 'Não foi possível criar o épico.')
         throw err
       }
     },
     [criarRaiz, projetoIdUrl]
   )
+
+  const boardVazio = board.faixas.every(f => f.colunas.every(c => c.atividades.length === 0))
 
   return (
     <div
@@ -90,13 +122,15 @@ const AtividadesView = () => {
         </Alert>
       ) : null}
 
-      {carregando && board.every(c => c.atividades.length === 0) ? (
+      {carregando && boardVazio ? (
         <div className='flex justify-center p-12'>
           <CircularProgress />
         </div>
       ) : (
         <AtividadeBoard
           board={board}
+          agrupar={agruparUrl}
+          onAgruparChange={setAgrupar}
           podeMover={podeMover}
           podeCriar={podeCriar}
           podeCriarNaColuna={podeCriarNaColuna}
@@ -122,7 +156,7 @@ const AtividadesView = () => {
             ...body,
             status: body.status ?? statusPrefill ?? undefined
           })
-          toast.success('Atividade criada.')
+          toast.success('Épico criado.')
         }}
       />
     </div>
