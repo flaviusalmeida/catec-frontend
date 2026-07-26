@@ -224,11 +224,11 @@ const AtividadeBoard = ({
                       atividades={coluna.atividades}
                       onOpen={handleOpen}
                       onMoverStatus={handleMover}
-                      onCriarNaColuna={agrupar === 'NENHUM' ? onCriarNaColuna : undefined}
-                      onPedirProjetoParaCriar={agrupar === 'NENHUM' ? onPedirProjetoParaCriar : undefined}
+                      onCriarNaColuna={onCriarNaColuna}
+                      onPedirProjetoParaCriar={onPedirProjetoParaCriar}
                       podeMover={podeMover}
-                      podeCriar={podeCriar && agrupar === 'NENHUM'}
-                      podeCriarNaColuna={podeCriarNaColuna && agrupar === 'NENHUM'}
+                      podeCriar={podeCriar}
+                      podeCriarNaColuna={podeCriarNaColuna}
                     />
                   ))}
                 </div>

@@ -43,7 +43,7 @@ const AtividadesView = () => {
   const router = useRouter()
   const pathname = usePathname()
   const { hasPermission } = useCatecPermission()
-  const { board, carregando, erro, carregar, criarRaiz } = useAtividadesStore()
+  const { board, carregando, erro, carregar, criarRaiz, criarFilha } = useAtividadesStore()
 
   const projetoIdUrl = useMemo(() => parseProjetoId(searchParams.get('projetoId')), [searchParams])
   const agruparUrl = useMemo(() => parseAgrupar(searchParams.get('agrupar')), [searchParams])
@@ -151,12 +151,25 @@ const AtividadesView = () => {
         projetos={projetos}
         projetoIdFixo={projetoIdUrl}
         statusInicial={statusPrefill}
-        onCreate={async (pid, body) => {
-          await criarRaiz(pid, {
+        onCreate={async ({ projetoId: pid, tipo, paiId, body }) => {
+          const payload = {
             ...body,
             status: body.status ?? statusPrefill ?? undefined
-          })
-          toast.success('Épico criado.')
+          }
+
+          if (tipo === 'EPICO') {
+            await criarRaiz(pid, payload)
+            toast.success('Épico criado.')
+
+            return
+          }
+
+          if (paiId == null) {
+            throw new Error(tipo === 'ATIVIDADE' ? 'Selecione o épico pai.' : 'Selecione a atividade pai.')
+          }
+
+          await criarFilha(paiId, payload)
+          toast.success(tipo === 'ATIVIDADE' ? 'Atividade criada.' : 'Subatividade criada.')
         }}
       />
     </div>

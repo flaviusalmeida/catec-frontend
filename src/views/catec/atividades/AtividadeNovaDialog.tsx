@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 
 import Button from '@mui/material/Button'
@@ -11,14 +11,24 @@ import DialogTitle from '@mui/material/DialogTitle'
 import MenuItem from '@mui/material/MenuItem'
 import { toast } from 'react-toastify'
 
-import type { CatecAtividadeCreateInput, CatecAtividadePrioridade, CatecAtividadeStatus } from '@/types/catec/atividadeTypes'
-import { PRIORIDADE_ATIVIDADE_ROTULO } from '@/types/catec/atividadeTypes'
+import { listarAtividadesCatec } from '@/libs/catecAtividadesApi'
+import type {
+  CatecAtividade,
+  CatecAtividadeCreateInput,
+  CatecAtividadePrioridade,
+  CatecAtividadeStatus,
+  CatecAtividadeTipo
+} from '@/types/catec/atividadeTypes'
+import { PRIORIDADE_ATIVIDADE_ROTULO, TIPO_ATIVIDADE_ROTULO } from '@/types/catec/atividadeTypes'
 import type { CatecProjeto } from '@/types/catec/projetoTypes'
 
 import CustomTextField from '@core/components/mui/TextField'
 
 import AtividadeDescricaoEditor from './AtividadeDescricaoEditor'
+import AtividadeTipoIcone from './AtividadeTipoIcone'
 import styles from './styles.module.css'
+
+const TIPOS_CRIACAO: CatecAtividadeTipo[] = ['EPICO', 'ATIVIDADE', 'SUBATIVIDADE']
 
 function prioridadeIcone(prioridade: CatecAtividadePrioridade): string {
   if (prioridade === 'ALTA') return 'tabler-chevrons-up'
@@ -34,17 +44,43 @@ function prioridadeCorClass(prioridade: CatecAtividadePrioridade): string {
   return styles.prioMedia
 }
 
+function tituloModal(tipo: CatecAtividadeTipo | ''): string {
+  if (tipo === 'EPICO') return 'Novo épico'
+  if (tipo === 'ATIVIDADE') return 'Nova atividade'
+  if (tipo === 'SUBATIVIDADE') return 'Nova subatividade'
+
+  return 'Nova atividade'
+}
+
+function rotuloPai(tipo: CatecAtividadeTipo): string {
+  if (tipo === 'ATIVIDADE') return 'Épico pai'
+  if (tipo === 'SUBATIVIDADE') return 'Atividade pai'
+
+  return 'Pai'
+}
+
+export type CatecAtividadeNovaPayload = {
+  projetoId: number
+  tipo: CatecAtividadeTipo
+  paiId: number | null
+  body: CatecAtividadeCreateInput
+}
+
 type Props = {
   open: boolean
   onClose: () => void
   projetos: CatecProjeto[]
   projetoIdFixo?: number | null
   statusInicial?: CatecAtividadeStatus | null
-  onCreate: (projetoId: number, body: CatecAtividadeCreateInput) => Promise<void>
+  onCreate: (payload: CatecAtividadeNovaPayload) => Promise<void>
 }
 
 const AtividadeNovaDialog = ({ open, onClose, projetos, projetoIdFixo, statusInicial, onCreate }: Props) => {
   const [projetoId, setProjetoId] = useState<number | ''>(projetoIdFixo ?? '')
+  const [tipo, setTipo] = useState<CatecAtividadeTipo | ''>('')
+  const [paiId, setPaiId] = useState<number | ''>('')
+  const [candidatosPai, setCandidatosPai] = useState<CatecAtividade[]>([])
+  const [carregandoPais, setCarregandoPais] = useState(false)
   const [titulo, setTitulo] = useState('')
   const [descricao, setDescricao] = useState<string | null>(null)
   const [prioridade, setPrioridade] = useState<CatecAtividadePrioridade>('MEDIA')
@@ -55,11 +91,70 @@ const AtividadeNovaDialog = ({ open, onClose, projetos, projetoIdFixo, statusIni
     if (!open) return
 
     setProjetoId(projetoIdFixo ?? '')
+    setTipo('')
+    setPaiId('')
+    setCandidatosPai([])
     setTitulo('')
     setDescricao(null)
     setPrioridade('MEDIA')
     setPrazo('')
   }, [open, projetoIdFixo])
+
+  useEffect(() => {
+    if (!open || tipo === '' || tipo === 'EPICO') {
+      setCandidatosPai([])
+      setPaiId('')
+
+      return
+    }
+
+    const pid = typeof projetoId === 'number' ? projetoId : Number(projetoId)
+
+    if (!pid) {
+      setCandidatosPai([])
+      setPaiId('')
+
+      return
+    }
+
+    let cancelled = false
+
+    setCarregandoPais(true)
+    void listarAtividadesCatec({ projetoId: pid })
+      .then(lista => {
+        if (cancelled) return
+
+        const tipoPai: CatecAtividadeTipo = tipo === 'ATIVIDADE' ? 'EPICO' : 'ATIVIDADE'
+        const filtrados = lista
+          .filter(a => a.tipo === tipoPai)
+          .sort((a, b) => a.codigo.localeCompare(b.codigo, 'pt-BR') || a.id - b.id)
+
+        setCandidatosPai(filtrados)
+        setPaiId(prev => (typeof prev === 'number' && filtrados.some(a => a.id === prev) ? prev : ''))
+      })
+      .catch(() => {
+        if (cancelled) return
+        setCandidatosPai([])
+        setPaiId('')
+      })
+      .finally(() => {
+        if (!cancelled) setCarregandoPais(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [open, tipo, projetoId])
+
+  const precisaPai = tipo === 'ATIVIDADE' || tipo === 'SUBATIVIDADE'
+
+  const placeholderTitulo = useMemo(() => {
+    if (tipo === 'EPICO') return 'Ex.: Entregar proposta comercial'
+    if (tipo === 'ATIVIDADE') return 'Ex.: Elaborar minuta da proposta'
+    if (tipo === 'SUBATIVIDADE') return 'Ex.: Revisar cláusulas contratuais'
+
+    return 'Ex.: Elaborar proposta comercial'
+  }, [tipo])
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -72,19 +167,38 @@ const AtividadeNovaDialog = ({ open, onClose, projetos, projetoIdFixo, statusIni
       return
     }
 
+    if (!tipo) {
+      toast.error('Selecione o tipo.')
+
+      return
+    }
+
+    if (precisaPai && (paiId === '' || !Number(paiId))) {
+      toast.error(
+        tipo === 'ATIVIDADE' ? 'Selecione o épico pai.' : 'Selecione a atividade pai.'
+      )
+
+      return
+    }
+
     setSalvando(true)
 
     try {
-      await onCreate(pid, {
-        titulo: titulo.trim(),
-        descricao,
-        prioridade,
-        status: statusInicial ?? undefined,
-        prazoEm: prazo ? new Date(`${prazo}T12:00:00`).toISOString() : null
+      await onCreate({
+        projetoId: pid,
+        tipo,
+        paiId: precisaPai ? Number(paiId) : null,
+        body: {
+          titulo: titulo.trim(),
+          descricao,
+          prioridade,
+          status: statusInicial ?? undefined,
+          prazoEm: prazo ? new Date(`${prazo}T12:00:00`).toISOString() : null
+        }
       })
       onClose()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Não foi possível criar a atividade.')
+      toast.error(err instanceof Error ? err.message : 'Não foi possível criar.')
     } finally {
       setSalvando(false)
     }
@@ -100,7 +214,7 @@ const AtividadeNovaDialog = ({ open, onClose, projetos, projetoIdFixo, statusIni
       PaperProps={{ className: styles.novaDialog }}
     >
       <form onSubmit={handleSubmit} className={styles.novaDialogForm}>
-        <DialogTitle>Novo épico</DialogTitle>
+        <DialogTitle>{tituloModal(tipo)}</DialogTitle>
         <DialogContent className={styles.novaDialogContent}>
           <CustomTextField
             select
@@ -128,10 +242,99 @@ const AtividadeNovaDialog = ({ open, onClose, projetos, projetoIdFixo, statusIni
               </MenuItem>
             ))}
           </CustomTextField>
+
+          <CustomTextField
+            select
+            fullWidth
+            label='Tipo'
+            value={tipo}
+            onChange={e => setTipo(e.target.value as CatecAtividadeTipo | '')}
+            required
+            slotProps={{
+              select: {
+                displayEmpty: true,
+                MenuProps: {
+                  disableScrollLock: true
+                },
+                renderValue: value => {
+                  if (value === '' || value == null) {
+                    return <em className='text-textDisabled'>Selecione o tipo</em>
+                  }
+
+                  const key = value as CatecAtividadeTipo
+
+                  return (
+                    <span className='inline-flex items-center gap-2'>
+                      <AtividadeTipoIcone tipo={key} comTooltip={false} />
+                      {TIPO_ATIVIDADE_ROTULO[key]}
+                    </span>
+                  )
+                }
+              }
+            }}
+          >
+            <MenuItem value=''>
+              <em>Selecione o tipo</em>
+            </MenuItem>
+            {TIPOS_CRIACAO.map(key => (
+              <MenuItem key={key} value={key}>
+                <span className='inline-flex items-center gap-2'>
+                  <AtividadeTipoIcone tipo={key} comTooltip={false} />
+                  {TIPO_ATIVIDADE_ROTULO[key]}
+                </span>
+              </MenuItem>
+            ))}
+          </CustomTextField>
+
+          {precisaPai ? (
+            <CustomTextField
+              select
+              fullWidth
+              label={rotuloPai(tipo)}
+              value={paiId}
+              onChange={e => setPaiId(e.target.value === '' ? '' : Number(e.target.value))}
+              required
+              disabled={!projetoId || carregandoPais}
+              helperText={
+                !projetoId
+                  ? 'Selecione o projeto primeiro.'
+                  : carregandoPais
+                    ? 'Carregando…'
+                    : candidatosPai.length === 0
+                      ? tipo === 'ATIVIDADE'
+                        ? 'Nenhum épico neste projeto.'
+                        : 'Nenhuma atividade neste projeto.'
+                      : undefined
+              }
+              slotProps={{
+                select: {
+                  MenuProps: {
+                    disableScrollLock: true,
+                    PaperProps: { className: styles.novaDialogSelectMenu }
+                  }
+                }
+              }}
+            >
+              <MenuItem value=''>
+                <em>Selecione</em>
+              </MenuItem>
+              {candidatosPai.map(a => (
+                <MenuItem key={a.id} value={a.id}>
+                  <span className='inline-flex items-center gap-2 min-is-0'>
+                    <AtividadeTipoIcone tipo={a.tipo} comTooltip={false} />
+                    <span className='truncate'>
+                      {a.codigo} · {a.titulo}
+                    </span>
+                  </span>
+                </MenuItem>
+              ))}
+            </CustomTextField>
+          ) : null}
+
           <CustomTextField
             fullWidth
             label='Título'
-            placeholder='Ex.: Elaborar proposta comercial'
+            placeholder={placeholderTitulo}
             value={titulo}
             onChange={e => setTitulo(e.target.value)}
             required

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, Fragment } from 'react'
 import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react'
 import { useRouter } from 'next/navigation'
 
@@ -27,6 +27,7 @@ import type {
   CatecAtividadeCreateInput,
   CatecAtividadePrioridade,
   CatecAtividadeStatus,
+  CatecAtividadeTipo,
   CatecAtividadeUpdateInput
 } from '@/types/catec/atividadeTypes'
 import {
@@ -196,6 +197,38 @@ const AtividadeDrawer = ({
       .filter(item => item.paiId === atividade.id)
       .sort((a, b) => a.ordem - b.ordem || a.id - b.id)
   }, [catalogo, atividade])
+
+  /** Pais do root até o pai imediato (Projeto fica fora — já no breadcrumb). */
+  const cadeiaPais = useMemo(() => {
+    if (!atividade?.paiId) return [] as Array<{ id: number; codigo: string; tipo: CatecAtividadeTipo }>
+
+    const porId = new Map(catalogo.map(a => [a.id, a]))
+    const itens: Array<{ id: number; codigo: string; tipo: CatecAtividadeTipo }> = []
+    const visitados = new Set<number>()
+    let cursor: number | null = atividade.paiId
+
+    while (cursor != null && !visitados.has(cursor)) {
+      visitados.add(cursor)
+      const encontrado = porId.get(cursor)
+
+      if (encontrado) {
+        itens.unshift({ id: encontrado.id, codigo: encontrado.codigo, tipo: encontrado.tipo })
+        cursor = encontrado.paiId
+        continue
+      }
+
+      if (cursor === atividade.paiId && atividade.paiCodigo) {
+        const tipoInferido: CatecAtividadeTipo =
+          atividade.tipo === 'SUBATIVIDADE' ? 'ATIVIDADE' : 'EPICO'
+
+        itens.unshift({ id: cursor, codigo: atividade.paiCodigo, tipo: tipoInferido })
+      }
+
+      break
+    }
+
+    return itens
+  }, [atividade, catalogo])
 
   const podeTerFilhas = atividade?.tipo === 'EPICO' || atividade?.tipo === 'ATIVIDADE'
   const rotuloFilhas = atividade?.tipo === 'EPICO' ? 'Atividades' : 'Subatividades'
@@ -497,8 +530,8 @@ const AtividadeDrawer = ({
                   {atividade.projetoTitulo || `Projeto #${atividade.projetoId}`}
                 </span>
               </NextLink>
-              {atividade.paiId != null ? (
-                <>
+              {cadeiaPais.map(pai => (
+                <Fragment key={pai.id}>
                   <Typography variant='body2' color='text.disabled' component='span'>
                     /
                   </Typography>
@@ -506,13 +539,14 @@ const AtividadeDrawer = ({
                     type='button'
                     className={styles.detalheBreadcrumbLink}
                     disabled={salvando || !onAbrirAtividade}
-                    onClick={() => void irParaAtividade(atividade.paiId!)}
-                    title={`Abrir ${atividade.paiCodigo ?? `atividade #${atividade.paiId}`}`}
+                    onClick={() => void irParaAtividade(pai.id)}
+                    title={`Abrir ${pai.codigo}`}
                   >
-                    <span className='truncate'>{atividade.paiCodigo ?? `#${atividade.paiId}`}</span>
+                    <AtividadeTipoIcone tipo={pai.tipo} comTooltip={false} />
+                    <span className='truncate'>{pai.codigo}</span>
                   </button>
-                </>
-              ) : null}
+                </Fragment>
+              ))}
               <Typography variant='body2' color='text.disabled' component='span'>
                 /
               </Typography>
@@ -720,9 +754,17 @@ const AtividadeDrawer = ({
                         placeholder={placeholderFilha}
                         value={filhaTitulo}
                         onChange={e => setFilhaTitulo(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key !== 'Enter') return
+
+                          e.preventDefault()
+
+                          if (!criandoFilha) void handleCriarFilha()
+                        }}
                         autoFocus
+                        disabled={criandoFilha}
                       />
-                      <Button size='small' variant='contained' onClick={handleCriarFilha} disabled={criandoFilha}>
+                      <Button size='small' variant='contained' onClick={() => void handleCriarFilha()} disabled={criandoFilha}>
                         Criar
                       </Button>
                       <Button
@@ -743,7 +785,7 @@ const AtividadeDrawer = ({
                       onClick={() => setMostrandoFilha(true)}
                       disabled={salvando}
                     >
-                      {rotuloNovaFilha}
+                      + {rotuloNovaFilha}
                     </button>
                   ) : filhas.length === 0 ? (
                     <Typography variant='body2' color='text.disabled'>
