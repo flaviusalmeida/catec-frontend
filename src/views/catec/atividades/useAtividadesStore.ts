@@ -18,7 +18,7 @@ import type {
   CatecAtividadeStatus,
   CatecAtividadeUpdateInput
 } from '@/types/catec/atividadeTypes'
-import { boardVazio, flatAtividadesDoBoard } from '@/types/catec/atividadeTypes'
+import { boardVazio, flatAtividadesDoBoard, AGRUPAR_BOARD_DEFAULT } from '@/types/catec/atividadeTypes'
 
 type StoreState = {
   board: CatecAtividadeBoard
@@ -33,7 +33,7 @@ type StoreState = {
 const initialState: StoreState = {
   board: boardVazio(),
   catalogo: [],
-  filtros: { agrupar: 'NENHUM' },
+  filtros: { agrupar: AGRUPAR_BOARD_DEFAULT },
   carregando: false,
   erro: null,
   inicializado: false
@@ -70,7 +70,7 @@ function sameFiltros(a: CatecAtividadeBoardFiltros, b: CatecAtividadeBoardFiltro
     (a.projetoId ?? null) === (b.projetoId ?? null) &&
     (a.responsavelId ?? null) === (b.responsavelId ?? null) &&
     (a.q ?? '') === (b.q ?? '') &&
-    (a.agrupar ?? 'NENHUM') === (b.agrupar ?? 'NENHUM')
+    (a.agrupar ?? AGRUPAR_BOARD_DEFAULT) === (b.agrupar ?? AGRUPAR_BOARD_DEFAULT)
   )
 }
 
@@ -78,7 +78,7 @@ async function carregarBoardStore(filtros?: CatecAtividadeBoardFiltros) {
   const nextFiltros = {
     ...state.filtros,
     ...(filtros ?? {}),
-    agrupar: filtros?.agrupar ?? state.filtros.agrupar ?? 'NENHUM'
+    agrupar: filtros?.agrupar ?? state.filtros.agrupar ?? AGRUPAR_BOARD_DEFAULT
   }
 
   filtrosPendentes = nextFiltros
@@ -102,7 +102,7 @@ async function carregarBoardStore(filtros?: CatecAtividadeBoardFiltros) {
       setState({ board, catalogo, carregando: false, erro: null, inicializado: true })
     } catch (err) {
       setState({
-        board: boardVazio(nextFiltros.agrupar ?? 'NENHUM'),
+        board: boardVazio(nextFiltros.agrupar ?? AGRUPAR_BOARD_DEFAULT),
         catalogo: [],
         carregando: false,
         erro: err instanceof Error ? err.message : 'Não foi possível carregar o board de atividades.',
@@ -120,6 +120,7 @@ function moverNoBoardOptimistic(id: number, status: CatecAtividadeStatus, ordem?
   const boardAntes = state.board
   let movida: CatecAtividade | undefined
   let faixaChave: string | null = null
+  let subFaixaChave: string | null = null
 
   for (const faixa of boardAntes.faixas) {
     for (const coluna of faixa.colunas) {
@@ -133,6 +134,23 @@ function moverNoBoardOptimistic(id: number, status: CatecAtividadeStatus, ordem?
     }
 
     if (movida) break
+
+    for (const sub of faixa.subFaixas) {
+      for (const coluna of sub.colunas) {
+        const found = coluna.atividades.find(a => a.id === id)
+
+        if (found) {
+          movida = found
+          faixaChave = faixa.chave
+          subFaixaChave = sub.chave
+          break
+        }
+      }
+
+      if (movida) break
+    }
+
+    if (movida) break
   }
 
   if (!movida || !faixaChave) return
@@ -143,23 +161,37 @@ function moverNoBoardOptimistic(id: number, status: CatecAtividadeStatus, ordem?
     ordem: ordem ?? movida.ordem
   }
 
+  const remapColunas = (colunas: typeof boardAntes.faixas[0]['colunas']) =>
+    colunas.map(coluna => {
+      const sem = coluna.atividades.filter(a => a.id !== id)
+
+      if (coluna.status !== status) {
+        return { ...coluna, atividades: sem }
+      }
+
+      return { ...coluna, atividades: [...sem, atualizada] }
+    })
+
   setState({
     board: {
       ...boardAntes,
       faixas: boardAntes.faixas.map(faixa => {
         if (faixa.chave !== faixaChave) return faixa
 
+        if (subFaixaChave != null) {
+          return {
+            ...faixa,
+            subFaixas: faixa.subFaixas.map(sub => {
+              if (sub.chave !== subFaixaChave) return sub
+
+              return { ...sub, colunas: remapColunas(sub.colunas) }
+            })
+          }
+        }
+
         return {
           ...faixa,
-          colunas: faixa.colunas.map(coluna => {
-            const sem = coluna.atividades.filter(a => a.id !== id)
-
-            if (coluna.status !== status) {
-              return { ...coluna, atividades: sem }
-            }
-
-            return { ...coluna, atividades: [...sem, atualizada] }
-          })
+          colunas: remapColunas(faixa.colunas)
         }
       })
     }

@@ -21,6 +21,11 @@ const CatecNavMenuItems = ({ withIcons = false }: Props) => {
           Dashboard
         </MenuItem>
       </CanPermission>
+      <CanPermission code={PermissaoCodigo.TELA_ATIVIDADES}>
+        <MenuItem href='/catec/atividades' icon={icon('tabler-layout-kanban')}>
+          Atividades
+        </MenuItem>
+      </CanPermission>
       <CanPermission code={PermissaoCodigo.TELA_CLIENTES}>
         <MenuItem href='/catec/clientes' icon={icon('tabler-user')}>
           Clientes
@@ -29,11 +34,6 @@ const CatecNavMenuItems = ({ withIcons = false }: Props) => {
       <CanPermission code={PermissaoCodigo.TELA_PROJETOS}>
         <MenuItem href='/catec/projetos' icon={icon('tabler-briefcase')}>
           Projetos
-        </MenuItem>
-      </CanPermission>
-      <CanPermission code={PermissaoCodigo.TELA_ATIVIDADES}>
-        <MenuItem href='/catec/atividades' icon={icon('tabler-layout-kanban')}>
-          Atividades
         </MenuItem>
       </CanPermission>
       <CanPermission code={PermissaoCodigo.TELA_SOCIO_PROPOSTAS}>

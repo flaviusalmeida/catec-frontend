@@ -4,9 +4,11 @@ export type CatecAtividadeStatus = 'A_FAZER' | 'EM_ANDAMENTO' | 'AGUARDANDO' | '
 
 export type CatecAtividadePrioridade = 'BAIXA' | 'MEDIA' | 'ALTA'
 
-export type CatecAtividadeTipo = 'EPICO' | 'ATIVIDADE' | 'SUBATIVIDADE'
+export type CatecAtividadeTipo = 'ETAPA' | 'ATIVIDADE' | 'SUBATIVIDADE'
 
-export type CatecAtividadeBoardAgrupar = 'NENHUM' | 'EPICO' | 'ATIVIDADE' | 'RESPONSAVEL'
+export type CatecAtividadeBoardAgrupar = 'ETAPA' | 'ATIVIDADE' | 'RESPONSAVEL' | 'PROJETO'
+
+export const AGRUPAR_BOARD_DEFAULT: CatecAtividadeBoardAgrupar = 'PROJETO'
 
 export type CatecAtividade = {
   id: number
@@ -47,6 +49,7 @@ export type CatecAtividadeBoardFaixa = {
   responsavelId: number | null
   responsavelNome: string | null
   colunas: CatecAtividadeBoardColuna[]
+  subFaixas: CatecAtividadeBoardFaixa[]
 }
 
 export type CatecAtividadeBoard = {
@@ -139,27 +142,27 @@ export const PRIORIDADE_ATIVIDADE_ROTULO: Record<CatecAtividadePrioridade, strin
 }
 
 export const TIPO_ATIVIDADE_ROTULO: Record<CatecAtividadeTipo, string> = {
-  EPICO: 'Épico',
+  ETAPA: 'Etapa',
   ATIVIDADE: 'Atividade',
   SUBATIVIDADE: 'Subatividade'
 }
 
 export const TIPO_ATIVIDADE_SIGLA: Record<CatecAtividadeTipo, string> = {
-  EPICO: 'E',
+  ETAPA: 'E',
   ATIVIDADE: 'A',
   SUBATIVIDADE: 'S'
 }
 
 export const AGRUPAR_BOARD_ROTULO: Record<CatecAtividadeBoardAgrupar, string> = {
-  NENHUM: 'Nenhum',
-  EPICO: 'Épico',
+  PROJETO: 'Projeto',
+  ETAPA: 'Etapa',
   ATIVIDADE: 'Atividade',
   RESPONSAVEL: 'Responsável'
 }
 
 export const ORDEM_AGRUPAR_BOARD: CatecAtividadeBoardAgrupar[] = [
-  'NENHUM',
-  'EPICO',
+  'PROJETO',
+  'ETAPA',
   'ATIVIDADE',
   'RESPONSAVEL'
 ]
@@ -178,20 +181,20 @@ export const STATUS_ATIVIDADE_COR: Record<CatecAtividadeStatus, ThemeColor> = {
 }
 
 export const TIPO_ATIVIDADE_COR: Record<CatecAtividadeTipo, ThemeColor> = {
-  EPICO: 'warning',
+  ETAPA: 'warning',
   ATIVIDADE: 'primary',
   SUBATIVIDADE: 'secondary'
 }
 
 function inferTipo(nivel: number, rawTipo: unknown): CatecAtividadeTipo {
-  if (rawTipo === 'EPICO' || rawTipo === 'ATIVIDADE' || rawTipo === 'SUBATIVIDADE') {
+  if (rawTipo === 'ETAPA' || rawTipo === 'ATIVIDADE' || rawTipo === 'SUBATIVIDADE') {
     return rawTipo
   }
 
   if (nivel === 2) return 'ATIVIDADE'
   if (nivel === 3) return 'SUBATIVIDADE'
 
-  return 'EPICO'
+  return 'ETAPA'
 }
 
 export function parseCatecAtividade(raw: unknown): CatecAtividade {
@@ -244,7 +247,7 @@ function parseColuna(raw: unknown): CatecAtividadeBoardColuna {
 export function parseCatecAtividadeBoard(raw: unknown): CatecAtividadeBoard {
   if (Array.isArray(raw)) {
     return {
-      agrupar: 'NENHUM',
+      agrupar: AGRUPAR_BOARD_DEFAULT,
       colunas: ORDEM_STATUS_ATIVIDADE.map(status => ({
         status,
         rotulo: STATUS_ATIVIDADE_ROTULO[status]
@@ -258,17 +261,18 @@ export function parseCatecAtividadeBoard(raw: unknown): CatecAtividadeBoard {
           status: null,
           responsavelId: null,
           responsavelNome: null,
-          colunas: raw.map(parseColuna)
+          colunas: raw.map(parseColuna),
+          subFaixas: []
         }
       ]
     }
   }
 
   const data = (raw ?? {}) as Record<string, unknown>
-  const agruparRaw = String(data.agrupar ?? 'NENHUM')
+  const agruparRaw = String(data.agrupar ?? AGRUPAR_BOARD_DEFAULT)
   const agrupar = (ORDEM_AGRUPAR_BOARD.includes(agruparRaw as CatecAtividadeBoardAgrupar)
     ? agruparRaw
-    : 'NENHUM') as CatecAtividadeBoardAgrupar
+    : AGRUPAR_BOARD_DEFAULT) as CatecAtividadeBoardAgrupar
 
   const colunasMeta = Array.isArray(data.colunas)
     ? (data.colunas as Record<string, unknown>[]).map(c => {
@@ -286,32 +290,34 @@ export function parseCatecAtividadeBoard(raw: unknown): CatecAtividadeBoard {
 
   const faixasRaw = Array.isArray(data.faixas) ? data.faixas : []
 
-  const faixas: CatecAtividadeBoardFaixa[] = faixasRaw.map(item => {
-    const f = item as Record<string, unknown>
-    const tipoRaw = f.tipo
-    const statusRaw = f.status
-    const status =
-      statusRaw === 'A_FAZER' ||
-      statusRaw === 'EM_ANDAMENTO' ||
-      statusRaw === 'AGUARDANDO' ||
-      statusRaw === 'CONCLUIDA'
-        ? statusRaw
-        : null
-
-    return {
-      chave: String(f.chave ?? ''),
-      titulo: String(f.titulo ?? ''),
-      atividadeId: f.atividadeId == null ? null : Number(f.atividadeId),
-      tipo:
-        tipoRaw === 'EPICO' || tipoRaw === 'ATIVIDADE' || tipoRaw === 'SUBATIVIDADE' ? tipoRaw : null,
-      status,
-      responsavelId: f.responsavelId == null ? null : Number(f.responsavelId),
-      responsavelNome: f.responsavelNome == null ? null : String(f.responsavelNome),
-      colunas: Array.isArray(f.colunas) ? f.colunas.map(parseColuna) : boardColunasVazias()
-    }
-  })
+  const faixas: CatecAtividadeBoardFaixa[] = faixasRaw.map(parseFaixa)
 
   return { agrupar, colunas: colunasMeta, faixas }
+}
+
+function parseFaixa(item: unknown): CatecAtividadeBoardFaixa {
+  const f = (item ?? {}) as Record<string, unknown>
+  const tipoRaw = f.tipo
+  const statusRaw = f.status
+  const status =
+    statusRaw === 'A_FAZER' ||
+    statusRaw === 'EM_ANDAMENTO' ||
+    statusRaw === 'AGUARDANDO' ||
+    statusRaw === 'CONCLUIDA'
+      ? statusRaw
+      : null
+
+  return {
+    chave: String(f.chave ?? ''),
+    titulo: String(f.titulo ?? ''),
+    atividadeId: f.atividadeId == null ? null : Number(f.atividadeId),
+    tipo: tipoRaw === 'ETAPA' || tipoRaw === 'ATIVIDADE' || tipoRaw === 'SUBATIVIDADE' ? tipoRaw : null,
+    status,
+    responsavelId: f.responsavelId == null ? null : Number(f.responsavelId),
+    responsavelNome: f.responsavelNome == null ? null : String(f.responsavelNome),
+    colunas: Array.isArray(f.colunas) ? f.colunas.map(parseColuna) : boardColunasVazias(),
+    subFaixas: Array.isArray(f.subFaixas) ? f.subFaixas.map(parseFaixa) : []
+  }
 }
 
 export function boardColunasVazias(): CatecAtividadeBoardColuna[] {
@@ -322,7 +328,7 @@ export function boardColunasVazias(): CatecAtividadeBoardColuna[] {
   }))
 }
 
-export function boardVazio(agrupar: CatecAtividadeBoardAgrupar = 'NENHUM'): CatecAtividadeBoard {
+export function boardVazio(agrupar: CatecAtividadeBoardAgrupar = AGRUPAR_BOARD_DEFAULT): CatecAtividadeBoard {
   return {
     agrupar,
     colunas: ORDEM_STATUS_ATIVIDADE.map(status => ({
@@ -338,14 +344,28 @@ export function boardVazio(agrupar: CatecAtividadeBoardAgrupar = 'NENHUM'): Cate
         status: null,
         responsavelId: null,
         responsavelNome: null,
-        colunas: boardColunasVazias()
+        colunas: boardColunasVazias(),
+        subFaixas: []
       }
     ]
   }
 }
 
 export function flatAtividadesDoBoard(board: CatecAtividadeBoard): CatecAtividade[] {
-  return board.faixas.flatMap(f => f.colunas.flatMap(c => c.atividades))
+  const flatFaixa = (f: CatecAtividadeBoardFaixa): CatecAtividade[] => [
+    ...f.colunas.flatMap(c => c.atividades),
+    ...f.subFaixas.flatMap(flatFaixa)
+  ]
+
+  return board.faixas.flatMap(flatFaixa)
+}
+
+export function contagemItensFaixa(faixa: CatecAtividadeBoardFaixa): number {
+  if (faixa.subFaixas.length > 0) {
+    return faixa.subFaixas.reduce((acc, sf) => acc + contagemItensFaixa(sf), 0)
+  }
+
+  return faixa.colunas.reduce((acc, c) => acc + c.atividades.length, 0)
 }
 
 export function parseCatecAtividadeDocumento(raw: unknown): CatecAtividadeDocumento {

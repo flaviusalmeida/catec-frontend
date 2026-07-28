@@ -122,12 +122,12 @@ const ProjetoTabAtividades = ({ projeto }: Props) => {
 
     try {
       await criarAtividadeRaizCatec(projeto.id, { titulo: t })
-      toast.success('Épico criado.')
+      toast.success('Etapa criada.')
       setDialogOpen(false)
       setTitulo('')
       await carregar()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Não foi possível criar o épico.')
+      toast.error(err instanceof Error ? err.message : 'Não foi possível criar a etapa.')
     } finally {
       setSalvando(false)
     }
@@ -158,7 +158,7 @@ const ProjetoTabAtividades = ({ projeto }: Props) => {
           <CanPermission code={PermissaoCodigo.ACAO_ATIVIDADE_CRIAR}>
             {permiteCriacao ? (
               <Button variant='contained' startIcon={<i className='tabler-plus' />} onClick={() => setDialogOpen(true)}>
-                Novo épico
+                Nova etapa
               </Button>
             ) : null}
           </CanPermission>
@@ -256,7 +256,7 @@ const ProjetoTabAtividades = ({ projeto }: Props) => {
 
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} fullWidth maxWidth='xs'>
         <form onSubmit={handleCriar}>
-          <DialogTitle>Novo épico</DialogTitle>
+          <DialogTitle>Nova etapa</DialogTitle>
           <DialogContent>
             <CustomTextField
               autoFocus

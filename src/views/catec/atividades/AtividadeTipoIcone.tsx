@@ -15,10 +15,10 @@ type Props = {
   comTooltip?: boolean
 }
 
-/** Ícones no padrão Jira: raio = Épico, check no quadrado = Atividade, dois quadrados = Subatividade. */
+/** Ícones no padrão Jira: raio = Etapa, check no quadrado = Atividade, dois quadrados = Subatividade. */
 function SvgTipo({ tipo }: { tipo: CatecAtividadeTipo }) {
   switch (tipo) {
-    case 'EPICO':
+    case 'ETAPA':
       return (
         <svg viewBox='0 0 16 16' width='1em' height='1em' aria-hidden className={styles.tipoIconeSvg}>
           <path
@@ -66,7 +66,7 @@ function SvgTipo({ tipo }: { tipo: CatecAtividadeTipo }) {
 }
 
 const TIPO_ICONE_CLASSE: Record<CatecAtividadeTipo, string> = {
-  EPICO: styles.tipoIconeEpico,
+  ETAPA: styles.tipoIconeEtapa,
   ATIVIDADE: styles.tipoIconeAtividade,
   SUBATIVIDADE: styles.tipoIconeSubatividade
 }

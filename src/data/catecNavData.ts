@@ -21,6 +21,15 @@ export const catecNavItems: CatecNavItem[] = [
     permission: PermissaoCodigo.TELA_PAINEL
   },
   {
+    id: 'atividades',
+    name: 'Atividades',
+    url: '/catec/atividades',
+    icon: 'tabler-layout-kanban',
+    section: 'Dashboard',
+    subtitle: 'Board Kanban de atividades',
+    permission: PermissaoCodigo.TELA_ATIVIDADES
+  },
+  {
     id: 'projetos',
     name: 'Projetos',
     url: '/catec/projetos',
@@ -28,15 +37,6 @@ export const catecNavItems: CatecNavItem[] = [
     section: 'Projetos',
     subtitle: 'Gerir projetos',
     permission: PermissaoCodigo.TELA_PROJETOS
-  },
-  {
-    id: 'atividades',
-    name: 'Atividades',
-    url: '/catec/atividades',
-    icon: 'tabler-layout-kanban',
-    section: 'Projetos',
-    subtitle: 'Board Kanban de atividades',
-    permission: PermissaoCodigo.TELA_ATIVIDADES
   },
   {
     id: 'socio-propostas',

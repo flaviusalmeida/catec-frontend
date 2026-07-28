@@ -219,7 +219,7 @@ const AtividadeDrawer = ({
 
       if (cursor === atividade.paiId && atividade.paiCodigo) {
         const tipoInferido: CatecAtividadeTipo =
-          atividade.tipo === 'SUBATIVIDADE' ? 'ATIVIDADE' : 'EPICO'
+          atividade.tipo === 'SUBATIVIDADE' ? 'ATIVIDADE' : 'ETAPA'
 
         itens.unshift({ id: cursor, codigo: atividade.paiCodigo, tipo: tipoInferido })
       }
@@ -230,11 +230,11 @@ const AtividadeDrawer = ({
     return itens
   }, [atividade, catalogo])
 
-  const podeTerFilhas = atividade?.tipo === 'EPICO' || atividade?.tipo === 'ATIVIDADE'
-  const rotuloFilhas = atividade?.tipo === 'EPICO' ? 'Atividades' : 'Subatividades'
-  const rotuloNovaFilha = atividade?.tipo === 'EPICO' ? 'Nova atividade' : 'Nova subatividade'
+  const podeTerFilhas = atividade?.tipo === 'ETAPA' || atividade?.tipo === 'ATIVIDADE'
+  const rotuloFilhas = atividade?.tipo === 'ETAPA' ? 'Atividades' : 'Subatividades'
+  const rotuloNovaFilha = atividade?.tipo === 'ETAPA' ? 'Nova atividade' : 'Nova subatividade'
   const placeholderFilha =
-    atividade?.tipo === 'EPICO' ? 'Título da atividade' : 'Título da subatividade'
+    atividade?.tipo === 'ETAPA' ? 'Título da atividade' : 'Título da subatividade'
 
   const progressoFilhas = useMemo(() => {
     if (filhas.length === 0) return null
@@ -473,7 +473,7 @@ const AtividadeDrawer = ({
 
     if (!t) {
       toast.error(
-        atividade.tipo === 'EPICO' ? 'Informe o título da atividade.' : 'Informe o título da subatividade.'
+        atividade.tipo === 'ETAPA' ? 'Informe o título da atividade.' : 'Informe o título da subatividade.'
       )
 
       return
@@ -489,14 +489,14 @@ const AtividadeDrawer = ({
       }
 
       await onCreateFilha(atividade.id, { titulo: t })
-      toast.success(atividade.tipo === 'EPICO' ? 'Atividade criada.' : 'Subatividade criada.')
+      toast.success(atividade.tipo === 'ETAPA' ? 'Atividade criada.' : 'Subatividade criada.')
       setFilhaTitulo('')
       setMostrandoFilha(false)
     } catch (err) {
       toast.error(
         err instanceof Error
           ? err.message
-          : `Não foi possível criar a ${atividade.tipo === 'EPICO' ? 'atividade' : 'subatividade'}.`
+          : `Não foi possível criar a ${atividade.tipo === 'ETAPA' ? 'atividade' : 'subatividade'}.`
       )
     } finally {
       setCriandoFilha(false)

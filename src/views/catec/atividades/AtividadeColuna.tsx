@@ -12,7 +12,6 @@ import { toast } from 'react-toastify'
 import { ORDEM_STATUS_ATIVIDADE, type CatecAtividade, type CatecAtividadeStatus } from '@/types/catec/atividadeTypes'
 
 import AtividadeCard from './AtividadeCard'
-import AtividadeNovaNaColuna from './AtividadeNovaNaColuna'
 import styles from './styles.module.css'
 
 type Props = {
@@ -21,11 +20,10 @@ type Props = {
   atividades: CatecAtividade[]
   onOpen: (atividade: CatecAtividade) => void
   onMoverStatus: (id: number, status: CatecAtividadeStatus, ordem?: number) => Promise<void>
-  onCriarNaColuna?: (titulo: string, status: CatecAtividadeStatus) => Promise<void>
-  onPedirProjetoParaCriar?: () => void
+  onNovaNaColuna?: (status: CatecAtividadeStatus) => void
+  rotuloNova?: string
   podeMover: boolean
   podeCriar: boolean
-  podeCriarNaColuna: boolean
 }
 
 /**
@@ -44,11 +42,10 @@ const AtividadeColuna = ({
   atividades,
   onOpen,
   onMoverStatus,
-  onCriarNaColuna,
-  onPedirProjetoParaCriar,
+  onNovaNaColuna,
+  rotuloNova = 'Nova atividade',
   podeMover,
-  podeCriar,
-  podeCriarNaColuna
+  podeCriar
 }: Props) => {
   const processandoRef = useRef<Set<number>>(new Set())
   const onMoverStatusRef = useRef(onMoverStatus)
@@ -124,20 +121,16 @@ const AtividadeColuna = ({
         )}
       </div>
 
-      {podeCriar ? (
+      {podeCriar && onNovaNaColuna ? (
         <div id='no-drag' className={styles.columnFooter}>
-          {podeCriarNaColuna && onCriarNaColuna ? (
-            <AtividadeNovaNaColuna onAdd={titulo => onCriarNaColuna(titulo, status)} />
-          ) : (
-            <Typography
-              onClick={() => onPedirProjetoParaCriar?.()}
-              color='text.primary'
-              className='flex items-center gap-1 cursor-pointer'
-            >
-              <i className='tabler-plus text-base' />
-              <span>Nova atividade</span>
-            </Typography>
-          )}
+          <Typography
+            onClick={() => onNovaNaColuna(status)}
+            color='text.primary'
+            className='flex items-center gap-1 cursor-pointer'
+          >
+            <i className='tabler-plus text-base' />
+            <span>{rotuloNova}</span>
+          </Typography>
         </div>
       ) : null}
     </div>

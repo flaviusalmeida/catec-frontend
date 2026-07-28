@@ -67,7 +67,7 @@ const AtividadeCard = ({ atividade, onOpen, podeMover }: Props) => {
   const prazoTooltip = atividade.prazoEm ? formatarPrazoTooltip(atividade.prazoEm) : null
 
   const progresso = useMemo(() => {
-    if (atividade.tipo !== 'EPICO' && atividade.tipo !== 'ATIVIDADE') return null
+    if (atividade.tipo !== 'ETAPA' && atividade.tipo !== 'ATIVIDADE') return null
 
     const filhas = catalogo.filter(item => item.paiId === atividade.id)
 
@@ -75,7 +75,7 @@ const AtividadeCard = ({ atividade, onOpen, podeMover }: Props) => {
 
     const concluidas = filhas.filter(f => f.status === 'CONCLUIDA').length
     const percentual = Math.round((concluidas / filhas.length) * 100)
-    const rotuloFilhos = atividade.tipo === 'EPICO' ? 'atividades' : 'subatividades'
+    const rotuloFilhos = atividade.tipo === 'ETAPA' ? 'atividades' : 'subatividades'
 
     return { concluidas, total: filhas.length, percentual, rotuloFilhos }
   }, [catalogo, atividade.id, atividade.tipo])

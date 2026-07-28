@@ -51,7 +51,7 @@ export async function obterBoardAtividadesCatec(
     projetoId: filtros.projetoId ?? undefined,
     responsavelId: filtros.responsavelId ?? undefined,
     q: filtros.q?.trim() || undefined,
-    agrupar: filtros.agrupar ?? 'NENHUM'
+    agrupar: filtros.agrupar ?? 'PROJETO'
   })
 
   const [boardRes, catalogo] = await Promise.all([
@@ -60,7 +60,10 @@ export async function obterBoardAtividadesCatec(
       projetoId: filtros.projetoId ?? undefined,
       responsavelId: filtros.responsavelId ?? undefined,
       q: filtros.q ?? undefined
-    }).catch(() => [] as CatecAtividade[])
+    }).catch(() => {
+      // Board ainda funciona sem catálogo; o dialog de criação tenta recarregar os pais.
+      return [] as CatecAtividade[]
+    })
   ])
 
   const data = await readCatecJsonBody(boardRes)
@@ -145,7 +148,7 @@ export async function criarAtividadeRaizCatec(
   })
   const data = await readCatecJsonBody(res)
 
-  assertCatecOk(res, data, 'Não foi possível criar o épico.')
+  assertCatecOk(res, data, 'Não foi possível criar a etapa.')
 
   return parseCatecAtividade(data)
 }

@@ -11,9 +11,11 @@ import DialogTitle from '@mui/material/DialogTitle'
 import MenuItem from '@mui/material/MenuItem'
 import { toast } from 'react-toastify'
 
-import { listarAtividadesCatec } from '@/libs/catecAtividadesApi'
+import { listarAtividadesCatec, listarAtividadesPorProjetoCatec } from '@/libs/catecAtividadesApi'
 import type {
   CatecAtividade,
+  CatecAtividadeBoard,
+  CatecAtividadeBoardFaixa,
   CatecAtividadeCreateInput,
   CatecAtividadePrioridade,
   CatecAtividadeStatus,
@@ -22,13 +24,15 @@ import type {
 import { PRIORIDADE_ATIVIDADE_ROTULO, TIPO_ATIVIDADE_ROTULO } from '@/types/catec/atividadeTypes'
 import type { CatecProjeto } from '@/types/catec/projetoTypes'
 
+import CustomAutocomplete from '@core/components/mui/Autocomplete'
 import CustomTextField from '@core/components/mui/TextField'
 
 import AtividadeDescricaoEditor from './AtividadeDescricaoEditor'
 import AtividadeTipoIcone from './AtividadeTipoIcone'
+import { useAtividadesStore } from './useAtividadesStore'
 import styles from './styles.module.css'
 
-const TIPOS_CRIACAO: CatecAtividadeTipo[] = ['EPICO', 'ATIVIDADE', 'SUBATIVIDADE']
+const TIPOS_CRIACAO: CatecAtividadeTipo[] = ['ETAPA', 'ATIVIDADE', 'SUBATIVIDADE']
 
 function prioridadeIcone(prioridade: CatecAtividadePrioridade): string {
   if (prioridade === 'ALTA') return 'tabler-chevrons-up'
@@ -45,18 +49,115 @@ function prioridadeCorClass(prioridade: CatecAtividadePrioridade): string {
 }
 
 function tituloModal(tipo: CatecAtividadeTipo | ''): string {
-  if (tipo === 'EPICO') return 'Novo épico'
+  if (tipo === 'ETAPA') return 'Nova etapa'
   if (tipo === 'ATIVIDADE') return 'Nova atividade'
   if (tipo === 'SUBATIVIDADE') return 'Nova subatividade'
 
   return 'Nova atividade'
 }
 
-function rotuloPai(tipo: CatecAtividadeTipo): string {
-  if (tipo === 'ATIVIDADE') return 'Épico pai'
+function rotuloPai(tipo: CatecAtividadeTipo | ''): string {
+  if (tipo === 'ATIVIDADE') return 'Etapa pai'
   if (tipo === 'SUBATIVIDADE') return 'Atividade pai'
 
   return 'Pai'
+}
+
+type PaiOption = {
+  id: number
+  codigo: string
+  titulo: string
+  tipo: CatecAtividadeTipo
+  projetoId: number
+}
+
+function tipoPaiDe(tipoFilho: CatecAtividadeTipo): CatecAtividadeTipo {
+  return tipoFilho === 'ATIVIDADE' ? 'ETAPA' : 'ATIVIDADE'
+}
+
+function toPaiOption(a: CatecAtividade): PaiOption {
+  return {
+    id: a.id,
+    codigo: a.codigo,
+    titulo: a.titulo,
+    tipo: a.tipo,
+    projetoId: a.projetoId
+  }
+}
+
+function projetoIdNaFaixa(faixa: CatecAtividadeBoardFaixa): number | null {
+  for (const coluna of faixa.colunas) {
+    for (const atividade of coluna.atividades) {
+      if (atividade.projetoId > 0) return atividade.projetoId
+    }
+  }
+
+  for (const sub of faixa.subFaixas) {
+    const pid = projetoIdNaFaixa(sub)
+
+    if (pid != null) return pid
+  }
+
+  return null
+}
+
+/** Etapas/atividades aparecem como cabeçalho de faixa, não como card — recupera opções dali. */
+function paisDoBoard(
+  board: CatecAtividadeBoard,
+  projetoId: number,
+  tipoFilho: CatecAtividadeTipo,
+  resolverProjeto?: (atividadeId: number) => number | null
+): PaiOption[] {
+  const tipoPai = tipoPaiDe(tipoFilho)
+  const porId = new Map<number, PaiOption>()
+
+  const considerar = (faixa: CatecAtividadeBoardFaixa, projetoFaixa: number | null) => {
+    if (faixa.atividadeId == null || faixa.tipo !== tipoPai) return
+    if (projetoFaixa == null || projetoFaixa !== projetoId) return
+
+    porId.set(faixa.atividadeId, {
+      id: faixa.atividadeId,
+      codigo: '',
+      titulo: faixa.titulo,
+      tipo: tipoPai,
+      projetoId: projetoFaixa
+    })
+  }
+
+  for (const faixa of board.faixas) {
+    if (board.agrupar === 'PROJETO') {
+      const pid = Number(faixa.chave)
+
+      if (Number.isFinite(pid) && pid === projetoId) {
+        for (const sub of faixa.subFaixas) considerar(sub, pid)
+      }
+
+      continue
+    }
+
+    const pidFaixa =
+      projetoIdNaFaixa(faixa) ??
+      (faixa.atividadeId != null ? (resolverProjeto?.(faixa.atividadeId) ?? null) : null)
+
+    considerar(faixa, pidFaixa)
+  }
+
+  return [...porId.values()].sort(
+    (a, b) => (a.codigo || a.titulo).localeCompare(b.codigo || b.titulo, 'pt-BR') || a.id - b.id
+  )
+}
+
+function filtrarPaisDaLista(lista: CatecAtividade[], projetoId: number, tipoFilho: CatecAtividadeTipo): PaiOption[] {
+  const tipoPai = tipoPaiDe(tipoFilho)
+
+  return lista
+    .filter(a => a.projetoId === projetoId && a.tipo === tipoPai)
+    .map(toPaiOption)
+    .sort((a, b) => a.codigo.localeCompare(b.codigo, 'pt-BR') || a.id - b.id)
+}
+
+function rotuloOpcaoPai(option: PaiOption): string {
+  return option.codigo ? `${option.codigo} · ${option.titulo}` : option.titulo
 }
 
 export type CatecAtividadeNovaPayload = {
@@ -72,14 +173,28 @@ type Props = {
   projetos: CatecProjeto[]
   projetoIdFixo?: number | null
   statusInicial?: CatecAtividadeStatus | null
+  /** Quando definido, fixa o tipo (ex.: Nova etapa a partir do cabeçalho do projeto). */
+  tipoFixo?: CatecAtividadeTipo | null
+  /** Quando definido, pré-seleciona (e fixa) o pai — ex.: criar atividade sob uma etapa do board. */
+  paiIdFixo?: number | null
   onCreate: (payload: CatecAtividadeNovaPayload) => Promise<void>
 }
 
-const AtividadeNovaDialog = ({ open, onClose, projetos, projetoIdFixo, statusInicial, onCreate }: Props) => {
+const AtividadeNovaDialog = ({
+  open,
+  onClose,
+  projetos,
+  projetoIdFixo,
+  statusInicial,
+  tipoFixo = null,
+  paiIdFixo = null,
+  onCreate
+}: Props) => {
+  const { board, catalogo, obter } = useAtividadesStore()
   const [projetoId, setProjetoId] = useState<number | ''>(projetoIdFixo ?? '')
-  const [tipo, setTipo] = useState<CatecAtividadeTipo | ''>('')
-  const [paiId, setPaiId] = useState<number | ''>('')
-  const [candidatosPai, setCandidatosPai] = useState<CatecAtividade[]>([])
+  const [tipo, setTipo] = useState<CatecAtividadeTipo | ''>(tipoFixo ?? '')
+  const [paiId, setPaiId] = useState<number | ''>(paiIdFixo ?? '')
+  const [candidatosApi, setCandidatosApi] = useState<CatecAtividade[]>([])
   const [carregandoPais, setCarregandoPais] = useState(false)
   const [titulo, setTitulo] = useState('')
   const [descricao, setDescricao] = useState<string | null>(null)
@@ -87,74 +202,150 @@ const AtividadeNovaDialog = ({ open, onClose, projetos, projetoIdFixo, statusIni
   const [prazo, setPrazo] = useState('')
   const [salvando, setSalvando] = useState(false)
 
+  const precisaPai = tipo === 'ATIVIDADE' || tipo === 'SUBATIVIDADE'
+  const projetoEscolhido = projetoId !== '' && Number(projetoId) > 0
+  const tipoEscolhido = tipo !== ''
+  const projetoEditavel = projetoIdFixo == null
+  const tipoEditavel = tipoFixo == null && projetoEscolhido
+  const paiEditavel = paiIdFixo == null && precisaPai && projetoEscolhido && tipoEscolhido
+
+  const candidatosPai = useMemo(() => {
+    if (!precisaPai || !projetoEscolhido || tipo === '') return [] as PaiOption[]
+
+    const pid = Number(projetoId)
+    const porId = new Map<number, PaiOption>()
+
+    const adicionar = (itens: PaiOption[]) => {
+      for (const item of itens) {
+        const atual = porId.get(item.id)
+
+        if (!atual || (!atual.codigo && item.codigo)) {
+          porId.set(item.id, item)
+        }
+      }
+    }
+
+    adicionar(filtrarPaisDaLista(catalogo, pid, tipo))
+    adicionar(paisDoBoard(board, pid, tipo, id => obter(id)?.projetoId ?? null))
+    adicionar(filtrarPaisDaLista(candidatosApi, pid, tipo))
+
+    if (paiIdFixo != null && !porId.has(paiIdFixo)) {
+      const doCatalogo = obter(paiIdFixo)
+
+      if (doCatalogo && doCatalogo.projetoId === pid) {
+        porId.set(paiIdFixo, toPaiOption(doCatalogo))
+      }
+    }
+
+    return [...porId.values()].sort(
+      (a, b) => (a.codigo || a.titulo).localeCompare(b.codigo || b.titulo, 'pt-BR') || a.id - b.id
+    )
+  }, [precisaPai, projetoEscolhido, projetoId, tipo, catalogo, board, candidatosApi, paiIdFixo, obter])
+
+  const paiSelecionado = useMemo(
+    () => (paiId === '' ? null : (candidatosPai.find(a => a.id === paiId) ?? null)),
+    [paiId, candidatosPai]
+  )
+
   useEffect(() => {
     if (!open) return
 
     setProjetoId(projetoIdFixo ?? '')
-    setTipo('')
-    setPaiId('')
-    setCandidatosPai([])
+    setTipo(tipoFixo ?? '')
+    setPaiId(paiIdFixo ?? '')
+    setCandidatosApi([])
     setTitulo('')
     setDescricao(null)
     setPrioridade('MEDIA')
     setPrazo('')
-  }, [open, projetoIdFixo])
+  }, [open, projetoIdFixo, tipoFixo, paiIdFixo])
 
   useEffect(() => {
-    if (!open || tipo === '' || tipo === 'EPICO') {
-      setCandidatosPai([])
-      setPaiId('')
+    if (!open || !precisaPai || !projetoEscolhido) {
+      setCandidatosApi([])
+      setCarregandoPais(false)
 
       return
     }
 
-    const pid = typeof projetoId === 'number' ? projetoId : Number(projetoId)
-
-    if (!pid) {
-      setCandidatosPai([])
-      setPaiId('')
-
-      return
-    }
-
+    const pid = Number(projetoId)
     let cancelled = false
 
     setCarregandoPais(true)
-    void listarAtividadesCatec({ projetoId: pid })
-      .then(lista => {
+
+    const carregar = async () => {
+      try {
+        let lista = await listarAtividadesCatec({ projetoId: pid })
+
+        if (lista.length === 0) {
+          lista = await listarAtividadesPorProjetoCatec(pid).catch(() => [] as CatecAtividade[])
+        }
+
         if (cancelled) return
 
-        const tipoPai: CatecAtividadeTipo = tipo === 'ATIVIDADE' ? 'EPICO' : 'ATIVIDADE'
-        const filtrados = lista
-          .filter(a => a.tipo === tipoPai)
-          .sort((a, b) => a.codigo.localeCompare(b.codigo, 'pt-BR') || a.id - b.id)
+        setCandidatosApi(lista)
+        setPaiId(prev => {
+          if (paiIdFixo != null && lista.some(a => a.id === paiIdFixo)) return paiIdFixo
+          if (typeof prev === 'number' && lista.some(a => a.id === prev)) return prev
 
-        setCandidatosPai(filtrados)
-        setPaiId(prev => (typeof prev === 'number' && filtrados.some(a => a.id === prev) ? prev : ''))
-      })
-      .catch(() => {
+          return paiIdFixo ?? (typeof prev === 'number' ? prev : '')
+        })
+      } catch (err) {
         if (cancelled) return
-        setCandidatosPai([])
-        setPaiId('')
-      })
-      .finally(() => {
+        setCandidatosApi([])
+        toast.error(err instanceof Error ? err.message : 'Não foi possível carregar as opções de pai.')
+      } finally {
         if (!cancelled) setCarregandoPais(false)
-      })
+      }
+    }
+
+    void carregar()
 
     return () => {
       cancelled = true
     }
-  }, [open, tipo, projetoId])
+  }, [open, precisaPai, projetoEscolhido, projetoId, paiIdFixo])
 
-  const precisaPai = tipo === 'ATIVIDADE' || tipo === 'SUBATIVIDADE'
+  useEffect(() => {
+    if (!open || paiIdFixo == null) return
+    if (candidatosPai.some(a => a.id === paiIdFixo)) {
+      setPaiId(paiIdFixo)
+    }
+  }, [open, paiIdFixo, candidatosPai])
+
+  const helperPai = useMemo(() => {
+    if (!projetoEscolhido) return 'Selecione o projeto primeiro.'
+    if (!tipoEscolhido) return 'Selecione o tipo primeiro.'
+    if (tipo === 'ETAPA') return 'Etapa não possui pai.'
+    if (carregandoPais && candidatosPai.length === 0) return 'Carregando…'
+    if (!carregandoPais && candidatosPai.length === 0) {
+      return tipo === 'ATIVIDADE' ? 'Nenhuma etapa neste projeto.' : 'Nenhuma atividade neste projeto.'
+    }
+
+    return undefined
+  }, [projetoEscolhido, tipoEscolhido, tipo, carregandoPais, candidatosPai.length])
 
   const placeholderTitulo = useMemo(() => {
-    if (tipo === 'EPICO') return 'Ex.: Entregar proposta comercial'
+    if (tipo === 'ETAPA') return 'Ex.: Entregar proposta comercial'
     if (tipo === 'ATIVIDADE') return 'Ex.: Elaborar minuta da proposta'
     if (tipo === 'SUBATIVIDADE') return 'Ex.: Revisar cláusulas contratuais'
 
     return 'Ex.: Elaborar proposta comercial'
   }, [tipo])
+
+  const handleProjetoChange = (value: number | '') => {
+    setProjetoId(value)
+
+    if (tipoFixo == null) setTipo('')
+    if (paiIdFixo == null) setPaiId('')
+    setCandidatosApi([])
+  }
+
+  const handleTipoChange = (value: CatecAtividadeTipo | '') => {
+    setTipo(value)
+
+    if (paiIdFixo == null) setPaiId('')
+  }
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -175,7 +366,7 @@ const AtividadeNovaDialog = ({ open, onClose, projetos, projetoIdFixo, statusIni
 
     if (precisaPai && (paiId === '' || !Number(paiId))) {
       toast.error(
-        tipo === 'ATIVIDADE' ? 'Selecione o épico pai.' : 'Selecione a atividade pai.'
+        tipo === 'ATIVIDADE' ? 'Selecione a etapa pai.' : 'Selecione a atividade pai.'
       )
 
       return
@@ -221,14 +412,25 @@ const AtividadeNovaDialog = ({ open, onClose, projetos, projetoIdFixo, statusIni
             fullWidth
             label='Projeto'
             value={projetoId}
-            onChange={e => setProjetoId(e.target.value === '' ? '' : Number(e.target.value))}
-            disabled={projetoIdFixo != null}
+            onChange={e => handleProjetoChange(e.target.value === '' ? '' : Number(e.target.value))}
+            disabled={!projetoEditavel}
             required
+            autoFocus={projetoEditavel}
             slotProps={{
               select: {
+                displayEmpty: true,
                 MenuProps: {
                   disableScrollLock: true,
                   PaperProps: { className: styles.novaDialogSelectMenu }
+                },
+                renderValue: value => {
+                  if (value === '' || value == null) {
+                    return <em className='text-textDisabled'>Selecione</em>
+                  }
+
+                  const projeto = projetos.find(p => p.id === Number(value))
+
+                  return projeto?.titulo ?? String(value)
                 }
               }
             }}
@@ -248,8 +450,10 @@ const AtividadeNovaDialog = ({ open, onClose, projetos, projetoIdFixo, statusIni
             fullWidth
             label='Tipo'
             value={tipo}
-            onChange={e => setTipo(e.target.value as CatecAtividadeTipo | '')}
+            onChange={e => handleTipoChange(e.target.value as CatecAtividadeTipo | '')}
             required
+            disabled={!tipoEditavel}
+            helperText={!projetoEscolhido && tipoFixo == null ? 'Selecione o projeto primeiro.' : undefined}
             slotProps={{
               select: {
                 displayEmpty: true,
@@ -286,50 +490,50 @@ const AtividadeNovaDialog = ({ open, onClose, projetos, projetoIdFixo, statusIni
             ))}
           </CustomTextField>
 
-          {precisaPai ? (
-            <CustomTextField
-              select
-              fullWidth
-              label={rotuloPai(tipo)}
-              value={paiId}
-              onChange={e => setPaiId(e.target.value === '' ? '' : Number(e.target.value))}
-              required
-              disabled={!projetoId || carregandoPais}
-              helperText={
-                !projetoId
-                  ? 'Selecione o projeto primeiro.'
-                  : carregandoPais
-                    ? 'Carregando…'
-                    : candidatosPai.length === 0
-                      ? tipo === 'ATIVIDADE'
-                        ? 'Nenhum épico neste projeto.'
-                        : 'Nenhuma atividade neste projeto.'
-                      : undefined
+          <CustomAutocomplete
+            fullWidth
+            options={candidatosPai}
+            value={paiSelecionado}
+            onChange={(_, value) => setPaiId(value?.id ?? '')}
+            getOptionLabel={rotuloOpcaoPai}
+            isOptionEqualToValue={(option, value) => option.id === value.id}
+            disabled={!paiEditavel}
+            loading={carregandoPais}
+            noOptionsText={
+              carregandoPais
+                ? 'Carregando…'
+                : tipo === 'ATIVIDADE'
+                  ? 'Nenhuma etapa neste projeto.'
+                  : 'Nenhuma atividade neste projeto.'
+            }
+            slotProps={{
+              popper: {
+                disablePortal: false
               }
-              slotProps={{
-                select: {
-                  MenuProps: {
-                    disableScrollLock: true,
-                    PaperProps: { className: styles.novaDialogSelectMenu }
-                  }
-                }
-              }}
-            >
-              <MenuItem value=''>
-                <em>Selecione</em>
-              </MenuItem>
-              {candidatosPai.map(a => (
-                <MenuItem key={a.id} value={a.id}>
+            }}
+            renderOption={(props, option) => {
+              const { key, ...optionProps } = props as typeof props & { key: string }
+
+              return (
+                <li key={key} {...optionProps} className={`${optionProps.className ?? ''}`.trim()}>
                   <span className='inline-flex items-center gap-2 min-is-0'>
-                    <AtividadeTipoIcone tipo={a.tipo} comTooltip={false} />
-                    <span className='truncate'>
-                      {a.codigo} · {a.titulo}
-                    </span>
+                    <AtividadeTipoIcone tipo={option.tipo} comTooltip={false} />
+                    <span className='truncate'>{rotuloOpcaoPai(option)}</span>
                   </span>
-                </MenuItem>
-              ))}
-            </CustomTextField>
-          ) : null}
+                </li>
+              )
+            }}
+            renderInput={params => (
+              <CustomTextField
+                {...params}
+                label={rotuloPai(tipo)}
+                required={precisaPai}
+                disabled={!paiEditavel}
+                helperText={helperPai}
+                placeholder='Selecione'
+              />
+            )}
+          />
 
           <CustomTextField
             fullWidth
@@ -338,7 +542,7 @@ const AtividadeNovaDialog = ({ open, onClose, projetos, projetoIdFixo, statusIni
             value={titulo}
             onChange={e => setTitulo(e.target.value)}
             required
-            autoFocus
+            autoFocus={!projetoEditavel}
           />
           {open ? (
             <AtividadeDescricaoEditor
