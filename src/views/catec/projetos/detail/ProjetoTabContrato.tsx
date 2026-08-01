@@ -51,7 +51,6 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
     assinatura,
     assinaturaProviderAtivo,
     uploadContrato,
-    enviarContratoCliente,
     enviarAssinatura,
     atualizarStatusAssinatura,
     registrarInteracao,
@@ -82,17 +81,8 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
   }, [projeto.id, projeto.prazoInicioExecucaoDias, projeto.prazoConclusaoDias])
 
   const contrato = data.contrato
-  const documentoAssinado =
-    contrato?.documentos.find(
-      d =>
-        (assinatura?.documentoAssinadoId != null && d.id === assinatura.documentoAssinadoId) ||
-        d.tipoArquivo === 'CONTRATO_PDF_ASSINADO'
-    ) ?? null
-  const documentoAtual =
-    contrato?.documentos.find(d => documentoAssinado == null || d.id !== documentoAssinado.id) ??
-    contrato?.documentos[0] ??
-    null
-  const temAnexo = Boolean(documentoAtual || documentoAssinado)
+  const documentoAtual = contrato?.documentos[0] ?? null
+  const temAnexo = Boolean(documentoAtual)
 
   useEffect(() => {
     if (contrato?.status !== 'AGUARDANDO_ASSINATURA') return
@@ -202,30 +192,6 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
       .catch(err => toast.error(err instanceof Error ? err.message : 'Erro ao registrar interação.'))
   }
 
-  function handleEnviarContratoCliente() {
-    const diasInicio = Number.parseInt(prazoInicioExecucaoDias.trim(), 10)
-    const diasConclusao = Number.parseInt(prazoConclusaoDias.trim(), 10)
-
-    if (!Number.isFinite(diasInicio) || diasInicio < 1) {
-      toast.error('Informe o prazo para início da execução em dias.')
-
-      return
-    }
-
-    if (!Number.isFinite(diasConclusao) || diasConclusao < 1) {
-      toast.error('Informe o prazo para conclusão do projeto em dias.')
-
-      return
-    }
-
-    void enviarContratoCliente({
-      prazoInicioExecucaoDias: diasInicio,
-      prazoConclusaoDias: diasConclusao
-    })
-      .then(() => toast.success('Contrato enviado ao cliente.'))
-      .catch(err => toast.error(err instanceof Error ? err.message : 'Envio falhou.'))
-  }
-
   function handleEnviarAssinatura() {
     const diasInicio = Number.parseInt(prazoInicioExecucaoDias.trim(), 10)
     const diasConclusao = Number.parseInt(prazoConclusaoDias.trim(), 10)
@@ -269,10 +235,12 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
     contrato?.status === 'AGUARDANDO_AJUSTE' ||
     (contrato?.status === 'RASCUNHO' && contrato.consideracoesPendentes)
 
-  const podeEnviarCliente = podeEditarContrato && contrato?.status === 'RASCUNHO' && temAnexo
-
   const mostrarEnviarContratoCard = Boolean(
-    contrato && contrato.status === 'RASCUNHO' && temAnexo && podeEnviarCliente && !contrato.consideracoesPendentes
+    contrato &&
+      contrato.status === 'RASCUNHO' &&
+      temAnexo &&
+      podeEditarContrato &&
+      !contrato.consideracoesPendentes
   )
 
   const mostrarRespostaClienteCard =
@@ -290,28 +258,22 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
         (ajustandoContratoCliente || (contrato?.status === 'RASCUNHO' && !temAnexo)))
   )
 
-  const acoesAjustarContratoCard =
-    contrato?.status === 'RASCUNHO' && contrato.consideracoesPendentes && temAnexo
+  const acaoEnviarAssinatura =
+    podeEnviarAssinatura
       ? [
           {
-            key: 'enviar-cliente',
-            label: 'Enviar ao cliente',
+            key: 'enviar-assinatura',
+            label: 'Enviar para assinatura',
             color: 'primary' as const,
             alinhamento: 'fim' as const,
-            onClick: handleEnviarContratoCliente
-          },
-          ...(podeEnviarAssinatura
-            ? [
-                {
-                  key: 'enviar-assinatura',
-                  label: 'Enviar para assinatura',
-                  color: 'secondary' as const,
-                  alinhamento: 'fim' as const,
-                  onClick: handleEnviarAssinatura
-                }
-              ]
-            : [])
+            onClick: handleEnviarAssinatura
+          }
         ]
+      : []
+
+  const acoesAjustarContratoCard =
+    contrato?.status === 'RASCUNHO' && contrato.consideracoesPendentes && temAnexo
+      ? acaoEnviarAssinatura
       : undefined
 
   const mostrarCampoPrazos =
@@ -422,7 +384,17 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
             disabled={processando}
             onDownload={downloadDocumento}
             {...previewDocumentoProps}
-            areaEntreArquivoEAcoes={campoPrazos}
+            areaEntreArquivoEAcoes={
+              <>
+                {campoPrazos}
+                {ajustandoContratoCliente && !assinaturaProviderAtivo ? (
+                  <Typography variant='body2' color='text.secondary'>
+                    Ative o provedor de assinatura (`stub` ou `clicksign`) para reenviar o contrato. Não há envio
+                    manual.
+                  </Typography>
+                ) : null}
+              </>
+            }
             acoes={acoesAjustarContratoCard}
           />
         </Grid>
@@ -454,27 +426,18 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
             disabled={processando}
             onDownload={downloadDocumento}
             {...previewDocumentoProps}
-            areaEntreArquivoEAcoes={campoPrazos}
-            acoes={[
-              {
-                key: 'enviar-cliente',
-                label: 'Enviar ao cliente',
-                color: 'primary',
-                alinhamento: 'fim',
-                onClick: handleEnviarContratoCliente
-              },
-              ...(podeEnviarAssinatura
-                ? [
-                    {
-                      key: 'enviar-assinatura',
-                      label: 'Enviar para assinatura',
-                      color: 'secondary' as const,
-                      alinhamento: 'fim' as const,
-                      onClick: handleEnviarAssinatura
-                    }
-                  ]
-                : [])
-            ]}
+            areaEntreArquivoEAcoes={
+              <>
+                {campoPrazos}
+                {!assinaturaProviderAtivo ? (
+                  <Typography variant='body2' color='text.secondary'>
+                    Ative o provedor de assinatura (`stub` ou `clicksign`) para enviar o contrato. Não há envio
+                    manual.
+                  </Typography>
+                ) : null}
+              </>
+            }
+            acoes={acaoEnviarAssinatura}
           />
         </Grid>
       ) : null}
@@ -516,28 +479,6 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
               <Typography variant='caption' color='text.secondary'>
                 O status do contrato atualiza automaticamente quando a assinatura for concluída ou recusada.
               </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      ) : null}
-
-      {contrato?.status === 'ACEITO' && documentoAssinado ? (
-        <Grid size={{ xs: 12 }}>
-          <Card variant='outlined'>
-            <CardHeader title='PDF assinado' subheader='Documento retornado pelo provedor de assinatura.' />
-            <CardContent>
-              <ProjetoFileRow
-                nomeArquivo={documentoAssinado.nomeOriginal}
-                metaItens={[{ label: 'Versão', value: String(documentoAssinado.versao) }]}
-                documentoId={documentoAssinado.id}
-                previewTitulo='Contrato assinado'
-                previewSubtitulo={`${projeto.titulo} · v${documentoAssinado.versao}`}
-                onDownload={() =>
-                  void downloadDocumentoCatec(documentoAssinado.id, documentoAssinado.nomeOriginal).catch(err =>
-                    toast.error(err instanceof Error ? err.message : 'Download falhou.')
-                  )
-                }
-              />
             </CardContent>
           </Card>
         </Grid>
