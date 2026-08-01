@@ -30,6 +30,7 @@ export const PermissaoCodigo = {
   ACAO_SOCIO_PROPOSTA_DEVOLVER: 'acao.socio.proposta.devolver',
   ACAO_CONTRATO_CRIAR: 'acao.contrato.criar',
   ACAO_CONTRATO_ENVIAR: 'acao.contrato.enviar',
+  ACAO_CONTRATO_ASSINATURA_ENVIAR: 'acao.contrato.assinatura_enviar',
   ACAO_DOCUMENTO_UPLOAD: 'acao.documento.upload',
   ACAO_INTERACAO_REGISTRAR: 'acao.interacao.registrar',
   ACAO_GRUPO_GERIR: 'acao.grupo.gerir'

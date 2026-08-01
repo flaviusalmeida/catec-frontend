@@ -46,10 +46,13 @@ type Props = {
 type DialogInteracaoCliente = CatecTipoInteracaoFluxo | null
 
 const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
-  const { data, uploadContrato, enviarContratoCliente, registrarInteracao, processando } = fluxo
+  const { data, assinatura, assinaturaProviderAtivo, uploadContrato, enviarContratoCliente, enviarAssinatura, atualizarStatusAssinatura, registrarInteracao, processando } = fluxo
   const { hasPermission } = useCatecPermission()
   const [dialogInteracaoCliente, setDialogInteracaoCliente] = useState<DialogInteracaoCliente>(null)
   const [textoInteracaoCliente, setTextoInteracaoCliente] = useState('')
+  const [dialogAssinaturaAberto, setDialogAssinaturaAberto] = useState(false)
+  const [signatarioNome, setSignatarioNome] = useState('')
+  const [signatarioEmail, setSignatarioEmail] = useState('')
 
   const [prazoInicioExecucaoDias, setPrazoInicioExecucaoDias] = useState(
     projeto.prazoInicioExecucaoDias != null ? String(projeto.prazoInicioExecucaoDias) : ''
@@ -81,6 +84,13 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
 
   const podeRegistrarRespostaCliente =
     aguardandoRespostaCliente && hasPermission(PermissaoCodigo.ACAO_INTERACAO_REGISTRAR)
+
+  const podeEnviarAssinatura =
+    podeEditarContrato &&
+    contrato?.status === 'RASCUNHO' &&
+    temAnexo &&
+    assinaturaProviderAtivo &&
+    hasPermission(PermissaoCodigo.ACAO_CONTRATO_ASSINATURA_ENVIAR)
 
   const acoesRespostaCliente: Array<{
     tipo: CatecTipoInteracaoFluxo
@@ -171,6 +181,46 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
       .catch(err => toast.error(err instanceof Error ? err.message : 'Envio falhou.'))
   }
 
+  function abrirDialogAssinatura() {
+    setSignatarioNome('')
+    setSignatarioEmail('')
+    setDialogAssinaturaAberto(true)
+  }
+
+  function confirmarEnvioAssinatura() {
+    const diasInicio = Number.parseInt(prazoInicioExecucaoDias.trim(), 10)
+    const diasConclusao = Number.parseInt(prazoConclusaoDias.trim(), 10)
+
+    if (!Number.isFinite(diasInicio) || diasInicio < 1) {
+      toast.error('Informe o prazo para início da execução em dias.')
+
+      return
+    }
+
+    if (!Number.isFinite(diasConclusao) || diasConclusao < 1) {
+      toast.error('Informe o prazo para conclusão do projeto em dias.')
+
+      return
+    }
+
+    if (!signatarioNome.trim() || !signatarioEmail.trim()) {
+      toast.error('Informe nome e e-mail do signatário.')
+
+      return
+    }
+
+    void enviarAssinatura({
+      prazoInicioExecucaoDias: diasInicio,
+      prazoConclusaoDias: diasConclusao,
+      signatarios: [{ nome: signatarioNome.trim(), email: signatarioEmail.trim(), papel: 'CLIENTE' }]
+    })
+      .then(() => {
+        toast.success('Contrato enviado para assinatura eletrônica.')
+        setDialogAssinaturaAberto(false)
+      })
+      .catch(err => toast.error(err instanceof Error ? err.message : 'Envio para assinatura falhou.'))
+  }
+
   if (!podeVisualizarContrato) {
     return (
       <ProjetoStateCard
@@ -196,7 +246,10 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
     contrato && contrato.status === 'RASCUNHO' && temAnexo && podeEnviarCliente && !contrato.consideracoesPendentes
   )
 
-  const mostrarRespostaClienteCard = contrato?.status === 'ENVIADO_AO_CLIENTE' && temAnexo
+  const mostrarRespostaClienteCard =
+    (contrato?.status === 'ENVIADO_AO_CLIENTE' || contrato?.status === 'AGUARDANDO_ASSINATURA') && temAnexo
+
+  const mostrarAssinaturaDiagnostico = contrato?.status === 'AGUARDANDO_ASSINATURA' && assinatura?.id != null
 
   const mostrarContratoAceitoCard = contrato?.status === 'ACEITO' && temAnexo
 
@@ -279,7 +332,9 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
 
   const usaLayoutContratoEstruturado =
     contrato != null &&
-    ['ENVIADO_AO_CLIENTE', 'ACEITO', 'RECUSADO', 'AGUARDANDO_AJUSTE'].includes(contrato.status)
+    ['ENVIADO_AO_CLIENTE', 'AGUARDANDO_ASSINATURA', 'ACEITO', 'RECUSADO', 'AGUARDANDO_AJUSTE'].includes(
+      contrato.status
+    )
 
   const prazosMeta = resolverPrazosContratoMeta(projeto, prazoInicioExecucaoDias, prazoConclusaoDias)
 
@@ -367,9 +422,59 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
                 color: 'primary',
                 alinhamento: 'fim',
                 onClick: handleEnviarContratoCliente
-              }
+              },
+              ...(podeEnviarAssinatura
+                ? [
+                    {
+                      key: 'enviar-assinatura',
+                      label: 'Enviar para assinatura',
+                      color: 'secondary' as const,
+                      alinhamento: 'fim' as const,
+                      onClick: abrirDialogAssinatura
+                    }
+                  ]
+                : [])
             ]}
           />
+        </Grid>
+      ) : null}
+
+      {mostrarAssinaturaDiagnostico && assinatura ? (
+        <Grid size={{ xs: 12 }}>
+          <Card variant='outlined'>
+            <CardHeader
+              title='Assinatura eletrônica'
+              subheader='Diagnóstico do ciclo com o provedor (sem secrets).'
+              action={
+                <Button
+                  size='small'
+                  variant='tonal'
+                  disabled={processando}
+                  onClick={() =>
+                    void atualizarStatusAssinatura()
+                      .then(() => toast.success('Status atualizado.'))
+                      .catch(err =>
+                        toast.error(err instanceof Error ? err.message : 'Falha ao atualizar status.')
+                      )
+                  }
+                >
+                  Atualizar status
+                </Button>
+              }
+            />
+            <CardContent className='flex flex-col gap-2'>
+              <Typography variant='body2'>
+                Provedor: {assinatura.providerCodigo} · Status interno: {assinatura.statusInterno ?? '—'}
+              </Typography>
+              <Typography variant='body2'>Status externo: {assinatura.statusExterno ?? '—'}</Typography>
+              <Typography variant='body2'>Envelope: {assinatura.externalEnvelopeId ?? '—'}</Typography>
+              {assinatura.ultimoErro ? (
+                <Typography variant='body2' color='error'>
+                  Último erro: {assinatura.ultimoErro}
+                </Typography>
+              ) : null}
+            </CardContent>
+          </Card>
         </Grid>
       ) : null}
 
@@ -451,6 +556,48 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
           </Card>
         </Grid>
       ) : null}
+
+      <Dialog open={dialogAssinaturaAberto} onClose={() => !processando && setDialogAssinaturaAberto(false)} fullWidth maxWidth='sm'>
+        <DialogTitle>Enviar para assinatura eletrônica</DialogTitle>
+        <DialogContent className='flex flex-col gap-4 pbs-2'>
+          <Typography variant='body2' color='text.secondary'>
+            Informe o signatário do cliente. O PDF anexado será enviado ao provedor configurado.
+          </Typography>
+          <CustomTextField
+            fullWidth
+            label='Nome do signatário'
+            value={signatarioNome}
+            onChange={e => setSignatarioNome(e.target.value)}
+            disabled={processando}
+          />
+          <CustomTextField
+            fullWidth
+            type='email'
+            label='E-mail do signatário'
+            value={signatarioEmail}
+            onChange={e => setSignatarioEmail(e.target.value)}
+            disabled={processando}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            variant='tonal'
+            color='secondary'
+            onClick={() => setDialogAssinaturaAberto(false)}
+            disabled={processando}
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant='contained'
+            color='primary'
+            onClick={confirmarEnvioAssinatura}
+            disabled={processando || !signatarioNome.trim() || !signatarioEmail.trim()}
+          >
+            Enviar
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog open={dialogInteracaoCliente != null} onClose={fecharDialogInteracaoCliente} fullWidth maxWidth='sm'>
         <DialogTitle>

@@ -10,6 +10,7 @@ export type CatecPropostaStatus =
 export type CatecContratoStatus =
   | 'RASCUNHO'
   | 'ENVIADO_AO_CLIENTE'
+  | 'AGUARDANDO_ASSINATURA'
   | 'AGUARDANDO_AJUSTE'
   | 'ACEITO'
   | 'RECUSADO'
@@ -39,6 +40,7 @@ export const STATUS_PROPOSTA_ROTULO_BADGE: Record<CatecPropostaStatus, string> =
 export const STATUS_CONTRATO_ROTULO: Record<CatecContratoStatus, string> = {
   RASCUNHO: 'Em elaboração',
   ENVIADO_AO_CLIENTE: 'Enviado ao cliente',
+  AGUARDANDO_ASSINATURA: 'Aguardando assinatura',
   AGUARDANDO_AJUSTE: 'Aguardando ajuste',
   ACEITO: 'Aceito pelo cliente',
   RECUSADO: 'Recusado pelo cliente'
@@ -47,6 +49,7 @@ export const STATUS_CONTRATO_ROTULO: Record<CatecContratoStatus, string> = {
 export const STATUS_CONTRATO_ROTULO_BADGE: Record<CatecContratoStatus, string> = {
   RASCUNHO: 'Elaborando',
   ENVIADO_AO_CLIENTE: 'Enviado',
+  AGUARDANDO_ASSINATURA: 'Aguardando assinatura',
   AGUARDANDO_AJUSTE: 'Aguardando ajuste',
   ACEITO: 'Aceito pelo cliente',
   RECUSADO: 'Recusado pelo cliente'
@@ -65,6 +68,7 @@ export const ORDEM_STATUS_PROPOSTA: CatecPropostaStatus[] = [
 export const ORDEM_STATUS_CONTRATO: CatecContratoStatus[] = [
   'RASCUNHO',
   'ENVIADO_AO_CLIENTE',
+  'AGUARDANDO_ASSINATURA',
   'AGUARDANDO_AJUSTE',
   'ACEITO',
   'RECUSADO'
@@ -113,7 +117,10 @@ export function propostaAguardandoEnvioAoCliente(proposta: {
 }
 
 export const STATUS_CONTRATO_UPLOAD: CatecContratoStatus[] = ['RASCUNHO', 'AGUARDANDO_AJUSTE']
-export const STATUS_CONTRATO_INTERACAO_CLIENTE: CatecContratoStatus[] = ['ENVIADO_AO_CLIENTE']
+export const STATUS_CONTRATO_INTERACAO_CLIENTE: CatecContratoStatus[] = [
+  'ENVIADO_AO_CLIENTE',
+  'AGUARDANDO_ASSINATURA'
+]
 
 export type CatecDocumentoAnexo = {
   id: number

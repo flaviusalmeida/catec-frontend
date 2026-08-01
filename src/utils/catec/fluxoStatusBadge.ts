@@ -56,6 +56,7 @@ const SEMANTICA_PROPOSTA: Record<CatecPropostaStatus, FluxoStatusSemantica> = {
 const SEMANTICA_CONTRATO: Record<CatecContratoStatus, FluxoStatusSemantica> = {
   RASCUNHO: 'emAndamento',
   ENVIADO_AO_CLIENTE: 'emAndamento',
+  AGUARDANDO_ASSINATURA: 'aguardandoAcao',
   AGUARDANDO_AJUSTE: 'aguardandoAcao',
   ACEITO: 'concluidoSucesso',
   RECUSADO: 'encerradoNegativo'

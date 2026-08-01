@@ -27,6 +27,13 @@ import type { CatecProjeto } from '@/types/catec/projetoTypes'
 import CustomAutocomplete from '@core/components/mui/Autocomplete'
 import CustomTextField from '@core/components/mui/TextField'
 
+import {
+  dataCivilSp,
+  filtrarProjetosParaCriacaoAtividade,
+  MSG_PRAZO_APOS_PREVISAO,
+  prazoAposPrevisaoProjeto,
+  projetoPermiteMutacaoAtividade
+} from './atividadeFluxoRules'
 import AtividadeDescricaoEditor from './AtividadeDescricaoEditor'
 import AtividadeTipoIcone from './AtividadeTipoIcone'
 import { useAtividadesStore } from './useAtividadesStore'
@@ -209,8 +216,15 @@ const AtividadeNovaDialog = ({
   const tipoEditavel = tipoFixo == null && projetoEscolhido
   const paiEditavel = paiIdFixo == null && precisaPai && projetoEscolhido && tipoEscolhido
 
+  const projetosElegiveis = useMemo(() => filtrarProjetosParaCriacaoAtividade(projetos), [projetos])
+
+  const projetoSelecionado = useMemo(
+    () => (projetoId === '' ? null : (projetosElegiveis.find(p => p.id === projetoId) ?? null)),
+    [projetoId, projetosElegiveis]
+  )
+
   const candidatosPai = useMemo(() => {
-    if (!precisaPai || !projetoEscolhido || tipo === '') return [] as PaiOption[]
+    if (!precisaPai || !projetoEscolhido || !tipo) return [] as PaiOption[]
 
     const pid = Number(projetoId)
     const porId = new Map<number, PaiOption>()
@@ -333,8 +347,8 @@ const AtividadeNovaDialog = ({
     return 'Ex.: Elaborar proposta comercial'
   }, [tipo])
 
-  const handleProjetoChange = (value: number | '') => {
-    setProjetoId(value)
+  const handleProjetoChange = (value: CatecProjeto | null) => {
+    setProjetoId(value?.id ?? '')
 
     if (tipoFixo == null) setTipo('')
     if (paiIdFixo == null) setPaiId('')
@@ -368,6 +382,20 @@ const AtividadeNovaDialog = ({
       toast.error(
         tipo === 'ATIVIDADE' ? 'Selecione a etapa pai.' : 'Selecione a atividade pai.'
       )
+
+      return
+    }
+
+    const projeto = projetos.find(p => p.id === pid)
+
+    if (!projeto || !projetoPermiteMutacaoAtividade(projeto.status)) {
+      toast.error('Só é possível criar atividades em projetos aguardando execução ou em execução.')
+
+      return
+    }
+
+    if (prazoAposPrevisaoProjeto(prazo, projeto.previsaoConclusaoEm)) {
+      toast.error(MSG_PRAZO_APOS_PREVISAO)
 
       return
     }
@@ -407,43 +435,48 @@ const AtividadeNovaDialog = ({
       <form onSubmit={handleSubmit} className={styles.novaDialogForm}>
         <DialogTitle>{tituloModal(tipo)}</DialogTitle>
         <DialogContent className={styles.novaDialogContent}>
-          <CustomTextField
-            select
+          <CustomAutocomplete
             fullWidth
-            label='Projeto'
-            value={projetoId}
-            onChange={e => handleProjetoChange(e.target.value === '' ? '' : Number(e.target.value))}
+            options={projetosElegiveis}
+            value={projetoSelecionado}
+            onChange={(_, value) => handleProjetoChange(value)}
+            getOptionLabel={option => option.titulo}
+            isOptionEqualToValue={(option, value) => option.id === value.id}
             disabled={!projetoEditavel}
-            required
-            autoFocus={projetoEditavel}
+            noOptionsText='Nenhum projeto em execução'
+            filterOptions={(options, { inputValue }) => {
+              const query = inputValue.trim().toLowerCase()
+
+              if (!query) return options
+
+              return options.filter(p => {
+                const titulo = p.titulo.toLowerCase()
+                const cliente = p.clienteNome?.toLowerCase() ?? ''
+
+                return titulo.includes(query) || cliente.includes(query)
+              })
+            }}
             slotProps={{
-              select: {
-                displayEmpty: true,
-                MenuProps: {
-                  disableScrollLock: true,
-                  PaperProps: { className: styles.novaDialogSelectMenu }
-                },
-                renderValue: value => {
-                  if (value === '' || value == null) {
-                    return <em className='text-textDisabled'>Selecione</em>
-                  }
-
-                  const projeto = projetos.find(p => p.id === Number(value))
-
-                  return projeto?.titulo ?? String(value)
-                }
+              popper: {
+                disablePortal: false
               }
             }}
-          >
-            <MenuItem value=''>
-              <em>Selecione</em>
-            </MenuItem>
-            {projetos.map(p => (
-              <MenuItem key={p.id} value={p.id}>
-                {p.titulo}
-              </MenuItem>
-            ))}
-          </CustomTextField>
+            renderInput={params => (
+              <CustomTextField
+                {...params}
+                label='Projeto'
+                required
+                disabled={!projetoEditavel}
+                autoFocus={projetoEditavel}
+                placeholder='Digite para buscar…'
+                helperText={
+                  projetosElegiveis.length === 0
+                    ? 'Só projetos aguardando execução ou em execução.'
+                    : undefined
+                }
+              />
+            )}
+          />
 
           <CustomTextField
             select
@@ -490,50 +523,63 @@ const AtividadeNovaDialog = ({
             ))}
           </CustomTextField>
 
-          <CustomAutocomplete
-            fullWidth
-            options={candidatosPai}
-            value={paiSelecionado}
-            onChange={(_, value) => setPaiId(value?.id ?? '')}
-            getOptionLabel={rotuloOpcaoPai}
-            isOptionEqualToValue={(option, value) => option.id === value.id}
-            disabled={!paiEditavel}
-            loading={carregandoPais}
-            noOptionsText={
-              carregandoPais
-                ? 'Carregando…'
-                : tipo === 'ATIVIDADE'
-                  ? 'Nenhuma etapa neste projeto.'
-                  : 'Nenhuma atividade neste projeto.'
-            }
-            slotProps={{
-              popper: {
-                disablePortal: false
+          {tipo !== 'ETAPA' ? (
+            <CustomAutocomplete
+              fullWidth
+              options={candidatosPai}
+              value={paiSelecionado}
+              onChange={(_, value) => setPaiId(value?.id ?? '')}
+              getOptionLabel={rotuloOpcaoPai}
+              isOptionEqualToValue={(option, value) => option.id === value.id}
+              disabled={!paiEditavel}
+              loading={carregandoPais}
+              noOptionsText={
+                carregandoPais
+                  ? 'Carregando…'
+                  : tipo === 'ATIVIDADE'
+                    ? 'Nenhuma etapa neste projeto.'
+                    : 'Nenhuma atividade neste projeto.'
               }
-            }}
-            renderOption={(props, option) => {
-              const { key, ...optionProps } = props as typeof props & { key: string }
+              filterOptions={(options, { inputValue }) => {
+                const query = inputValue.trim().toLowerCase()
 
-              return (
-                <li key={key} {...optionProps} className={`${optionProps.className ?? ''}`.trim()}>
-                  <span className='inline-flex items-center gap-2 min-is-0'>
-                    <AtividadeTipoIcone tipo={option.tipo} comTooltip={false} />
-                    <span className='truncate'>{rotuloOpcaoPai(option)}</span>
-                  </span>
-                </li>
-              )
-            }}
-            renderInput={params => (
-              <CustomTextField
-                {...params}
-                label={rotuloPai(tipo)}
-                required={precisaPai}
-                disabled={!paiEditavel}
-                helperText={helperPai}
-                placeholder='Selecione'
-              />
-            )}
-          />
+                if (!query) return options
+
+                return options.filter(o => {
+                  const rotulo = rotuloOpcaoPai(o).toLowerCase()
+
+                  return rotulo.includes(query) || String(o.id).includes(query)
+                })
+              }}
+              slotProps={{
+                popper: {
+                  disablePortal: false
+                }
+              }}
+              renderOption={(props, option) => {
+                const { key, ...optionProps } = props as typeof props & { key: string }
+
+                return (
+                  <li key={key} {...optionProps} className={`${optionProps.className ?? ''}`.trim()}>
+                    <span className='inline-flex items-center gap-2 min-is-0'>
+                      <AtividadeTipoIcone tipo={option.tipo} comTooltip={false} />
+                      <span className='truncate'>{rotuloOpcaoPai(option)}</span>
+                    </span>
+                  </li>
+                )
+              }}
+              renderInput={params => (
+                <CustomTextField
+                  {...params}
+                  label={rotuloPai(tipo)}
+                  required={precisaPai}
+                  disabled={!paiEditavel}
+                  helperText={helperPai}
+                  placeholder='Digite para buscar…'
+                />
+              )}
+            />
+          ) : null}
 
           <CustomTextField
             fullWidth
@@ -594,7 +640,19 @@ const AtividadeNovaDialog = ({
               value={prazo}
               onChange={e => setPrazo(e.target.value)}
               className={styles.novaDialogPrazo}
-              slotProps={{ inputLabel: { shrink: true } }}
+              slotProps={{
+                inputLabel: { shrink: true },
+                htmlInput: projetoSelecionado?.previsaoConclusaoEm
+                  ? {
+                      max: dataCivilSp(projetoSelecionado.previsaoConclusaoEm)
+                    }
+                  : undefined
+              }}
+              helperText={
+                projetoSelecionado?.previsaoConclusaoEm
+                  ? `Até a previsão do projeto (${dataCivilSp(projetoSelecionado.previsaoConclusaoEm).split('-').reverse().join('/')})`
+                  : undefined
+              }
             />
           </div>
         </DialogContent>

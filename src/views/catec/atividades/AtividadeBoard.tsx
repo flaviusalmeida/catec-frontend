@@ -31,6 +31,7 @@ import {
 import AtividadeColuna from './AtividadeColuna'
 import AtividadeDrawer from './AtividadeDrawer'
 import AtividadeTipoIcone from './AtividadeTipoIcone'
+import { MSG_CONCLUSAO_COM_FILHAS, temFilhasNaoConcluidas } from './atividadeFluxoRules'
 import { useAtividadesStore } from './useAtividadesStore'
 import styles from './styles.module.css'
 
@@ -48,8 +49,12 @@ type Props = {
   onAgruparChange: (agrupar: CatecAtividadeBoardAgrupar) => void
   podeMover: boolean
   podeCriar: boolean
+  /** Projetos em AGUARDANDO_EXECUCAO / EM_EXECUCAO — criação contextual só nestes. */
+  projetoIdsCriacao?: ReadonlySet<number>
   onNovaNaColuna?: (opts: CatecAtividadeNovaNaColunaOpts) => void
   onNovaEtapa?: (projetoId: number) => void
+  /** Modal livre (mesmo comportamento do Agrupar=Responsável). */
+  onNovaAtividade?: () => void
 }
 
 function iniciais(nome: string): string {
@@ -93,16 +98,27 @@ const AtividadeBoard = ({
   onAgruparChange,
   podeMover,
   podeCriar,
+  projetoIdsCriacao,
   onNovaNaColuna,
-  onNovaEtapa
+  onNovaEtapa,
+  onNovaAtividade
 }: Props) => {
-  const { alterarStatus, atualizar, criarFilha, excluir, obter } = useAtividadesStore()
+  const { alterarStatus, atualizar, criarFilha, excluir, obter, catalogo, carregar } = useAtividadesStore()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [atividadeAtual, setAtividadeAtual] = useState<CatecAtividade | null>(null)
   const [menuAgrupar, setMenuAgrupar] = useState<null | HTMLElement>(null)
   /** true = colapsada. Projeto: default expandido; sub-faixa Etapa: default colapsada. */
   const [faixasColapsadas, setFaixasColapsadas] = useState<Record<string, boolean>>({})
 
+  const permiteCriarNoProjeto = useCallback(
+    (projetoId: number | null | undefined) => {
+      if (projetoId == null || projetoId <= 0) return true
+      if (!projetoIdsCriacao) return true
+
+      return projetoIdsCriacao.has(projetoId)
+    },
+    [projetoIdsCriacao]
+  )
   const handleOpen = useCallback((atividade: CatecAtividade) => {
     setAtividadeAtual(atividade)
     setDrawerOpen(true)
@@ -133,9 +149,14 @@ const AtividadeBoard = ({
 
   const handleMover = useCallback(
     async (id: number, status: CatecAtividadeStatus, ordem?: number) => {
+      if (temFilhasNaoConcluidas(id, catalogo, status)) {
+        await carregar()
+        throw new Error(MSG_CONCLUSAO_COM_FILHAS)
+      }
+
       await alterarStatus(id, status, ordem)
     },
-    [alterarStatus]
+    [alterarStatus, catalogo, carregar]
   )
 
   const isColapsada = useCallback(
@@ -165,34 +186,41 @@ const AtividadeBoard = ({
       projetoId?: number | null
       tipo?: CatecAtividadeTipo | null
     } = {}
-  ) => (
-    <div className={styles.board}>
-      {faixa.colunas.map(coluna => (
-        <AtividadeColuna
-          key={`${collapseKey}-${coluna.status}`}
-          status={coluna.status}
-          rotulo={coluna.rotulo}
-          atividades={coluna.atividades}
-          onOpen={handleOpen}
-          onMoverStatus={handleMover}
-          onNovaNaColuna={
-            onNovaNaColuna
-              ? status =>
-                  onNovaNaColuna({
-                    status,
-                    paiId: opts.paiId ?? null,
-                    projetoId: opts.projetoId ?? null,
-                    tipo: opts.tipo ?? null
-                  })
-              : undefined
-          }
-          rotuloNova={opts.tipo === 'SUBATIVIDADE' ? 'Nova subatividade' : 'Nova atividade'}
-          podeMover={podeMover}
-          podeCriar={podeCriar}
-        />
-      ))}
-    </div>
-  )
+  ) => {
+    const podeCriarAqui =
+      podeCriar &&
+      Boolean(onNovaNaColuna) &&
+      (opts.projetoId == null || permiteCriarNoProjeto(opts.projetoId))
+
+    return (
+      <div className={styles.board}>
+        {faixa.colunas.map(coluna => (
+          <AtividadeColuna
+            key={`${collapseKey}-${coluna.status}`}
+            status={coluna.status}
+            rotulo={coluna.rotulo}
+            atividades={coluna.atividades}
+            onOpen={handleOpen}
+            onMoverStatus={handleMover}
+            onNovaNaColuna={
+              podeCriarAqui && onNovaNaColuna
+                ? status =>
+                    onNovaNaColuna({
+                      status,
+                      paiId: opts.paiId ?? null,
+                      projetoId: opts.projetoId ?? null,
+                      tipo: opts.tipo ?? null
+                    })
+                : undefined
+            }
+            rotuloNova={opts.tipo === 'SUBATIVIDADE' ? 'Nova subatividade' : 'Nova atividade'}
+            podeMover={podeMover}
+            podeCriar={podeCriarAqui}
+          />
+        ))}
+      </div>
+    )
+  }
 
   const renderFaixaHeader = ({
     faixa,
@@ -290,28 +318,42 @@ const AtividadeBoard = ({
   return (
     <>
       <div className={styles.boardToolbar}>
-        <Button
-          variant='contained'
-          size='small'
-          endIcon={<i className='tabler-chevron-down text-base' />}
-          onClick={e => setMenuAgrupar(e.currentTarget)}
-        >
-          Agrupar: {AGRUPAR_BOARD_ROTULO[agrupar]}
-        </Button>
-        <Menu anchorEl={menuAgrupar} open={Boolean(menuAgrupar)} onClose={() => setMenuAgrupar(null)}>
-          {ORDEM_AGRUPAR_BOARD.map(opcao => (
-            <MenuItem
-              key={opcao}
-              selected={opcao === agrupar}
-              onClick={() => {
-                onAgruparChange(opcao)
-                setMenuAgrupar(null)
-              }}
-            >
-              {AGRUPAR_BOARD_ROTULO[opcao]}
-            </MenuItem>
-          ))}
-        </Menu>
+        {podeCriar && onNovaAtividade ? (
+          <Button
+            variant='contained'
+            size='small'
+            startIcon={<i className='tabler-plus text-base' />}
+            onClick={onNovaAtividade}
+          >
+            Nova atividade
+          </Button>
+        ) : (
+          <span />
+        )}
+        <div className={styles.boardToolbarAcoes}>
+          <Button
+            variant='contained'
+            size='small'
+            endIcon={<i className='tabler-chevron-down text-base' />}
+            onClick={e => setMenuAgrupar(e.currentTarget)}
+          >
+            Agrupar: {AGRUPAR_BOARD_ROTULO[agrupar]}
+          </Button>
+          <Menu anchorEl={menuAgrupar} open={Boolean(menuAgrupar)} onClose={() => setMenuAgrupar(null)}>
+            {ORDEM_AGRUPAR_BOARD.map(opcao => (
+              <MenuItem
+                key={opcao}
+                selected={opcao === agrupar}
+                onClick={() => {
+                  onAgruparChange(opcao)
+                  setMenuAgrupar(null)
+                }}
+              >
+                {AGRUPAR_BOARD_ROTULO[opcao]}
+              </MenuItem>
+            ))}
+          </Menu>
+        </div>
       </div>
 
       <div className={styles.boardFaixas}>
@@ -341,7 +383,11 @@ const AtividadeBoard = ({
                 mostrarMetaFaixa,
                 totalItens,
                 extraActions:
-                  porProjeto && podeCriar && onNovaEtapa && projetoIdValido ? (
+                  porProjeto &&
+                  podeCriar &&
+                  onNovaEtapa &&
+                  projetoIdValido &&
+                  permiteCriarNoProjeto(projetoIdNumerico) ? (
                     <Button
                       size='small'
                       variant='text'
@@ -392,7 +438,10 @@ const AtividadeBoard = ({
               {!colapsada && !temSubFaixas && porProjeto && faixa.subFaixas.length === 0 ? (
                 <div className={styles.boardFaixaVazia}>
                   <span>Nenhuma etapa neste projeto.</span>
-                  {podeCriar && onNovaEtapa && projetoIdValido ? (
+                  {podeCriar &&
+                  onNovaEtapa &&
+                  projetoIdValido &&
+                  permiteCriarNoProjeto(projetoIdNumerico) ? (
                     <Button size='small' variant='outlined' onClick={() => onNovaEtapa(projetoIdNumerico)}>
                       Nova etapa
                     </Button>

@@ -24,6 +24,7 @@ import { commonLayoutClasses } from '@layouts/utils/layoutClasses'
 import AtividadeBoard from './AtividadeBoard'
 import type { CatecAtividadeNovaNaColunaOpts } from './AtividadeBoard'
 import AtividadeNovaDialog from './AtividadeNovaDialog'
+import { filtrarProjetosParaCriacaoAtividade } from './atividadeFluxoRules'
 import { useAtividadesStore } from './useAtividadesStore'
 import styles from './styles.module.css'
 
@@ -81,6 +82,12 @@ const AtividadesView = () => {
 
   const podeMover = hasPermission(PermissaoCodigo.ACAO_ATIVIDADE_MOVER_STATUS)
   const podeCriar = hasPermission(PermissaoCodigo.ACAO_ATIVIDADE_CRIAR)
+
+  const projetosParaCriacao = useMemo(() => filtrarProjetosParaCriacaoAtividade(projetos), [projetos])
+  const projetoIdsCriacao = useMemo(
+    () => new Set(projetosParaCriacao.map(p => p.id)),
+    [projetosParaCriacao]
+  )
 
   useEffect(() => {
     setAgruparSalvo(lerAgruparSalvo())
@@ -192,6 +199,10 @@ const AtividadesView = () => {
     [abrirDialogNova]
   )
 
+  const handleNovaAtividadeToolbar = useCallback(() => {
+    abrirDialogNova({ projetoId: null })
+  }, [abrirDialogNova])
+
   const boardVazio = board.faixas.every(
     f =>
       f.colunas.every(c => c.atividades.length === 0) &&
@@ -224,15 +235,17 @@ const AtividadesView = () => {
           onAgruparChange={setAgrupar}
           podeMover={podeMover}
           podeCriar={podeCriar}
+          projetoIdsCriacao={projetoIdsCriacao}
           onNovaNaColuna={handleNovaNaColuna}
           onNovaEtapa={handleNovaEtapa}
+          onNovaAtividade={handleNovaAtividadeToolbar}
         />
       )}
 
       <AtividadeNovaDialog
         open={dialogOpen}
         onClose={fecharDialog}
-        projetos={projetos}
+        projetos={projetosParaCriacao}
         projetoIdFixo={projetoIdFixoDialog}
         statusInicial={statusPrefill}
         tipoFixo={tipoFixo}

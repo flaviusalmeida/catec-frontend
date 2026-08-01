@@ -91,8 +91,9 @@ const LOOP_PROPOSTA_AJUSTE: FluxoPassoEntidade[] = [
 
 const FLUXO_CONTRATO: FluxoPassoEntidade[] = [
   { tipo: 'contrato', status: 'RASCUNHO', acao: 'Criar contrato + anexo' },
-  { tipo: 'contrato', status: 'ENVIADO_AO_CLIENTE', acao: 'Enviar ao cliente' },
-  { tipo: 'contrato', status: 'ACEITO', acao: 'Cliente aceita' }
+  { tipo: 'contrato', status: 'ENVIADO_AO_CLIENTE', acao: 'Enviar ao cliente (manual)' },
+  { tipo: 'contrato', status: 'AGUARDANDO_ASSINATURA', acao: 'Enviar para assinatura eletrônica' },
+  { tipo: 'contrato', status: 'ACEITO', acao: 'Cliente aceita / assina' }
 ]
 
 const LOOP_CONTRATO_AJUSTE: FluxoPassoEntidade[] = [

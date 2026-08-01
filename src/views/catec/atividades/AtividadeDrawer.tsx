@@ -47,6 +47,13 @@ import AtividadeAnexosSecao from './AtividadeAnexosSecao'
 import AtividadeDescricaoEditor from './AtividadeDescricaoEditor'
 import AtividadeDiscussaoSecao from './AtividadeDiscussaoSecao'
 import AtividadeTipoIcone from './AtividadeTipoIcone'
+import {
+  dataCivilSp,
+  MSG_CONCLUSAO_COM_FILHAS,
+  MSG_PRAZO_APOS_PREVISAO,
+  prazoAposPrevisaoProjeto,
+  temFilhasNaoConcluidas
+} from './atividadeFluxoRules'
 import { useAtividadesStore } from './useAtividadesStore'
 import styles from './styles.module.css'
 
@@ -385,6 +392,18 @@ const AtividadeDrawer = ({
       return false
     }
 
+    if (prazoAposPrevisaoProjeto(atual.prazo, projeto?.previsaoConclusaoEm)) {
+      toast.error(MSG_PRAZO_APOS_PREVISAO)
+
+      return false
+    }
+
+    if (temFilhasNaoConcluidas(atividade.id, catalogo, atual.status)) {
+      toast.error(MSG_CONCLUSAO_COM_FILHAS)
+
+      return false
+    }
+
     setSalvando(true)
 
     try {
@@ -605,11 +624,23 @@ const AtividadeDrawer = ({
                   if (!atividade) return
 
                   setDescricao(html ?? '')
+                  const atual = estadoRef.current
+
+                  if (prazoAposPrevisaoProjeto(atual.prazo, projeto?.previsaoConclusaoEm)) {
+                    toast.error(MSG_PRAZO_APOS_PREVISAO)
+
+                    return
+                  }
+
+                  if (temFilhasNaoConcluidas(atividade.id, catalogo, atual.status)) {
+                    toast.error(MSG_CONCLUSAO_COM_FILHAS)
+
+                    return
+                  }
+
                   setSalvando(true)
 
                   try {
-                    const atual = estadoRef.current
-
                     await onUpdate(atividade.id, {
                       titulo: atual.titulo.trim() || atividade.titulo,
                       descricao: html,
@@ -835,6 +866,13 @@ const AtividadeDrawer = ({
                     key={key}
                     selected={key === status}
                     onClick={() => {
+                      if (atividade && temFilhasNaoConcluidas(atividade.id, catalogo, key)) {
+                        toast.error(MSG_CONCLUSAO_COM_FILHAS)
+                        setStatusAnchor(null)
+
+                        return
+                      }
+
                       setStatus(key)
                       setStatusAnchor(null)
                     }}
@@ -991,6 +1029,7 @@ const AtividadeDrawer = ({
                       type='date'
                       className={styles.detalheDateInput}
                       value={prazo}
+                      max={projeto?.previsaoConclusaoEm ? dataCivilSp(projeto.previsaoConclusaoEm) : undefined}
                       onChange={e => setPrazo(e.target.value)}
                       onBlur={() => {
                         if (!prazo) setEditandoPrazo(false)
