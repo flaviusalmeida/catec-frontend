@@ -50,7 +50,6 @@ export type CatecAssinaturaProviderInfo = {
 export type CatecEnviarAssinaturaPayload = {
   prazoInicioExecucaoDias: number
   prazoConclusaoDias: number
-  signatarios: Array<{ nome: string; email: string; papel?: string }>
 }
 
 export function parseCatecAssinaturaProviderInfo(data: unknown): CatecAssinaturaProviderInfo {

@@ -45,8 +45,16 @@ type InteracaoApi = {
   id: number
   tipoInteracao: CatecTipoInteracaoFluxo
   texto: string
+  origem?: string | null
   registradoPorNome: string
   criadoEm: string
+}
+
+function rotuloOrigemResposta(origem: string | null | undefined): string | null {
+  if (origem === 'ASSINATURA_ELETRONICA') return 'Assinatura eletrônica'
+  if (origem === 'MANUAL') return 'Manual'
+
+  return null
 }
 
 function rotuloInteracao(tipo: CatecTipoInteracaoFluxo, origem: 'PROPOSTA' | 'CONTRATO'): string {
@@ -365,7 +373,9 @@ async function listarInteracoesPropostaCatec(
   return (data as InteracaoApi[]).map(i => ({
     key: `P-${i.id}`,
     titulo: rotuloInteracao(i.tipoInteracao, 'PROPOSTA'),
-    meta: `${i.registradoPorNome} · ${formatarDataHora(i.criadoEm)} · proposta v${proposta.versao}`,
+    meta: [i.registradoPorNome, formatarDataHora(i.criadoEm), rotuloOrigemResposta(i.origem), `proposta v${proposta.versao}`]
+      .filter(Boolean)
+      .join(' · '),
     texto: i.texto,
     criadoEm: i.criadoEm,
     origem: 'PROPOSTA' as const
@@ -412,7 +422,9 @@ async function listarInteracoesContratoCatec(
   return (data as InteracaoApi[]).map(i => ({
     key: `C-${i.id}`,
     titulo: rotuloInteracao(i.tipoInteracao, 'CONTRATO'),
-    meta: `${i.registradoPorNome} · ${formatarDataHora(i.criadoEm)} · contrato`,
+    meta: [i.registradoPorNome, formatarDataHora(i.criadoEm), rotuloOrigemResposta(i.origem), 'contrato']
+      .filter(Boolean)
+      .join(' · '),
     texto: i.texto,
     criadoEm: i.criadoEm,
     origem: 'CONTRATO' as const

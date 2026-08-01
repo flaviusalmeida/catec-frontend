@@ -61,7 +61,7 @@ export function useProjetoFluxoStore(projetoId: number, onAfterMutation?: () => 
 
   const [historicoCarregando, setHistoricoCarregando] = useState(false)
 
-  const recarregar = useCallback(async () => {
+  const recarregar = useCallback(async (opts?: { silent?: boolean }) => {
     if (!Number.isFinite(projetoId) || projetoId < 1) {
       setErro('Projeto inválido.')
       setCarregando(false)
@@ -69,7 +69,10 @@ export function useProjetoFluxoStore(projetoId: number, onAfterMutation?: () => 
       return
     }
 
-    setCarregando(true)
+    if (!opts?.silent) {
+      setCarregando(true)
+    }
+
     setErro(null)
 
     try {
@@ -78,7 +81,7 @@ export function useProjetoFluxoStore(projetoId: number, onAfterMutation?: () => 
         carregarContratoComDocumentosCatec(projetoId)
       ])
 
-      setData({ propostas, contrato, interacoes: [], historico: [] })
+      setData(prev => ({ ...prev, propostas, contrato, interacoes: [] }))
 
       if (contrato) {
         try {
@@ -102,12 +105,16 @@ export function useProjetoFluxoStore(projetoId: number, onAfterMutation?: () => 
         await onAfterMutation()
       }
     } catch (err) {
-      setErro(err instanceof Error ? err.message : 'Falha ao carregar dados do projeto.')
-      setData(emptyData)
-      setAssinatura(null)
-      setAssinaturaProviderAtivo(false)
+      if (!opts?.silent) {
+        setErro(err instanceof Error ? err.message : 'Falha ao carregar dados do projeto.')
+        setData(emptyData)
+        setAssinatura(null)
+        setAssinaturaProviderAtivo(false)
+      }
     } finally {
-      setCarregando(false)
+      if (!opts?.silent) {
+        setCarregando(false)
+      }
     }
   }, [projetoId, onAfterMutation])
 

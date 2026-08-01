@@ -128,6 +128,14 @@ export type CatecDocumentoAnexo = {
   versao: number
   uploadedPorNome: string
   criadoEm: string
+  tipoArquivo: string | null
+}
+
+export type CatecOrigemRespostaContrato = 'MANUAL' | 'ASSINATURA_ELETRONICA'
+
+export const ORIGEM_RESPOSTA_ROTULO: Record<CatecOrigemRespostaContrato, string> = {
+  MANUAL: 'Manual',
+  ASSINATURA_ELETRONICA: 'Assinatura eletrônica'
 }
 
 export type CatecProposta = {
@@ -183,6 +191,7 @@ export type CatecHistoricoFluxoItem = {
   texto: string | null
   usuarioNome: string
   ocorridoEm: string
+  origemResposta: CatecOrigemRespostaContrato | null
 }
 
 export type CatecProjetoFluxoResumo = {
@@ -213,7 +222,8 @@ export function parseCatecDocumentoAnexo(raw: unknown): CatecDocumentoAnexo {
     nomeOriginal: String(data.nomeOriginal ?? ''),
     versao: Number(data.versao ?? 1),
     uploadedPorNome: String(data.uploadedPorNome ?? ''),
-    criadoEm: String(data.criadoEm ?? '')
+    criadoEm: String(data.criadoEm ?? ''),
+    tipoArquivo: data.tipoArquivo == null ? null : String(data.tipoArquivo)
   }
 }
 
@@ -267,6 +277,11 @@ export function parseCatecContrato(raw: unknown): CatecContrato {
 export function parseCatecHistoricoFluxoItem(raw: unknown): CatecHistoricoFluxoItem {
   const data = raw as Record<string, unknown>
   const origem = data.origem === 'INTERACAO' ? 'INTERACAO' : 'AUDITORIA'
+  const origemRespostaRaw = data.origemResposta == null ? null : String(data.origemResposta)
+  const origemResposta: CatecOrigemRespostaContrato | null =
+    origemRespostaRaw === 'ASSINATURA_ELETRONICA' || origemRespostaRaw === 'MANUAL'
+      ? origemRespostaRaw
+      : null
 
   return {
     origem,
@@ -280,7 +295,8 @@ export function parseCatecHistoricoFluxoItem(raw: unknown): CatecHistoricoFluxoI
       data.tipoInteracao == null ? null : (String(data.tipoInteracao) as CatecTipoInteracaoFluxo),
     texto: data.texto == null ? null : String(data.texto),
     usuarioNome: String(data.usuarioNome ?? ''),
-    ocorridoEm: String(data.ocorridoEm ?? '')
+    ocorridoEm: String(data.ocorridoEm ?? ''),
+    origemResposta
   }
 }
 
