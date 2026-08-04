@@ -37,6 +37,7 @@ import styles from './styles.module.css'
 
 export type CatecAtividadeNovaNaColunaOpts = {
   status: CatecAtividadeStatus
+
   /** Pai pré-fixido: etapa (criar ATIVIDADE) ou atividade (criar SUBATIVIDADE). */
   paiId?: number | null
   projetoId?: number | null
@@ -49,10 +50,12 @@ type Props = {
   onAgruparChange: (agrupar: CatecAtividadeBoardAgrupar) => void
   podeMover: boolean
   podeCriar: boolean
+
   /** Projetos em AGUARDANDO_EXECUCAO / EM_EXECUCAO — criação contextual só nestes. */
   projetoIdsCriacao?: ReadonlySet<number>
   onNovaNaColuna?: (opts: CatecAtividadeNovaNaColunaOpts) => void
   onNovaEtapa?: (projetoId: number) => void
+
   /** Modal livre (mesmo comportamento do Agrupar=Responsável). */
   onNovaAtividade?: () => void
 }
@@ -107,6 +110,7 @@ const AtividadeBoard = ({
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [atividadeAtual, setAtividadeAtual] = useState<CatecAtividade | null>(null)
   const [menuAgrupar, setMenuAgrupar] = useState<null | HTMLElement>(null)
+
   /** true = colapsada. Projeto: default expandido; sub-faixa Etapa: default colapsada. */
   const [faixasColapsadas, setFaixasColapsadas] = useState<Record<string, boolean>>({})
 
@@ -119,6 +123,7 @@ const AtividadeBoard = ({
     },
     [projetoIdsCriacao]
   )
+
   const handleOpen = useCallback((atividade: CatecAtividade) => {
     setAtividadeAtual(atividade)
     setDrawerOpen(true)

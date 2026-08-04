@@ -28,8 +28,10 @@ type Props = {
   disabled?: boolean
   salvando?: boolean
   onSalvar?: (html: string | null) => Promise<void>
+
   /** Editor sempre aberto, sem Salvar/Cancelar — para formulários (ex.: Nova atividade). */
   modoFormulario?: boolean
+
   /** Altura de conteúdo menor, para modais compactos. */
   compacto?: boolean
   onChange?: (html: string | null) => void

@@ -270,6 +270,7 @@ export function parseCatecAtividadeBoard(raw: unknown): CatecAtividadeBoard {
 
   const data = (raw ?? {}) as Record<string, unknown>
   const agruparRaw = String(data.agrupar ?? AGRUPAR_BOARD_DEFAULT)
+
   const agrupar = (ORDEM_AGRUPAR_BOARD.includes(agruparRaw as CatecAtividadeBoardAgrupar)
     ? agruparRaw
     : AGRUPAR_BOARD_DEFAULT) as CatecAtividadeBoardAgrupar
@@ -299,6 +300,7 @@ function parseFaixa(item: unknown): CatecAtividadeBoardFaixa {
   const f = (item ?? {}) as Record<string, unknown>
   const tipoRaw = f.tipo
   const statusRaw = f.status
+
   const status =
     statusRaw === 'A_FAZER' ||
     statusRaw === 'EM_ANDAMENTO' ||

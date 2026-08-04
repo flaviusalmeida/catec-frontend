@@ -11,6 +11,7 @@ import styles from './styles.module.css'
 type Props = {
   tipo: CatecAtividadeTipo
   className?: string
+
   /** Se false, não envolve com Tooltip (útil quando o pai já tem title). */
   comTooltip?: boolean
 }

@@ -22,6 +22,7 @@ import { boardVazio, flatAtividadesDoBoard, AGRUPAR_BOARD_DEFAULT } from '@/type
 
 type StoreState = {
   board: CatecAtividadeBoard
+
   /** Todos os tipos (inclui Subatividade mesmo quando o Agrupar do board as omite). */
   catalogo: CatecAtividade[]
   filtros: CatecAtividadeBoardFiltros

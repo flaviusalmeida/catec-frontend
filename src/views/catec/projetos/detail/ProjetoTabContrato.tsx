@@ -58,6 +58,7 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
     carregarHistorico,
     processando
   } = fluxo
+
   const { hasPermission } = useCatecPermission()
   const [dialogInteracaoCliente, setDialogInteracaoCliente] = useState<DialogInteracaoCliente>(null)
   const [textoInteracaoCliente, setTextoInteracaoCliente] = useState('')

@@ -98,6 +98,7 @@ export function tituloHistoricoItem(item: CatecHistoricoFluxoItem): string {
 export function metaHistoricoItem(item: CatecHistoricoFluxoItem): string {
   const data = formatarDataHoraHistorico(item.ocorridoEm)
   const usuario = item.usuarioNome?.trim()
+
   const origemResposta =
     item.origem === 'INTERACAO' && item.origemResposta
       ? ORIGEM_RESPOSTA_ROTULO[item.origemResposta]

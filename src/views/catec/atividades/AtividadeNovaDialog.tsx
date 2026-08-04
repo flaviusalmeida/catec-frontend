@@ -180,8 +180,10 @@ type Props = {
   projetos: CatecProjeto[]
   projetoIdFixo?: number | null
   statusInicial?: CatecAtividadeStatus | null
+
   /** Quando definido, fixa o tipo (ex.: Nova etapa a partir do cabeçalho do projeto). */
   tipoFixo?: CatecAtividadeTipo | null
+
   /** Quando definido, pré-seleciona (e fixa) o pai — ex.: criar atividade sob uma etapa do board. */
   paiIdFixo?: number | null
   onCreate: (payload: CatecAtividadeNovaPayload) => Promise<void>
@@ -322,6 +324,7 @@ const AtividadeNovaDialog = ({
 
   useEffect(() => {
     if (!open || paiIdFixo == null) return
+
     if (candidatosPai.some(a => a.id === paiIdFixo)) {
       setPaiId(paiIdFixo)
     }
@@ -332,6 +335,7 @@ const AtividadeNovaDialog = ({
     if (!tipoEscolhido) return 'Selecione o tipo primeiro.'
     if (tipo === 'ETAPA') return 'Etapa não possui pai.'
     if (carregandoPais && candidatosPai.length === 0) return 'Carregando…'
+
     if (!carregandoPais && candidatosPai.length === 0) {
       return tipo === 'ATIVIDADE' ? 'Nenhuma etapa neste projeto.' : 'Nenhuma atividade neste projeto.'
     }
