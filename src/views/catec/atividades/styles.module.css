@@ -752,7 +752,7 @@
 }
 
 .descricaoEditorContent :global(.ProseMirror > *:first-child),
-.descricaoHtml :global(> *:first-child) {
+.descricaoHtml > :global(*:first-child) {
   margin-block-start: 0 !important;
 }
 
