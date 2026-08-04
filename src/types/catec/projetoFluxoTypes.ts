@@ -10,6 +10,7 @@ export type CatecPropostaStatus =
 export type CatecContratoStatus =
   | 'RASCUNHO'
   | 'ENVIADO_AO_CLIENTE'
+  | 'AGUARDANDO_ASSINATURA'
   | 'AGUARDANDO_AJUSTE'
   | 'ACEITO'
   | 'RECUSADO'
@@ -39,6 +40,7 @@ export const STATUS_PROPOSTA_ROTULO_BADGE: Record<CatecPropostaStatus, string> =
 export const STATUS_CONTRATO_ROTULO: Record<CatecContratoStatus, string> = {
   RASCUNHO: 'Em elaboração',
   ENVIADO_AO_CLIENTE: 'Enviado ao cliente',
+  AGUARDANDO_ASSINATURA: 'Aguardando assinatura',
   AGUARDANDO_AJUSTE: 'Aguardando ajuste',
   ACEITO: 'Aceito pelo cliente',
   RECUSADO: 'Recusado pelo cliente'
@@ -47,6 +49,7 @@ export const STATUS_CONTRATO_ROTULO: Record<CatecContratoStatus, string> = {
 export const STATUS_CONTRATO_ROTULO_BADGE: Record<CatecContratoStatus, string> = {
   RASCUNHO: 'Elaborando',
   ENVIADO_AO_CLIENTE: 'Enviado',
+  AGUARDANDO_ASSINATURA: 'Aguardando assinatura',
   AGUARDANDO_AJUSTE: 'Aguardando ajuste',
   ACEITO: 'Aceito pelo cliente',
   RECUSADO: 'Recusado pelo cliente'
@@ -65,6 +68,7 @@ export const ORDEM_STATUS_PROPOSTA: CatecPropostaStatus[] = [
 export const ORDEM_STATUS_CONTRATO: CatecContratoStatus[] = [
   'RASCUNHO',
   'ENVIADO_AO_CLIENTE',
+  'AGUARDANDO_ASSINATURA',
   'AGUARDANDO_AJUSTE',
   'ACEITO',
   'RECUSADO'
@@ -113,7 +117,10 @@ export function propostaAguardandoEnvioAoCliente(proposta: {
 }
 
 export const STATUS_CONTRATO_UPLOAD: CatecContratoStatus[] = ['RASCUNHO', 'AGUARDANDO_AJUSTE']
-export const STATUS_CONTRATO_INTERACAO_CLIENTE: CatecContratoStatus[] = ['ENVIADO_AO_CLIENTE']
+export const STATUS_CONTRATO_INTERACAO_CLIENTE: CatecContratoStatus[] = [
+  'ENVIADO_AO_CLIENTE',
+  'AGUARDANDO_ASSINATURA'
+]
 
 export type CatecDocumentoAnexo = {
   id: number
@@ -121,6 +128,14 @@ export type CatecDocumentoAnexo = {
   versao: number
   uploadedPorNome: string
   criadoEm: string
+  tipoArquivo: string | null
+}
+
+export type CatecOrigemRespostaContrato = 'MANUAL' | 'ASSINATURA_ELETRONICA'
+
+export const ORIGEM_RESPOSTA_ROTULO: Record<CatecOrigemRespostaContrato, string> = {
+  MANUAL: 'Manual',
+  ASSINATURA_ELETRONICA: 'Assinatura eletrônica'
 }
 
 export type CatecProposta = {
@@ -176,6 +191,7 @@ export type CatecHistoricoFluxoItem = {
   texto: string | null
   usuarioNome: string
   ocorridoEm: string
+  origemResposta: CatecOrigemRespostaContrato | null
 }
 
 export type CatecProjetoFluxoResumo = {
@@ -206,7 +222,8 @@ export function parseCatecDocumentoAnexo(raw: unknown): CatecDocumentoAnexo {
     nomeOriginal: String(data.nomeOriginal ?? ''),
     versao: Number(data.versao ?? 1),
     uploadedPorNome: String(data.uploadedPorNome ?? ''),
-    criadoEm: String(data.criadoEm ?? '')
+    criadoEm: String(data.criadoEm ?? ''),
+    tipoArquivo: data.tipoArquivo == null ? null : String(data.tipoArquivo)
   }
 }
 
@@ -260,6 +277,11 @@ export function parseCatecContrato(raw: unknown): CatecContrato {
 export function parseCatecHistoricoFluxoItem(raw: unknown): CatecHistoricoFluxoItem {
   const data = raw as Record<string, unknown>
   const origem = data.origem === 'INTERACAO' ? 'INTERACAO' : 'AUDITORIA'
+  const origemRespostaRaw = data.origemResposta == null ? null : String(data.origemResposta)
+  const origemResposta: CatecOrigemRespostaContrato | null =
+    origemRespostaRaw === 'ASSINATURA_ELETRONICA' || origemRespostaRaw === 'MANUAL'
+      ? origemRespostaRaw
+      : null
 
   return {
     origem,
@@ -273,7 +295,8 @@ export function parseCatecHistoricoFluxoItem(raw: unknown): CatecHistoricoFluxoI
       data.tipoInteracao == null ? null : (String(data.tipoInteracao) as CatecTipoInteracaoFluxo),
     texto: data.texto == null ? null : String(data.texto),
     usuarioNome: String(data.usuarioNome ?? ''),
-    ocorridoEm: String(data.ocorridoEm ?? '')
+    ocorridoEm: String(data.ocorridoEm ?? ''),
+    origemResposta
   }
 }
 

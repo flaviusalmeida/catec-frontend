@@ -149,5 +149,45 @@ export const catecPermissoesCatalogo: CatecPermissaoCatalogo[] = [
     tipo: 'ACAO',
     modulo: 'grupo',
     descricao: 'Criar, editar e excluir grupos.'
+  },
+  {
+    id: 24,
+    codigo: 'tela.atividades',
+    nome: 'Atividades',
+    tipo: 'TELA',
+    modulo: 'atividade',
+    descricao: 'Acesso ao board e listagens de atividades.'
+  },
+  {
+    id: 25,
+    codigo: 'acao.atividade.criar',
+    nome: 'Criar atividade',
+    tipo: 'ACAO',
+    modulo: 'atividade',
+    descricao: 'Criar atividades raiz ou filhas.'
+  },
+  {
+    id: 26,
+    codigo: 'acao.atividade.editar',
+    nome: 'Editar atividade',
+    tipo: 'ACAO',
+    modulo: 'atividade',
+    descricao: 'Alterar dados de atividades.'
+  },
+  {
+    id: 27,
+    codigo: 'acao.atividade.mover_status',
+    nome: 'Mover status da atividade',
+    tipo: 'ACAO',
+    modulo: 'atividade',
+    descricao: 'Alterar status via board (drag-and-drop).'
+  },
+  {
+    id: 28,
+    codigo: 'acao.atividade.excluir',
+    nome: 'Excluir atividade',
+    tipo: 'ACAO',
+    modulo: 'atividade',
+    descricao: 'Remover atividades sem filhas.'
   }
 ]

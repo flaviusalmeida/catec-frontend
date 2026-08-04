@@ -4,6 +4,15 @@ import { catecApiFetch } from '@/libs/catecApi'
 import { assertCatecOk, readCatecJsonBody } from '@/libs/catecApiHelpers'
 import { aprovarPropostaSocioCatec, devolverPropostaSocioCatec } from '@/libs/catecSocioPropostasApi'
 import type {
+  CatecAssinatura,
+  CatecAssinaturaProviderInfo,
+  CatecEnviarAssinaturaPayload
+} from '@/types/catec/assinaturaTypes'
+import {
+  parseCatecAssinatura,
+  parseCatecAssinaturaProviderInfo
+} from '@/types/catec/assinaturaTypes'
+import type {
   CatecContrato,
   CatecDocumentoAnexo,
   CatecHistoricoPage,
@@ -36,8 +45,16 @@ type InteracaoApi = {
   id: number
   tipoInteracao: CatecTipoInteracaoFluxo
   texto: string
+  origem?: string | null
   registradoPorNome: string
   criadoEm: string
+}
+
+function rotuloOrigemResposta(origem: string | null | undefined): string | null {
+  if (origem === 'ASSINATURA_ELETRONICA') return 'Assinatura eletrônica'
+  if (origem === 'MANUAL') return 'Manual'
+
+  return null
 }
 
 function rotuloInteracao(tipo: CatecTipoInteracaoFluxo, origem: 'PROPOSTA' | 'CONTRATO'): string {
@@ -284,6 +301,66 @@ export async function enviarContratoClienteCatec(
   assertCatecOk(res, data, 'Não foi possível enviar o contrato.')
 }
 
+export async function obterAssinaturaProviderInfoCatec(
+  projetoId: number,
+  contratoId: number
+): Promise<CatecAssinaturaProviderInfo> {
+  const res = await catecApiFetch(
+    `/api/v1/projetos/${projetoId}/contratos/${contratoId}/assinatura/provider`
+  )
+  const data = await readCatecJsonBody(res)
+
+  assertCatecOk(res, data, 'Não foi possível consultar o provedor de assinatura.')
+
+  return parseCatecAssinaturaProviderInfo(data)
+}
+
+export async function obterAssinaturaContratoCatec(
+  projetoId: number,
+  contratoId: number
+): Promise<CatecAssinatura> {
+  const res = await catecApiFetch(`/api/v1/projetos/${projetoId}/contratos/${contratoId}/assinatura`)
+  const data = await readCatecJsonBody(res)
+
+  assertCatecOk(res, data, 'Não foi possível obter o status da assinatura.')
+
+  return parseCatecAssinatura(data)
+}
+
+export async function enviarAssinaturaContratoCatec(
+  projetoId: number,
+  contratoId: number,
+  payload: CatecEnviarAssinaturaPayload
+): Promise<CatecAssinatura> {
+  const res = await catecApiFetch(
+    `/api/v1/projetos/${projetoId}/contratos/${contratoId}/assinatura/enviar`,
+    {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    }
+  )
+  const data = await readCatecJsonBody(res)
+
+  assertCatecOk(res, data, 'Não foi possível enviar o contrato para assinatura.')
+
+  return parseCatecAssinatura(data)
+}
+
+export async function atualizarStatusAssinaturaContratoCatec(
+  projetoId: number,
+  contratoId: number
+): Promise<CatecAssinatura> {
+  const res = await catecApiFetch(
+    `/api/v1/projetos/${projetoId}/contratos/${contratoId}/assinatura/atualizar-status`,
+    { method: 'POST' }
+  )
+  const data = await readCatecJsonBody(res)
+
+  assertCatecOk(res, data, 'Não foi possível atualizar o status da assinatura.')
+
+  return parseCatecAssinatura(data)
+}
+
 async function listarInteracoesPropostaCatec(
   projetoId: number,
   proposta: CatecProposta
@@ -296,7 +373,9 @@ async function listarInteracoesPropostaCatec(
   return (data as InteracaoApi[]).map(i => ({
     key: `P-${i.id}`,
     titulo: rotuloInteracao(i.tipoInteracao, 'PROPOSTA'),
-    meta: `${i.registradoPorNome} · ${formatarDataHora(i.criadoEm)} · proposta v${proposta.versao}`,
+    meta: [i.registradoPorNome, formatarDataHora(i.criadoEm), rotuloOrigemResposta(i.origem), `proposta v${proposta.versao}`]
+      .filter(Boolean)
+      .join(' · '),
     texto: i.texto,
     criadoEm: i.criadoEm,
     origem: 'PROPOSTA' as const
@@ -343,7 +422,9 @@ async function listarInteracoesContratoCatec(
   return (data as InteracaoApi[]).map(i => ({
     key: `C-${i.id}`,
     titulo: rotuloInteracao(i.tipoInteracao, 'CONTRATO'),
-    meta: `${i.registradoPorNome} · ${formatarDataHora(i.criadoEm)} · contrato`,
+    meta: [i.registradoPorNome, formatarDataHora(i.criadoEm), rotuloOrigemResposta(i.origem), 'contrato']
+      .filter(Boolean)
+      .join(' · '),
     texto: i.texto,
     criadoEm: i.criadoEm,
     origem: 'CONTRATO' as const

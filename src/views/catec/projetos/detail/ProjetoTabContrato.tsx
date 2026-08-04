@@ -46,7 +46,18 @@ type Props = {
 type DialogInteracaoCliente = CatecTipoInteracaoFluxo | null
 
 const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
-  const { data, uploadContrato, enviarContratoCliente, registrarInteracao, processando } = fluxo
+  const {
+    data,
+    assinatura,
+    assinaturaProviderAtivo,
+    uploadContrato,
+    enviarAssinatura,
+    atualizarStatusAssinatura,
+    registrarInteracao,
+    recarregar,
+    carregarHistorico,
+    processando
+  } = fluxo
   const { hasPermission } = useCatecPermission()
   const [dialogInteracaoCliente, setDialogInteracaoCliente] = useState<DialogInteracaoCliente>(null)
   const [textoInteracaoCliente, setTextoInteracaoCliente] = useState('')
@@ -73,6 +84,33 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
   const documentoAtual = contrato?.documentos[0] ?? null
   const temAnexo = Boolean(documentoAtual)
 
+  useEffect(() => {
+    if (contrato?.status !== 'AGUARDANDO_ASSINATURA') return
+
+    const tick = () => {
+      void recarregar({ silent: true }).then(() => {
+        void carregarHistorico(0)
+      })
+    }
+
+    const intervalId = window.setInterval(tick, 20_000)
+
+    const onVisibilityOrFocus = () => {
+      if (document.visibilityState === 'visible') {
+        tick()
+      }
+    }
+
+    document.addEventListener('visibilitychange', onVisibilityOrFocus)
+    window.addEventListener('focus', onVisibilityOrFocus)
+
+    return () => {
+      window.clearInterval(intervalId)
+      document.removeEventListener('visibilitychange', onVisibilityOrFocus)
+      window.removeEventListener('focus', onVisibilityOrFocus)
+    }
+  }, [contrato?.status, recarregar, carregarHistorico])
+
   const podeEditarContrato = projetoPermiteEditarContrato(projeto.status)
   const podeVisualizarContrato = projetoPermiteVisualizarContrato(projeto.status, contrato != null)
 
@@ -81,6 +119,13 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
 
   const podeRegistrarRespostaCliente =
     aguardandoRespostaCliente && hasPermission(PermissaoCodigo.ACAO_INTERACAO_REGISTRAR)
+
+  const podeEnviarAssinatura =
+    podeEditarContrato &&
+    contrato?.status === 'RASCUNHO' &&
+    temAnexo &&
+    assinaturaProviderAtivo &&
+    hasPermission(PermissaoCodigo.ACAO_CONTRATO_ASSINATURA_ENVIAR)
 
   const acoesRespostaCliente: Array<{
     tipo: CatecTipoInteracaoFluxo
@@ -147,7 +192,7 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
       .catch(err => toast.error(err instanceof Error ? err.message : 'Erro ao registrar interação.'))
   }
 
-  function handleEnviarContratoCliente() {
+  function handleEnviarAssinatura() {
     const diasInicio = Number.parseInt(prazoInicioExecucaoDias.trim(), 10)
     const diasConclusao = Number.parseInt(prazoConclusaoDias.trim(), 10)
 
@@ -163,12 +208,12 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
       return
     }
 
-    void enviarContratoCliente({
+    void enviarAssinatura({
       prazoInicioExecucaoDias: diasInicio,
       prazoConclusaoDias: diasConclusao
     })
-      .then(() => toast.success('Contrato enviado ao cliente.'))
-      .catch(err => toast.error(err instanceof Error ? err.message : 'Envio falhou.'))
+      .then(() => toast.success('Contrato enviado para assinatura eletrônica.'))
+      .catch(err => toast.error(err instanceof Error ? err.message : 'Envio para assinatura falhou.'))
   }
 
   if (!podeVisualizarContrato) {
@@ -190,13 +235,18 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
     contrato?.status === 'AGUARDANDO_AJUSTE' ||
     (contrato?.status === 'RASCUNHO' && contrato.consideracoesPendentes)
 
-  const podeEnviarCliente = podeEditarContrato && contrato?.status === 'RASCUNHO' && temAnexo
-
   const mostrarEnviarContratoCard = Boolean(
-    contrato && contrato.status === 'RASCUNHO' && temAnexo && podeEnviarCliente && !contrato.consideracoesPendentes
+    contrato &&
+      contrato.status === 'RASCUNHO' &&
+      temAnexo &&
+      podeEditarContrato &&
+      !contrato.consideracoesPendentes
   )
 
-  const mostrarRespostaClienteCard = contrato?.status === 'ENVIADO_AO_CLIENTE' && temAnexo
+  const mostrarRespostaClienteCard =
+    (contrato?.status === 'ENVIADO_AO_CLIENTE' || contrato?.status === 'AGUARDANDO_ASSINATURA') && temAnexo
+
+  const mostrarAssinaturaDiagnostico = contrato?.status === 'AGUARDANDO_ASSINATURA' && assinatura?.id != null
 
   const mostrarContratoAceitoCard = contrato?.status === 'ACEITO' && temAnexo
 
@@ -208,17 +258,22 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
         (ajustandoContratoCliente || (contrato?.status === 'RASCUNHO' && !temAnexo)))
   )
 
-  const acoesAjustarContratoCard =
-    contrato?.status === 'RASCUNHO' && contrato.consideracoesPendentes && temAnexo
+  const acaoEnviarAssinatura =
+    podeEnviarAssinatura
       ? [
           {
-            key: 'enviar-cliente',
-            label: 'Enviar ao cliente',
+            key: 'enviar-assinatura',
+            label: 'Enviar para assinatura',
             color: 'primary' as const,
             alinhamento: 'fim' as const,
-            onClick: handleEnviarContratoCliente
+            onClick: handleEnviarAssinatura
           }
         ]
+      : []
+
+  const acoesAjustarContratoCard =
+    contrato?.status === 'RASCUNHO' && contrato.consideracoesPendentes && temAnexo
+      ? acaoEnviarAssinatura
       : undefined
 
   const mostrarCampoPrazos =
@@ -279,7 +334,9 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
 
   const usaLayoutContratoEstruturado =
     contrato != null &&
-    ['ENVIADO_AO_CLIENTE', 'ACEITO', 'RECUSADO', 'AGUARDANDO_AJUSTE'].includes(contrato.status)
+    ['ENVIADO_AO_CLIENTE', 'AGUARDANDO_ASSINATURA', 'ACEITO', 'RECUSADO', 'AGUARDANDO_AJUSTE'].includes(
+      contrato.status
+    )
 
   const prazosMeta = resolverPrazosContratoMeta(projeto, prazoInicioExecucaoDias, prazoConclusaoDias)
 
@@ -327,7 +384,17 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
             disabled={processando}
             onDownload={downloadDocumento}
             {...previewDocumentoProps}
-            areaEntreArquivoEAcoes={campoPrazos}
+            areaEntreArquivoEAcoes={
+              <>
+                {campoPrazos}
+                {ajustandoContratoCliente && !assinaturaProviderAtivo ? (
+                  <Typography variant='body2' color='text.secondary'>
+                    Ative o provedor de assinatura (`stub` ou `clicksign`) para reenviar o contrato. Não há envio
+                    manual.
+                  </Typography>
+                ) : null}
+              </>
+            }
             acoes={acoesAjustarContratoCard}
           />
         </Grid>
@@ -359,17 +426,61 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
             disabled={processando}
             onDownload={downloadDocumento}
             {...previewDocumentoProps}
-            areaEntreArquivoEAcoes={campoPrazos}
-            acoes={[
-              {
-                key: 'enviar-cliente',
-                label: 'Enviar ao cliente',
-                color: 'primary',
-                alinhamento: 'fim',
-                onClick: handleEnviarContratoCliente
-              }
-            ]}
+            areaEntreArquivoEAcoes={
+              <>
+                {campoPrazos}
+                {!assinaturaProviderAtivo ? (
+                  <Typography variant='body2' color='text.secondary'>
+                    Ative o provedor de assinatura (`stub` ou `clicksign`) para enviar o contrato. Não há envio
+                    manual.
+                  </Typography>
+                ) : null}
+              </>
+            }
+            acoes={acaoEnviarAssinatura}
           />
+        </Grid>
+      ) : null}
+
+      {mostrarAssinaturaDiagnostico && assinatura ? (
+        <Grid size={{ xs: 12 }}>
+          <Card variant='outlined'>
+            <CardHeader
+              title='Assinatura eletrônica'
+              subheader='Diagnóstico do ciclo com o provedor (sem secrets).'
+              action={
+                <Button
+                  size='small'
+                  variant='tonal'
+                  disabled={processando}
+                  onClick={() =>
+                    void atualizarStatusAssinatura()
+                      .then(() => toast.success('Status atualizado.'))
+                      .catch(err =>
+                        toast.error(err instanceof Error ? err.message : 'Falha ao atualizar status.')
+                      )
+                  }
+                >
+                  Atualizar status
+                </Button>
+              }
+            />
+            <CardContent className='flex flex-col gap-2'>
+              <Typography variant='body2'>
+                Provedor: {assinatura.providerCodigo} · Status interno: {assinatura.statusInterno ?? '—'}
+              </Typography>
+              <Typography variant='body2'>Status externo: {assinatura.statusExterno ?? '—'}</Typography>
+              <Typography variant='body2'>Envelope: {assinatura.externalEnvelopeId ?? '—'}</Typography>
+              {assinatura.ultimoErro ? (
+                <Typography variant='body2' color='error'>
+                  Último erro: {assinatura.ultimoErro}
+                </Typography>
+              ) : null}
+              <Typography variant='caption' color='text.secondary'>
+                O status do contrato atualiza automaticamente quando a assinatura for concluída ou recusada.
+              </Typography>
+            </CardContent>
+          </Card>
         </Grid>
       ) : null}
 

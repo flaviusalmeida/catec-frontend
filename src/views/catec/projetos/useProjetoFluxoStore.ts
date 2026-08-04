@@ -4,15 +4,20 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import {
   acaoPropostaCatec,
+  atualizarStatusAssinaturaContratoCatec,
   carregarContratoComDocumentosCatec,
   carregarPropostasComDocumentosCatec,
+  enviarAssinaturaContratoCatec,
   enviarContratoClienteCatec,
   listarHistoricoProjetoCatec,
+  obterAssinaturaContratoCatec,
+  obterAssinaturaProviderInfoCatec,
   registrarInteracaoContratoCatec,
   registrarInteracaoPropostaCatec,
   uploadDocumentoContratoCatec,
   uploadDocumentoPropostaCatec
 } from '@/libs/catecProjetosApi'
+import type { CatecAssinatura, CatecEnviarAssinaturaPayload } from '@/types/catec/assinaturaTypes'
 import type {
   CatecHistoricoPage,
   CatecProjetoFluxoData,
@@ -40,6 +45,8 @@ const emptyData: CatecProjetoFluxoData = {
 
 export function useProjetoFluxoStore(projetoId: number, onAfterMutation?: () => Promise<void>) {
   const [data, setData] = useState<CatecProjetoFluxoData>(emptyData)
+  const [assinatura, setAssinatura] = useState<CatecAssinatura | null>(null)
+  const [assinaturaProviderAtivo, setAssinaturaProviderAtivo] = useState(false)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
   const [processando, setProcessando] = useState(false)
@@ -54,7 +61,7 @@ export function useProjetoFluxoStore(projetoId: number, onAfterMutation?: () => 
 
   const [historicoCarregando, setHistoricoCarregando] = useState(false)
 
-  const recarregar = useCallback(async () => {
+  const recarregar = useCallback(async (opts?: { silent?: boolean }) => {
     if (!Number.isFinite(projetoId) || projetoId < 1) {
       setErro('Projeto inválido.')
       setCarregando(false)
@@ -62,7 +69,10 @@ export function useProjetoFluxoStore(projetoId: number, onAfterMutation?: () => 
       return
     }
 
-    setCarregando(true)
+    if (!opts?.silent) {
+      setCarregando(true)
+    }
+
     setErro(null)
 
     try {
@@ -71,16 +81,40 @@ export function useProjetoFluxoStore(projetoId: number, onAfterMutation?: () => 
         carregarContratoComDocumentosCatec(projetoId)
       ])
 
-      setData({ propostas, contrato, interacoes: [], historico: [] })
+      setData(prev => ({ ...prev, propostas, contrato, interacoes: [] }))
+
+      if (contrato) {
+        try {
+          const [info, ciclo] = await Promise.all([
+            obterAssinaturaProviderInfoCatec(projetoId, contrato.id),
+            obterAssinaturaContratoCatec(projetoId, contrato.id)
+          ])
+
+          setAssinaturaProviderAtivo(info.ativo)
+          setAssinatura(ciclo)
+        } catch {
+          setAssinaturaProviderAtivo(false)
+          setAssinatura(null)
+        }
+      } else {
+        setAssinaturaProviderAtivo(false)
+        setAssinatura(null)
+      }
 
       if (onAfterMutation) {
         await onAfterMutation()
       }
     } catch (err) {
-      setErro(err instanceof Error ? err.message : 'Falha ao carregar dados do projeto.')
-      setData(emptyData)
+      if (!opts?.silent) {
+        setErro(err instanceof Error ? err.message : 'Falha ao carregar dados do projeto.')
+        setData(emptyData)
+        setAssinatura(null)
+        setAssinaturaProviderAtivo(false)
+      }
     } finally {
-      setCarregando(false)
+      if (!opts?.silent) {
+        setCarregando(false)
+      }
     }
   }, [projetoId, onAfterMutation])
 
@@ -169,6 +203,39 @@ export function useProjetoFluxoStore(projetoId: number, onAfterMutation?: () => 
     [projetoId, data.contrato, recarregar]
   )
 
+  const enviarAssinatura = useCallback(
+    async (payload: CatecEnviarAssinaturaPayload) => {
+      if (!data.contrato) return
+
+      setProcessando(true)
+
+      try {
+        const ciclo = await enviarAssinaturaContratoCatec(projetoId, data.contrato.id, payload)
+
+        setAssinatura(ciclo)
+        await recarregar()
+      } finally {
+        setProcessando(false)
+      }
+    },
+    [projetoId, data.contrato, recarregar]
+  )
+
+  const atualizarStatusAssinatura = useCallback(async () => {
+    if (!data.contrato) return
+
+    setProcessando(true)
+
+    try {
+      const ciclo = await atualizarStatusAssinaturaContratoCatec(projetoId, data.contrato.id)
+
+      setAssinatura(ciclo)
+      await recarregar()
+    } finally {
+      setProcessando(false)
+    }
+  }, [projetoId, data.contrato, recarregar])
+
   const registrarInteracao = useCallback(
     async (tipo: CatecTipoInteracaoFluxo, texto: string) => {
       const cont = data.contrato && STATUS_CONTRATO_INTERACAO_CLIENTE.includes(data.contrato.status)
@@ -198,6 +265,8 @@ export function useProjetoFluxoStore(projetoId: number, onAfterMutation?: () => 
 
   return {
     data,
+    assinatura,
+    assinaturaProviderAtivo,
     resumo,
     propostaAtual,
     carregando,
@@ -211,6 +280,8 @@ export function useProjetoFluxoStore(projetoId: number, onAfterMutation?: () => 
     acaoProposta,
     uploadContrato,
     enviarContratoCliente,
+    enviarAssinatura,
+    atualizarStatusAssinatura,
     registrarInteracao
   }
 }

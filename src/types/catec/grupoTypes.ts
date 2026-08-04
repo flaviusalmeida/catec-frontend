@@ -85,6 +85,7 @@ export const MODULO_LABEL: Record<string, string> = {
   acesso: 'Acesso',
   painel: 'Painel',
   projeto: 'Projeto',
+  atividade: 'Atividades',
   cliente: 'Clientes',
   usuario: 'Usuários',
   proposta: 'Propostas',

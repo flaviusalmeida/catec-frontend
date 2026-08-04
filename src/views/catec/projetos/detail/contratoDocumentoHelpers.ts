@@ -5,7 +5,13 @@ import { formatarDataCurta } from '../projetoFluxoHelpers'
 
 import type { ProjetoMetaItem } from './ProjetoMetaItensGrid'
 
-const STATUS_CONTRATO_COM_PRAZO_SALVO = ['ENVIADO_AO_CLIENTE', 'ACEITO', 'RECUSADO', 'AGUARDANDO_AJUSTE'] as const
+const STATUS_CONTRATO_COM_PRAZO_SALVO = [
+  'ENVIADO_AO_CLIENTE',
+  'AGUARDANDO_ASSINATURA',
+  'ACEITO',
+  'RECUSADO',
+  'AGUARDANDO_AJUSTE'
+] as const
 
 type PrazosContratoMeta = {
   prazoInicioExecucaoDias?: number | null

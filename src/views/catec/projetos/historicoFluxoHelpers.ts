@@ -3,7 +3,7 @@ import type {
   CatecProposta,
   CatecTipoInteracaoFluxo
 } from '@/types/catec/projetoFluxoTypes'
-import { TIPO_INTERACAO_ROTULO_PROPOSTA } from '@/types/catec/projetoFluxoTypes'
+import { ORIGEM_RESPOSTA_ROTULO, TIPO_INTERACAO_ROTULO_PROPOSTA } from '@/types/catec/projetoFluxoTypes'
 
 function tituloInteracaoHistorico(tipo: CatecTipoInteracaoFluxo, entidade: string): string {
   const ent = entidade.toUpperCase()
@@ -98,8 +98,14 @@ export function tituloHistoricoItem(item: CatecHistoricoFluxoItem): string {
 export function metaHistoricoItem(item: CatecHistoricoFluxoItem): string {
   const data = formatarDataHoraHistorico(item.ocorridoEm)
   const usuario = item.usuarioNome?.trim()
+  const origemResposta =
+    item.origem === 'INTERACAO' && item.origemResposta
+      ? ORIGEM_RESPOSTA_ROTULO[item.origemResposta]
+      : null
 
-  return usuario ? `${data} • ${usuario}` : data
+  const partes = [data, usuario, origemResposta].filter(Boolean)
+
+  return partes.join(' • ')
 }
 
 export type HistoricoEntidadeTipo = 'PROJETO' | 'PROPOSTA' | 'CONTRATO'

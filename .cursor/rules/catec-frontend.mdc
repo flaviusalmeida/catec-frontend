@@ -1,0 +1,30 @@
+---
+description: Padrões CATEC frontend — seguir doc oficial e não usar deprecated
+alwaysApply: true
+---
+
+# CATEC Frontend — regras de desenvolvimento
+
+Fonte da verdade para novas features:
+
+- Documentação: `catec-doc/Analise Projeto/docs/desenvolvimento/MANUAL_DESENVOLVIMENTO.md`
+- Técnica: `catec-doc/Analise Projeto/docs/tecnica/02-frontend.md`
+- **Nunca** ler ou usar `catec-doc/Analise Projeto/docs/deprecated/`
+
+## Stack e layout do produto
+
+- Next.js App Router, React 19, MUI 7, NextAuth, pnpm, TypeScript strict
+- Produto em `src/views/catec/`, rotas `/catec/...`, login `/login`
+- API: `src/libs/catec*Api.ts` + `catecApiFetch`; tipos/parsers em `src/types/catec/`
+- Permissões: `CanPermission` / `RequireCatecPermission` + `permissao.ts` (espelhar backend)
+- Menu: `CatecNavMenuItems.tsx`
+- **Não** tratar demos Vuexy (`views/apps`, flag `NEXT_PUBLIC_SHOW_VUEXY_DEMOS`) como produto
+
+## Ao implementar
+
+1. Seguir `docs/desenvolvimento/CHECKLIST_NOVA_FEATURE.md`
+2. Page fina em `app/` → view em `views/catec/`
+3. Sempre `parseCatec*` para respostas da API
+4. Não criar portal do cliente nem módulos Fase 2 (OS, relatórios, assinatura, notificações) sem pedido explícito
+5. Preferir `pnpm dev` (Webpack); não reintroduzir i18n nas URLs do produto
+6. Atualizar docs funcionais quando o comportamento da UI mudar

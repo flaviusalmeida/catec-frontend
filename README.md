@@ -2,7 +2,9 @@
 
 Frontend oficial do sistema CATEC. Consome a API Spring Boot (`NEXT_PUBLIC_API_BASE_URL`, padrão `http://localhost:8080`).
 
-Documentação detalhada: [docs/FRONTEND.md](docs/FRONTEND.md).
+Documentação do produto (funcional, técnica e manual de desenvolvimento): repositório `catec-doc` → `Analise Projeto/docs/README.md`.
+
+Notas rápidas deste repo: [docs/FRONTEND.md](docs/FRONTEND.md).
 
 ## Pré-requisitos
 
