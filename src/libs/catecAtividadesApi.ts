@@ -40,6 +40,7 @@ function buildQuery(params: Record<string, string | number | null | undefined>):
 
 export type CatecBoardComCatalogo = {
   board: CatecAtividadeBoard
+
   /** Lista completa (todos os tipos) com os mesmos filtros do board — usada para filhas/progresso. */
   catalogo: CatecAtividade[]
 }
@@ -71,6 +72,7 @@ export async function obterBoardAtividadesCatec(
   assertCatecOk(boardRes, data, 'Não foi possível carregar o board de atividades.')
 
   let board = parseCatecAtividadeBoard(data)
+
   const precisaEnriquecer = board.faixas.some(
     f => f.atividadeId != null && (f.status == null || (f.responsavelId != null && !f.responsavelNome))
   )
@@ -112,6 +114,7 @@ export async function listarAtividadesCatec(filtros: {
     responsavelId: filtros.responsavelId ?? undefined,
     q: filtros.q?.trim() || undefined
   })
+
   const res = await catecApiFetch(`/api/v1/atividades${qs}`)
   const data = await readCatecJsonBody(res)
 
@@ -146,6 +149,7 @@ export async function criarAtividadeRaizCatec(
     method: 'POST',
     body: JSON.stringify(body)
   })
+
   const data = await readCatecJsonBody(res)
 
   assertCatecOk(res, data, 'Não foi possível criar a etapa.')
@@ -161,6 +165,7 @@ export async function criarAtividadeFilhaCatec(
     method: 'POST',
     body: JSON.stringify(body)
   })
+
   const data = await readCatecJsonBody(res)
 
   assertCatecOk(res, data, 'Não foi possível criar o item filho.')
@@ -176,6 +181,7 @@ export async function atualizarAtividadeCatec(
     method: 'PUT',
     body: JSON.stringify(body)
   })
+
   const data = await readCatecJsonBody(res)
 
   assertCatecOk(res, data, 'Não foi possível atualizar a atividade.')
@@ -191,6 +197,7 @@ export async function alterarStatusAtividadeCatec(
     method: 'PATCH',
     body: JSON.stringify(body)
   })
+
   const data = await readCatecJsonBody(res)
 
   assertCatecOk(res, data, 'Não foi possível alterar o status da atividade.')
@@ -226,6 +233,7 @@ export async function uploadDocumentoAtividadeCatec(
     method: 'POST',
     body: fd
   })
+
   const data = await readCatecJsonBody(res)
 
   assertCatecOk(res, data, 'Não foi possível anexar o arquivo.')
@@ -237,6 +245,7 @@ export async function excluirDocumentoAtividadeCatec(atividadeId: number, docume
   const res = await catecApiFetch(`/api/v1/atividades/${atividadeId}/documentos/${documentoId}`, {
     method: 'DELETE'
   })
+
   const data = await readCatecJsonBody(res)
 
   assertCatecOk(res, data, 'Não foi possível remover o anexo.')
@@ -259,6 +268,7 @@ export async function criarComentarioAtividadeCatec(
     method: 'POST',
     body: JSON.stringify({ texto })
   })
+
   const data = await readCatecJsonBody(res)
 
   assertCatecOk(res, data, 'Não foi possível adicionar o comentário.')
@@ -270,6 +280,7 @@ export async function excluirComentarioAtividadeCatec(atividadeId: number, comen
   const res = await catecApiFetch(`/api/v1/atividades/${atividadeId}/comentarios/${comentarioId}`, {
     method: 'DELETE'
   })
+
   const data = await readCatecJsonBody(res)
 
   assertCatecOk(res, data, 'Não foi possível excluir o comentário.')

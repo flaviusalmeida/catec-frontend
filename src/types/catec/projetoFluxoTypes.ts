@@ -278,6 +278,7 @@ export function parseCatecHistoricoFluxoItem(raw: unknown): CatecHistoricoFluxoI
   const data = raw as Record<string, unknown>
   const origem = data.origem === 'INTERACAO' ? 'INTERACAO' : 'AUDITORIA'
   const origemRespostaRaw = data.origemResposta == null ? null : String(data.origemResposta)
+
   const origemResposta: CatecOrigemRespostaContrato | null =
     origemRespostaRaw === 'ASSINATURA_ELETRONICA' || origemRespostaRaw === 'MANUAL'
       ? origemRespostaRaw

@@ -57,6 +57,7 @@ const AtividadeAnexosSecao = ({ atividadeId, podeGerir, disabled = false }: Prop
 
         setAnexos(prev => [doc, ...prev])
       }
+
       toast.success(files.length > 1 ? 'Arquivos anexados.' : 'Arquivo anexado.')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Não foi possível anexar o arquivo.')

@@ -2,7 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState, Fragment } from 'react'
 import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react'
+
 import { useRouter } from 'next/navigation'
+
+import NextLink from 'next/link'
 
 import Avatar from '@mui/material/Avatar'
 import Button from '@mui/material/Button'
@@ -15,7 +18,6 @@ import IconButton from '@mui/material/IconButton'
 import Menu from '@mui/material/Menu'
 import MenuItem from '@mui/material/MenuItem'
 import Typography from '@mui/material/Typography'
-import NextLink from 'next/link'
 import { toast } from 'react-toastify'
 
 import CanPermission from '@/components/catec/CanPermission'
@@ -156,6 +158,7 @@ const AtividadeDrawer = ({
   const podeEditar = hasPermission(PermissaoCodigo.ACAO_ATIVIDADE_EDITAR)
   const podeCriar = hasPermission(PermissaoCodigo.ACAO_ATIVIDADE_CRIAR)
   const podeExcluir = hasPermission(PermissaoCodigo.ACAO_ATIVIDADE_EXCLUIR)
+
   const podeGerirAnexos =
     hasPermission(PermissaoCodigo.ACAO_ATIVIDADE_EDITAR) ||
     hasPermission(PermissaoCodigo.ACAO_DOCUMENTO_UPLOAD)
@@ -240,6 +243,7 @@ const AtividadeDrawer = ({
   const podeTerFilhas = atividade?.tipo === 'ETAPA' || atividade?.tipo === 'ATIVIDADE'
   const rotuloFilhas = atividade?.tipo === 'ETAPA' ? 'Atividades' : 'Subatividades'
   const rotuloNovaFilha = atividade?.tipo === 'ETAPA' ? 'Nova atividade' : 'Nova subatividade'
+
   const placeholderFilha =
     atividade?.tipo === 'ETAPA' ? 'Título da atividade' : 'Título da subatividade'
 

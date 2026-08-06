@@ -84,6 +84,7 @@ const AtividadesView = () => {
   const podeCriar = hasPermission(PermissaoCodigo.ACAO_ATIVIDADE_CRIAR)
 
   const projetosParaCriacao = useMemo(() => filtrarProjetosParaCriacaoAtividade(projetos), [projetos])
+
   const projetoIdsCriacao = useMemo(
     () => new Set(projetosParaCriacao.map(p => p.id)),
     [projetosParaCriacao]
@@ -161,6 +162,7 @@ const AtividadesView = () => {
   const abrirDialogNova = useCallback(
     (opts?: {
       status?: CatecAtividadeStatus | null
+
       /** `undefined` = herda projeto da URL; `null` = deixa o usuário escolher. */
       projetoId?: number | null
       tipo?: CatecAtividadeTipo | null
@@ -208,6 +210,7 @@ const AtividadesView = () => {
       f.colunas.every(c => c.atividades.length === 0) &&
       f.subFaixas.every(sf => sf.colunas.every(c => c.atividades.length === 0))
   )
+
   const aguardandoPreferencia = !agruparPronto
 
   return (

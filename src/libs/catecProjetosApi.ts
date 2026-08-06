@@ -308,6 +308,7 @@ export async function obterAssinaturaProviderInfoCatec(
   const res = await catecApiFetch(
     `/api/v1/projetos/${projetoId}/contratos/${contratoId}/assinatura/provider`
   )
+
   const data = await readCatecJsonBody(res)
 
   assertCatecOk(res, data, 'Não foi possível consultar o provedor de assinatura.')
@@ -339,6 +340,7 @@ export async function enviarAssinaturaContratoCatec(
       body: JSON.stringify(payload)
     }
   )
+
   const data = await readCatecJsonBody(res)
 
   assertCatecOk(res, data, 'Não foi possível enviar o contrato para assinatura.')
@@ -354,6 +356,7 @@ export async function atualizarStatusAssinaturaContratoCatec(
     `/api/v1/projetos/${projetoId}/contratos/${contratoId}/assinatura/atualizar-status`,
     { method: 'POST' }
   )
+
   const data = await readCatecJsonBody(res)
 
   assertCatecOk(res, data, 'Não foi possível atualizar o status da assinatura.')
