@@ -247,7 +247,18 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
   const mostrarRespostaClienteCard =
     (contrato?.status === 'ENVIADO_AO_CLIENTE' || contrato?.status === 'AGUARDANDO_ASSINATURA') && temAnexo
 
-  const mostrarAssinaturaDiagnostico = contrato?.status === 'AGUARDANDO_ASSINATURA' && assinatura?.id != null
+  const precisaRecuperarPdfAssinado =
+    contrato?.status === 'ACEITO' &&
+    assinatura?.id != null &&
+    assinatura.documentoAssinadoId == null &&
+    Boolean(assinatura.externalEnvelopeId)
+
+  const mostrarAssinaturaDiagnostico =
+    assinatura?.id != null &&
+    Boolean(assinatura.externalEnvelopeId) &&
+    (contrato?.status === 'AGUARDANDO_ASSINATURA' ||
+      contrato?.status === 'ACEITO' ||
+      contrato?.status === 'RECUSADO')
 
   const mostrarContratoAceitoCard = contrato?.status === 'ACEITO' && temAnexo
 
@@ -443,48 +454,6 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
         </Grid>
       ) : null}
 
-      {mostrarAssinaturaDiagnostico && assinatura ? (
-        <Grid size={{ xs: 12 }}>
-          <Card variant='outlined'>
-            <CardHeader
-              title='Assinatura eletrônica'
-              subheader='Diagnóstico do ciclo com o provedor (sem secrets).'
-              action={
-                <Button
-                  size='small'
-                  variant='tonal'
-                  disabled={processando}
-                  onClick={() =>
-                    void atualizarStatusAssinatura()
-                      .then(() => toast.success('Status atualizado.'))
-                      .catch(err =>
-                        toast.error(err instanceof Error ? err.message : 'Falha ao atualizar status.')
-                      )
-                  }
-                >
-                  Atualizar status
-                </Button>
-              }
-            />
-            <CardContent className='flex flex-col gap-2'>
-              <Typography variant='body2'>
-                Provedor: {assinatura.providerCodigo} · Status interno: {assinatura.statusInterno ?? '—'}
-              </Typography>
-              <Typography variant='body2'>Status externo: {assinatura.statusExterno ?? '—'}</Typography>
-              <Typography variant='body2'>Envelope: {assinatura.externalEnvelopeId ?? '—'}</Typography>
-              {assinatura.ultimoErro ? (
-                <Typography variant='body2' color='error'>
-                  Último erro: {assinatura.ultimoErro}
-                </Typography>
-              ) : null}
-              <Typography variant='caption' color='text.secondary'>
-                O status do contrato atualiza automaticamente quando a assinatura for concluída ou recusada.
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      ) : null}
-
       {mostrarRespostaClienteCard ? (
         <Grid size={{ xs: 12 }}>
           <ProjetoUploadCard
@@ -528,6 +497,69 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
             onDownload={downloadDocumento}
             {...previewDocumentoProps}
           />
+        </Grid>
+      ) : null}
+
+      {mostrarAssinaturaDiagnostico && assinatura ? (
+        <Grid size={{ xs: 12 }}>
+          <Card variant='outlined'>
+            <CardHeader
+              title='Assinatura eletrônica'
+              subheader={
+                precisaRecuperarPdfAssinado
+                  ? 'Contrato aceito, mas o PDF assinado ainda não foi anexado. Busque no provedor.'
+                  : 'Diagnóstico do ciclo com o provedor (sem secrets).'
+              }
+              action={
+                contrato?.status === 'AGUARDANDO_ASSINATURA' || precisaRecuperarPdfAssinado ? (
+                  <Button
+                    size='small'
+                    variant='tonal'
+                    disabled={processando}
+                    onClick={() =>
+                      void atualizarStatusAssinatura()
+                        .then(() =>
+                          toast.success(
+                            precisaRecuperarPdfAssinado
+                              ? 'PDF assinado atualizado.'
+                              : 'Status atualizado.'
+                          )
+                        )
+                        .catch(err =>
+                          toast.error(err instanceof Error ? err.message : 'Falha ao atualizar status.')
+                        )
+                    }
+                  >
+                    {precisaRecuperarPdfAssinado ? 'Buscar PDF assinado' : 'Atualizar status'}
+                  </Button>
+                ) : undefined
+              }
+            />
+            <CardContent className='flex flex-col gap-2'>
+              <Typography variant='body2'>
+                Provedor: {assinatura.providerCodigo} · Status interno: {assinatura.statusInterno ?? '—'}
+              </Typography>
+              <Typography variant='body2'>Status externo: {assinatura.statusExterno ?? '—'}</Typography>
+              <Typography variant='body2'>Envelope: {assinatura.externalEnvelopeId ?? '—'}</Typography>
+              {assinatura.documentoAssinadoId != null ? (
+                <Typography variant='body2' color='success.main'>
+                  PDF assinado anexado (documento #{assinatura.documentoAssinadoId}).
+                </Typography>
+              ) : null}
+              {assinatura.ultimoErro && assinatura.documentoAssinadoId == null ? (
+                <Typography variant='body2' color='error'>
+                  Último erro: {assinatura.ultimoErro}
+                </Typography>
+              ) : null}
+              <Typography variant='caption' color='text.secondary'>
+                {precisaRecuperarPdfAssinado
+                  ? 'Isso substitui o PDF do contrato pelo arquivo assinado da ClickSign.'
+                  : contrato?.status === 'AGUARDANDO_ASSINATURA'
+                    ? 'O status do contrato atualiza automaticamente quando a assinatura for concluída ou recusada.'
+                    : 'Histórico do envio ao provedor de assinatura eletrônica.'}
+              </Typography>
+            </CardContent>
+          </Card>
         </Grid>
       ) : null}
 
