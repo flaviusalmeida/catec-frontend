@@ -10,11 +10,17 @@ import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
 import DialogTitle from '@mui/material/DialogTitle'
+import FormControl from '@mui/material/FormControl'
+import FormControlLabel from '@mui/material/FormControlLabel'
+import FormLabel from '@mui/material/FormLabel'
 import Grid from '@mui/material/Grid'
+import Radio from '@mui/material/Radio'
+import RadioGroup from '@mui/material/RadioGroup'
 import Typography from '@mui/material/Typography'
 import { toast } from 'react-toastify'
 
 import type { CatecProjeto } from '@/types/catec/projetoTypes'
+import type { CatecSignatarioDisponivel } from '@/types/catec/assinaturaTypes'
 import {
   STATUS_CONTRATO_INTERACAO_CLIENTE,
   STATUS_CONTRATO_ROTULO,
@@ -24,6 +30,7 @@ import {
 } from '@/types/catec/projetoFluxoTypes'
 
 import { downloadDocumentoCatec } from '@/utils/catec/downloadDocumento'
+import { listarSignatariosAssinaturaCatec } from '@/libs/catecProjetosApi'
 
 import { useCatecPermission } from '@/hooks/useCatecPermission'
 import { PermissaoCodigo } from '@/types/catec/permissao'
@@ -62,6 +69,10 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
   const { hasPermission } = useCatecPermission()
   const [dialogInteracaoCliente, setDialogInteracaoCliente] = useState<DialogInteracaoCliente>(null)
   const [textoInteracaoCliente, setTextoInteracaoCliente] = useState('')
+  const [dialogEnvioAssinaturaAberto, setDialogEnvioAssinaturaAberto] = useState(false)
+  const [signatariosDisponiveis, setSignatariosDisponiveis] = useState<CatecSignatarioDisponivel[]>([])
+  const [emailSignatarioSelecionado, setEmailSignatarioSelecionado] = useState('')
+  const [carregandoSignatarios, setCarregandoSignatarios] = useState(false)
 
   const [prazoInicioExecucaoDias, setPrazoInicioExecucaoDias] = useState(
     projeto.prazoInicioExecucaoDias != null ? String(projeto.prazoInicioExecucaoDias) : ''
@@ -209,11 +220,65 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
       return
     }
 
+    if (!contrato) {
+      return
+    }
+
+    setCarregandoSignatarios(true)
+    setDialogEnvioAssinaturaAberto(true)
+    setEmailSignatarioSelecionado('')
+
+    void listarSignatariosAssinaturaCatec(projeto.id, contrato.id)
+      .then(lista => {
+        setSignatariosDisponiveis(lista)
+
+        if (lista.length === 0) {
+          toast.error('Cadastre o e-mail da empresa e/ou do responsável no cliente.')
+          setDialogEnvioAssinaturaAberto(false)
+
+          return
+        }
+
+        // Preferência: responsável; senão o primeiro disponível.
+        const preferido =
+          lista.find(s => s.papel === 'RESPONSAVEL') ?? lista[0]
+
+        setEmailSignatarioSelecionado(preferido.email)
+      })
+      .catch(err => {
+        toast.error(err instanceof Error ? err.message : 'Não foi possível carregar os e-mails.')
+        setDialogEnvioAssinaturaAberto(false)
+      })
+      .finally(() => setCarregandoSignatarios(false))
+  }
+
+  function fecharDialogEnvioAssinatura() {
+    if (processando || carregandoSignatarios) {
+      return
+    }
+
+    setDialogEnvioAssinaturaAberto(false)
+  }
+
+  function confirmarEnvioAssinatura() {
+    const diasInicio = Number.parseInt(prazoInicioExecucaoDias.trim(), 10)
+    const diasConclusao = Number.parseInt(prazoConclusaoDias.trim(), 10)
+
+    if (!emailSignatarioSelecionado.trim()) {
+      toast.error('Selecione para quem enviar a assinatura.')
+
+      return
+    }
+
     void enviarAssinatura({
       prazoInicioExecucaoDias: diasInicio,
-      prazoConclusaoDias: diasConclusao
+      prazoConclusaoDias: diasConclusao,
+      emails: [emailSignatarioSelecionado.trim()]
     })
-      .then(() => toast.success('Contrato enviado para assinatura eletrônica.'))
+      .then(() => {
+        toast.success('Contrato enviado para assinatura eletrônica.')
+        setDialogEnvioAssinaturaAberto(false)
+      })
       .catch(err => toast.error(err instanceof Error ? err.message : 'Envio para assinatura falhou.'))
   }
 
@@ -263,6 +328,8 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
   const mostrarContratoAceitoCard = contrato?.status === 'ACEITO' && temAnexo
 
   const mostrarContratoRecusadoCard = contrato?.status === 'RECUSADO' && temAnexo
+
+  const motivoCliente = contrato?.comentarioCliente?.trim() || null
 
   const mostrarUploadCard = Boolean(
     podeIniciarContrato ||
@@ -409,22 +476,6 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
             }
             acoes={acoesAjustarContratoCard}
           />
-        </Grid>
-      ) : null}
-
-      {contrato?.consideracoesCliente ? (
-        <Grid size={{ xs: 12 }}>
-          <Card variant='outlined'>
-            <CardHeader
-              title='Considerações do cliente'
-              subheader='Ajuste o contrato conforme os comentários abaixo e reenvie ao cliente.'
-            />
-            <CardContent className='pts-0'>
-              <Typography variant='body1' color='text.primary' sx={{ whiteSpace: 'pre-wrap' }}>
-                {contrato.consideracoesCliente}
-              </Typography>
-            </CardContent>
-          </Card>
         </Grid>
       ) : null}
 
@@ -595,6 +646,73 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
           </Card>
         </Grid>
       ) : null}
+
+      {motivoCliente ? (
+        <Grid size={{ xs: 12 }}>
+          <Card variant='outlined'>
+            <CardHeader title='Comentários' />
+            <CardContent className='pts-0'>
+              <Typography variant='body1' color='text.primary' sx={{ whiteSpace: 'pre-wrap' }}>
+                {motivoCliente}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      ) : null}
+
+      <Dialog open={dialogEnvioAssinaturaAberto} onClose={fecharDialogEnvioAssinatura} fullWidth maxWidth='sm'>
+        <DialogTitle>Enviar para assinatura</DialogTitle>
+        <DialogContent className='flex flex-col gap-4 pbs-2'>
+          <Typography variant='body2' color='text.secondary'>
+            Escolha um e-mail do cadastro do cliente. Apenas essa pessoa precisará assinar (1 assinatura).
+          </Typography>
+          {carregandoSignatarios ? (
+            <Typography variant='body2' color='text.secondary'>
+              Carregando e-mails…
+            </Typography>
+          ) : (
+            <FormControl>
+              <FormLabel id='signatario-assinatura-label'>Enviar para</FormLabel>
+              <RadioGroup
+                aria-labelledby='signatario-assinatura-label'
+                name='signatario-assinatura'
+                value={emailSignatarioSelecionado}
+                onChange={e => setEmailSignatarioSelecionado(e.target.value)}
+              >
+                {signatariosDisponiveis.map(s => (
+                  <FormControlLabel
+                    key={s.email}
+                    value={s.email}
+                    control={<Radio />}
+                    label={
+                      <span>
+                        <strong>{s.rotulo}</strong> — {s.nome} ({s.email})
+                      </span>
+                    }
+                  />
+                ))}
+              </RadioGroup>
+            </FormControl>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button
+            variant='tonal'
+            color='secondary'
+            onClick={fecharDialogEnvioAssinatura}
+            disabled={processando || carregandoSignatarios}
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant='contained'
+            onClick={confirmarEnvioAssinatura}
+            disabled={processando || carregandoSignatarios || !emailSignatarioSelecionado}
+          >
+            Enviar
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog open={dialogInteracaoCliente != null} onClose={fecharDialogInteracaoCliente} fullWidth maxWidth='sm'>
         <DialogTitle>

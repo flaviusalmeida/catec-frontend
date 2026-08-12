@@ -50,6 +50,33 @@ export type CatecAssinaturaProviderInfo = {
 export type CatecEnviarAssinaturaPayload = {
   prazoInicioExecucaoDias: number
   prazoConclusaoDias: number
+  emails: string[]
+}
+
+export type CatecSignatarioDisponivel = {
+  nome: string
+  email: string
+  papel: string
+  rotulo: string
+}
+
+export function parseCatecSignatarioDisponivel(data: unknown): CatecSignatarioDisponivel {
+  const raw = (data ?? {}) as Record<string, unknown>
+
+  return {
+    nome: String(raw.nome ?? ''),
+    email: String(raw.email ?? ''),
+    papel: String(raw.papel ?? ''),
+    rotulo: String(raw.rotulo ?? raw.papel ?? 'Signatário')
+  }
+}
+
+export function parseCatecSignatariosDisponiveis(data: unknown): CatecSignatarioDisponivel[] {
+  if (!Array.isArray(data)) {
+    return []
+  }
+
+  return data.map(parseCatecSignatarioDisponivel)
 }
 
 export function parseCatecAssinaturaProviderInfo(data: unknown): CatecAssinaturaProviderInfo {

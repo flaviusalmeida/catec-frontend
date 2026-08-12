@@ -32,8 +32,7 @@ const fluxoPorProjeto: Record<number, CatecProjetoFluxoData> = {
         enviadaClienteEm: '2026-01-22T14:00:00Z',
         avaliadaSocioEm: null,
         consideracoesPendentes: false,
-        consideracoesCliente: null,
-        parecerSocio: null,
+        comentarioCliente: null,
         criadoEm: '2026-01-18T10:00:00Z',
         atualizadoEm: '2026-02-01T11:00:00Z',
         documentos: [doc(1001, 'proposta-comercial-v2.pdf', 2, 'Ana Silva', '2026-01-18T10:30:00Z')]
@@ -48,8 +47,7 @@ const fluxoPorProjeto: Record<number, CatecProjetoFluxoData> = {
         enviadaClienteEm: '2026-01-12T09:00:00Z',
         avaliadaSocioEm: '2026-01-11T16:00:00Z',
         consideracoesPendentes: false,
-        consideracoesCliente: null,
-        parecerSocio: null,
+        comentarioCliente: null,
         criadoEm: '2026-01-10T09:30:00Z',
         atualizadoEm: '2026-01-15T08:00:00Z',
         documentos: [doc(1000, 'proposta-comercial-v1.pdf', 1, 'Ana Silva', '2026-01-10T10:00:00Z')]
@@ -63,8 +61,9 @@ const fluxoPorProjeto: Record<number, CatecProjetoFluxoData> = {
       elaboradoPorNome: 'Ana Silva',
       enviadoClienteEm: '2026-02-05T10:00:00Z',
       aceitoClienteEm: '2026-02-10T15:00:00Z',
+      recusadoClienteEm: null,
       consideracoesPendentes: false,
-      consideracoesCliente: null,
+      comentarioCliente: null,
       criadoEm: '2026-02-03T09:00:00Z',
       atualizadoEm: '2026-02-10T15:00:00Z',
       documentos: [doc(2001, 'contrato-execucao.pdf', 1, 'Ana Silva', '2026-02-03T09:30:00Z')]
@@ -214,8 +213,7 @@ const fluxoPorProjeto: Record<number, CatecProjetoFluxoData> = {
         enviadaClienteEm: null,
         avaliadaSocioEm: null,
         consideracoesPendentes: false,
-        consideracoesCliente: null,
-        parecerSocio: null,
+        comentarioCliente: null,
         criadoEm: '2026-02-08T09:00:00Z',
         atualizadoEm: '2026-02-10T16:00:00Z',
         documentos: [doc(4001, 'proposta-fundacoes-v1.pdf', 1, 'Ana Silva', '2026-02-10T15:30:00Z')]
@@ -275,8 +273,7 @@ const fluxoPorProjeto: Record<number, CatecProjetoFluxoData> = {
         enviadaClienteEm: '2026-01-20T11:00:00Z',
         avaliadaSocioEm: null,
         consideracoesPendentes: false,
-        consideracoesCliente: null,
-        parecerSocio: null,
+        comentarioCliente: null,
         criadoEm: '2026-01-15T10:00:00Z',
         atualizadoEm: '2026-01-28T09:15:00Z',
         documentos: [doc(5001, 'proposta-consultoria.pdf', 1, 'Carla Mendes', '2026-01-15T10:30:00Z')]

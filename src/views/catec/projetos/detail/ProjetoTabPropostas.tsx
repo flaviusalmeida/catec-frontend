@@ -80,7 +80,7 @@ const ProjetoTabPropostas = ({ projeto, fluxo }: Props) => {
   const ajustandoProposta =
     propostaAtual?.status === 'AGUARDANDO_AJUSTE' ||
     (propostaAtual?.status === 'RASCUNHO' &&
-      Boolean(propostaAtual.parecerSocio || propostaAtual.consideracoesPendentes))
+      Boolean(propostaAtual.comentarioCliente || propostaAtual.consideracoesPendentes))
 
   useEffect(() => {
     if (!ajustandoProposta) {
@@ -153,6 +153,8 @@ const ProjetoTabPropostas = ({ projeto, fluxo }: Props) => {
   const mostrarPropostaAceitaCard = propostaAtual?.status === 'ACEITA' && temAnexo
 
   const mostrarPropostaNegadaCard = propostaAtual?.status === 'NEGADA' && temAnexo
+
+  const motivoCliente = propostaAtual?.comentarioCliente?.trim() || null
 
   const acoesRevisaoSocio = [...acoesWorkflowRestantes]
     .sort((a, b) => {
@@ -352,38 +354,6 @@ const ProjetoTabPropostas = ({ projeto, fluxo }: Props) => {
         </Grid>
       ) : null}
 
-      {propostaAtual?.parecerSocio ? (
-        <Grid size={{ xs: 12 }}>
-          <Card variant='outlined'>
-            <CardHeader
-              title='Parecer do sócio'
-              subheader='Ajuste a proposta conforme os comentários abaixo e reenvie para revisão.'
-            />
-            <CardContent className='pts-0'>
-              <Typography variant='body1' color='text.primary' sx={{ whiteSpace: 'pre-wrap' }}>
-                {propostaAtual.parecerSocio}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      ) : null}
-
-      {propostaAtual?.consideracoesCliente ? (
-        <Grid size={{ xs: 12 }}>
-          <Card variant='outlined'>
-            <CardHeader
-              title='Considerações do cliente'
-              subheader='Ajuste a proposta conforme os comentários abaixo e reenvie para revisão.'
-            />
-            <CardContent className='pts-0'>
-              <Typography variant='body1' color='text.primary' sx={{ whiteSpace: 'pre-wrap' }}>
-                {propostaAtual.consideracoesCliente}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      ) : null}
-
       {mostrarRevisaoSocioCard ? (
         <Grid size={{ xs: 12 }}>
           <ProjetoUploadCard
@@ -570,6 +540,19 @@ const ProjetoTabPropostas = ({ projeto, fluxo }: Props) => {
                   }
                 />
               ))}
+            </CardContent>
+          </Card>
+        </Grid>
+      ) : null}
+
+      {motivoCliente ? (
+        <Grid size={{ xs: 12 }}>
+          <Card variant='outlined'>
+            <CardHeader title='Comentários' />
+            <CardContent className='pts-0'>
+              <Typography variant='body1' color='text.primary' sx={{ whiteSpace: 'pre-wrap' }}>
+                {motivoCliente}
+              </Typography>
             </CardContent>
           </Card>
         </Grid>
