@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 
+import Alert from '@mui/material/Alert'
 import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
@@ -17,10 +18,11 @@ import Grid from '@mui/material/Grid'
 import Radio from '@mui/material/Radio'
 import RadioGroup from '@mui/material/RadioGroup'
 import Typography from '@mui/material/Typography'
+import Link from 'next/link'
 import { toast } from 'react-toastify'
 
 import type { CatecProjeto } from '@/types/catec/projetoTypes'
-import type { CatecSignatarioDisponivel } from '@/types/catec/assinaturaTypes'
+import type { CatecAssinaturaConfig, CatecSignatarioDisponivel } from '@/types/catec/assinaturaTypes'
 import {
   STATUS_CONTRATO_INTERACAO_CLIENTE,
   STATUS_CONTRATO_ROTULO,
@@ -30,6 +32,7 @@ import {
 } from '@/types/catec/projetoFluxoTypes'
 
 import { downloadDocumentoCatec } from '@/utils/catec/downloadDocumento'
+import { obterAssinaturaConfigCatec } from '@/libs/catecAssinaturaConfigApi'
 import { listarSignatariosAssinaturaCatec } from '@/libs/catecProjetosApi'
 
 import { useCatecPermission } from '@/hooks/useCatecPermission'
@@ -73,6 +76,7 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
   const [signatariosDisponiveis, setSignatariosDisponiveis] = useState<CatecSignatarioDisponivel[]>([])
   const [emailSignatarioSelecionado, setEmailSignatarioSelecionado] = useState('')
   const [carregandoSignatarios, setCarregandoSignatarios] = useState(false)
+  const [assinaturaConfig, setAssinaturaConfig] = useState<CatecAssinaturaConfig | null>(null)
 
   const [prazoInicioExecucaoDias, setPrazoInicioExecucaoDias] = useState(
     projeto.prazoInicioExecucaoDias != null ? String(projeto.prazoInicioExecucaoDias) : ''
@@ -91,6 +95,20 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
       setPrazoConclusaoDias(String(projeto.prazoConclusaoDias))
     }
   }, [projeto.id, projeto.prazoInicioExecucaoDias, projeto.prazoConclusaoDias])
+
+  useEffect(() => {
+    if (!hasPermission(PermissaoCodigo.ACAO_CONTRATO_ASSINATURA_ENVIAR)) {
+      return
+    }
+
+    void obterAssinaturaConfigCatec()
+      .then(cfg => {
+        setAssinaturaConfig(cfg)
+      })
+      .catch(() => {
+        setAssinaturaConfig(null)
+      })
+  }, [hasPermission, projeto.id])
 
   const contrato = data.contrato
   const documentoAtual = contrato?.documentos[0] ?? null
@@ -224,12 +242,30 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
       return
     }
 
+    const catecAtivos =
+      assinaturaConfig?.signatariosCatec.filter(s => s.ativo && s.usuarioAtivo) ?? []
+
+    if (assinaturaConfig?.exigeSignatarioCatec && catecAtivos.length === 0) {
+      toast.error(
+        'Configure ao menos um responsável CATEC em Configurações → Assinatura eletrônica antes de enviar.'
+      )
+
+      return
+    }
+
     setCarregandoSignatarios(true)
     setDialogEnvioAssinaturaAberto(true)
     setEmailSignatarioSelecionado('')
 
-    void listarSignatariosAssinaturaCatec(projeto.id, contrato.id)
-      .then(lista => {
+    void Promise.all([
+      listarSignatariosAssinaturaCatec(projeto.id, contrato.id),
+      obterAssinaturaConfigCatec().catch(() => assinaturaConfig)
+    ])
+      .then(([lista, cfg]) => {
+        if (cfg) {
+          setAssinaturaConfig(cfg)
+        }
+
         setSignatariosDisponiveis(lista)
 
         if (lista.length === 0) {
@@ -239,9 +275,11 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
           return
         }
 
-        // Preferência: responsável; senão o primeiro disponível.
+        const papelPreferido = cfg?.clientePapelPreferido ?? 'RESPONSAVEL'
         const preferido =
-          lista.find(s => s.papel === 'RESPONSAVEL') ?? lista[0]
+          lista.find(s => s.papel === papelPreferido) ??
+          lista.find(s => s.papel === 'RESPONSAVEL') ??
+          lista[0]
 
         setEmailSignatarioSelecionado(preferido.email)
       })
@@ -592,6 +630,12 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
               </Typography>
               <Typography variant='body2'>Status externo: {assinatura.statusExterno ?? '—'}</Typography>
               <Typography variant='body2'>Envelope: {assinatura.externalEnvelopeId ?? '—'}</Typography>
+              {assinatura.signatarios.length > 0 ? (
+                <Typography variant='body2'>
+                  Signatários:{' '}
+                  {assinatura.signatarios.map(s => `${s.rotulo} — ${s.nome} (${s.email})`).join('; ')}
+                </Typography>
+              ) : null}
               {assinatura.documentoAssinadoId != null ? (
                 <Typography variant='body2' color='success.main'>
                   PDF assinado anexado (documento #{assinatura.documentoAssinadoId}).
@@ -664,35 +708,60 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
         <DialogTitle>Enviar para assinatura</DialogTitle>
         <DialogContent className='flex flex-col gap-4 pbs-2'>
           <Typography variant='body2' color='text.secondary'>
-            Escolha um e-mail do cadastro do cliente. Apenas essa pessoa precisará assinar (1 assinatura).
+            Escolha o e-mail do cliente. Os responsáveis CATEC ativos entram automaticamente no envelope.
           </Typography>
           {carregandoSignatarios ? (
             <Typography variant='body2' color='text.secondary'>
               Carregando e-mails…
             </Typography>
           ) : (
-            <FormControl>
-              <FormLabel id='signatario-assinatura-label'>Enviar para</FormLabel>
-              <RadioGroup
-                aria-labelledby='signatario-assinatura-label'
-                name='signatario-assinatura'
-                value={emailSignatarioSelecionado}
-                onChange={e => setEmailSignatarioSelecionado(e.target.value)}
-              >
-                {signatariosDisponiveis.map(s => (
-                  <FormControlLabel
-                    key={s.email}
-                    value={s.email}
-                    control={<Radio />}
-                    label={
-                      <span>
-                        <strong>{s.rotulo}</strong> — {s.nome} ({s.email})
-                      </span>
-                    }
-                  />
-                ))}
-              </RadioGroup>
-            </FormControl>
+            <>
+              <FormControl>
+                <FormLabel id='signatario-assinatura-label'>Assinatura do cliente</FormLabel>
+                <RadioGroup
+                  aria-labelledby='signatario-assinatura-label'
+                  name='signatario-assinatura'
+                  value={emailSignatarioSelecionado}
+                  onChange={e => setEmailSignatarioSelecionado(e.target.value)}
+                >
+                  {signatariosDisponiveis.map(s => (
+                    <FormControlLabel
+                      key={s.email}
+                      value={s.email}
+                      control={<Radio />}
+                      label={
+                        <span>
+                          <strong>{s.rotulo}</strong> — {s.nome} ({s.email})
+                        </span>
+                      }
+                    />
+                  ))}
+                </RadioGroup>
+              </FormControl>
+
+              {(() => {
+                const catecAtivos =
+                  assinaturaConfig?.signatariosCatec.filter(s => s.ativo && s.usuarioAtivo) ?? []
+
+                if (catecAtivos.length === 0) {
+                  return (
+                    <Alert severity='warning' variant='outlined'>
+                      Nenhum responsável CATEC ativo.{' '}
+                      <Link href='/catec/configuracoes/assinatura' className='underline'>
+                        Abrir configuração
+                      </Link>
+                    </Alert>
+                  )
+                }
+
+                return (
+                  <Alert severity='info' variant='outlined'>
+                    Também assinam (CATEC):{' '}
+                    {catecAtivos.map(s => `${s.nome} (${s.email})`).join('; ')}
+                  </Alert>
+                )
+              })()}
+            </>
           )}
         </DialogContent>
         <DialogActions>

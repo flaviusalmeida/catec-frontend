@@ -55,6 +55,13 @@ const CatecNavMenuItems = ({ withIcons = false }: Props) => {
           </CanPermission>
         </SubMenu>
       </CanPermission>
+      <CanPermission code={PermissaoCodigo.TELA_CONFIG_ASSINATURA}>
+        <SubMenu label='Configurações' icon={icon('tabler-settings')}>
+          <MenuItem href='/catec/configuracoes/assinatura' icon={icon('tabler-signature')}>
+            Assinatura eletrônica
+          </MenuItem>
+        </SubMenu>
+      </CanPermission>
     </>
   )
 }

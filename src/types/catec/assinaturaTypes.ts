@@ -40,6 +40,16 @@ export type CatecAssinatura = {
   providerAtivo: boolean
   providerCodigo: string
   eventos: CatecAssinaturaEvento[]
+  signatarios: CatecAssinaturaSignatarioSnapshot[]
+}
+
+export type CatecAssinaturaSignatarioSnapshot = {
+  id: number
+  nome: string
+  email: string
+  papel: string
+  rotulo: string
+  usuarioId: number | null
 }
 
 export type CatecAssinaturaProviderInfo = {
@@ -58,6 +68,44 @@ export type CatecSignatarioDisponivel = {
   email: string
   papel: string
   rotulo: string
+}
+
+export type CatecSignatarioCatec = {
+  id: number
+  usuarioId: number
+  nome: string
+  email: string
+  ativo: boolean
+  usuarioAtivo: boolean
+  ordem: number
+}
+
+export type CatecAssinaturaConfig = {
+  exigeSignatarioCatec: boolean
+  clientePapelPreferido: 'EMPRESA' | 'RESPONSAVEL'
+  atualizadoEm: string | null
+  providerAtivo: boolean
+  providerCodigo: string
+  apiBaseUrl: string | null
+  ambiente: string
+  webhookPath: string
+  webhookUrl: string | null
+  webhookUrlPublica: boolean
+  accessTokenConfigurado: boolean
+  webhookSecretConfigurado: boolean
+  webhookEventosEsperados: string[]
+  signatariosCatec: CatecSignatarioCatec[]
+}
+
+export type CatecAssinaturaConfigUpdate = {
+  exigeSignatarioCatec: boolean
+  clientePapelPreferido: 'EMPRESA' | 'RESPONSAVEL'
+}
+
+export type CatecUsuarioCandidatoSignatario = {
+  id: number
+  nome: string
+  email: string
 }
 
 export function parseCatecSignatarioDisponivel(data: unknown): CatecSignatarioDisponivel {
@@ -123,6 +171,84 @@ export function parseCatecAssinatura(data: unknown): CatecAssinatura {
         processado: ev.processado === true,
         criadoEm: String(ev.criadoEm ?? '')
       }
-    })
+    }),
+    signatarios: parseCatecAssinaturaSignatariosSnapshot(raw.signatarios)
   }
+}
+
+function parseCatecAssinaturaSignatariosSnapshot(data: unknown): CatecAssinaturaSignatarioSnapshot[] {
+  if (!Array.isArray(data)) {
+    return []
+  }
+
+  return data.map(item => {
+    const raw = (item ?? {}) as Record<string, unknown>
+
+    return {
+      id: Number(raw.id ?? 0),
+      nome: String(raw.nome ?? ''),
+      email: String(raw.email ?? ''),
+      papel: String(raw.papel ?? ''),
+      rotulo: String(raw.rotulo ?? raw.papel ?? 'Signatário'),
+      usuarioId: raw.usuarioId == null ? null : Number(raw.usuarioId)
+    }
+  })
+}
+
+export function parseCatecSignatarioCatec(data: unknown): CatecSignatarioCatec {
+  const raw = (data ?? {}) as Record<string, unknown>
+
+  return {
+    id: Number(raw.id ?? 0),
+    usuarioId: Number(raw.usuarioId ?? 0),
+    nome: String(raw.nome ?? ''),
+    email: String(raw.email ?? ''),
+    ativo: raw.ativo === true,
+    usuarioAtivo: raw.usuarioAtivo === true,
+    ordem: Number(raw.ordem ?? 0)
+  }
+}
+
+export function parseCatecAssinaturaConfig(data: unknown): CatecAssinaturaConfig {
+  const raw = (data ?? {}) as Record<string, unknown>
+  const papelRaw = String(raw.clientePapelPreferido ?? 'RESPONSAVEL').toUpperCase()
+  const clientePapelPreferido: 'EMPRESA' | 'RESPONSAVEL' =
+    papelRaw === 'EMPRESA' ? 'EMPRESA' : 'RESPONSAVEL'
+  const signatariosRaw = Array.isArray(raw.signatariosCatec) ? raw.signatariosCatec : []
+  const eventosWebhookRaw = Array.isArray(raw.webhookEventosEsperados) ? raw.webhookEventosEsperados : []
+
+  return {
+    exigeSignatarioCatec: raw.exigeSignatarioCatec === true,
+    clientePapelPreferido,
+    atualizadoEm: raw.atualizadoEm == null ? null : String(raw.atualizadoEm),
+    providerAtivo: raw.providerAtivo === true,
+    providerCodigo: String(raw.providerCodigo ?? 'none'),
+    apiBaseUrl: raw.apiBaseUrl == null || raw.apiBaseUrl === '' ? null : String(raw.apiBaseUrl),
+    ambiente: String(raw.ambiente ?? 'desconhecido'),
+    webhookPath: String(raw.webhookPath ?? ''),
+    webhookUrl: raw.webhookUrl == null || raw.webhookUrl === '' ? null : String(raw.webhookUrl),
+    webhookUrlPublica: raw.webhookUrlPublica === true,
+    accessTokenConfigurado: raw.accessTokenConfigurado === true,
+    webhookSecretConfigurado: raw.webhookSecretConfigurado === true,
+    webhookEventosEsperados: eventosWebhookRaw.map(String),
+    signatariosCatec: signatariosRaw.map(parseCatecSignatarioCatec)
+  }
+}
+
+export function parseCatecUsuarioCandidatoSignatario(data: unknown): CatecUsuarioCandidatoSignatario {
+  const raw = (data ?? {}) as Record<string, unknown>
+
+  return {
+    id: Number(raw.id ?? 0),
+    nome: String(raw.nome ?? ''),
+    email: String(raw.email ?? '')
+  }
+}
+
+export function parseCatecUsuariosCandidatosSignatario(data: unknown): CatecUsuarioCandidatoSignatario[] {
+  if (!Array.isArray(data)) {
+    return []
+  }
+
+  return data.map(parseCatecUsuarioCandidatoSignatario)
 }
