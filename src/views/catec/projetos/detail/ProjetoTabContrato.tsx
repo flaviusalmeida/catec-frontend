@@ -620,6 +620,24 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
                 ) : undefined
               }
             />
+            <CardContent className='flex flex-col gap-2'>
+              <Typography variant='body2'>
+                Provedor: {assinatura.providerCodigo} · Status interno: {assinatura.statusInterno ?? '—'}
+              </Typography>
+              <Typography variant='body2'>Status externo: {assinatura.statusExterno ?? '—'}</Typography>
+              <Typography variant='body2'>Envelope: {assinatura.externalEnvelopeId ?? '—'}</Typography>
+              {assinatura.signatarios.length > 0 ? (
+                <Typography variant='body2'>
+                  Signatários:{' '}
+                  {assinatura.signatarios.map(s => `${s.rotulo} — ${s.nome} (${s.email})`).join('; ')}
+                </Typography>
+              ) : null}
+              {assinatura.ultimoErro ? (
+                <Typography variant='body2' color='error'>
+                  Último erro: {assinatura.ultimoErro}
+                </Typography>
+              ) : null}
+            </CardContent>
           </Card>
         </Grid>
       ) : null}
