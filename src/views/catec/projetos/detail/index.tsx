@@ -48,8 +48,6 @@ const ProjetoDetalhe = ({ id }: Props) => {
       return
     }
 
-    if (fluxo.carregando) return
-
     let cancelled = false
 
     void (async () => {
@@ -66,7 +64,7 @@ const ProjetoDetalhe = ({ id }: Props) => {
     return () => {
       cancelled = true
     }
-  }, [projetoId, fluxo.carregando, refreshProjeto])
+  }, [projetoId, refreshProjeto])
 
   const aguardandoConteudoInicial = (carregando || fluxo.carregando) && !projeto
 

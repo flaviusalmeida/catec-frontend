@@ -9,19 +9,17 @@ import CardContent from '@mui/material/CardContent'
 import CardHeader from '@mui/material/CardHeader'
 import Chip from '@mui/material/Chip'
 import CircularProgress from '@mui/material/CircularProgress'
-import FormControl from '@mui/material/FormControl'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import Grid from '@mui/material/Grid'
 import IconButton from '@mui/material/IconButton'
-import InputLabel from '@mui/material/InputLabel'
 import MenuItem from '@mui/material/MenuItem'
-import Select from '@mui/material/Select'
 import Switch from '@mui/material/Switch'
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody'
 import TableCell from '@mui/material/TableCell'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
+import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 import { toast } from 'react-toastify'
 
@@ -37,9 +35,11 @@ import {
 } from '@/libs/catecAssinaturaConfigApi'
 import type {
   CatecAssinaturaConfig,
+  CatecAssinaturaConfigUpdate,
   CatecUsuarioCandidatoSignatario
 } from '@/types/catec/assinaturaTypes'
 import { PermissaoCodigo } from '@/types/catec/permissao'
+import { useCatecPermission } from '@/hooks/useCatecPermission'
 
 function rotuloAmbiente(ambiente: string | undefined): string {
   switch (ambiente) {
@@ -102,7 +102,23 @@ function resolverDiagnosticoProvedor(config: CatecAssinaturaConfig | null) {
   }
 }
 
+function RotuloComInfo({ texto, dica, ariaLabel }: { texto: string; dica: string; ariaLabel: string }) {
+  return (
+    <span className='inline-flex items-center gap-1'>
+      {texto}
+      <Tooltip title={dica} placement='top'>
+        <IconButton size='small' aria-label={ariaLabel} onClick={e => e.preventDefault()}>
+          <i className='tabler-info-circle text-textSecondary text-lg' />
+        </IconButton>
+      </Tooltip>
+    </span>
+  )
+}
+
 const AssinaturaConfigView = () => {
+  const { hasPermission } = useCatecPermission()
+  const podeGerir = hasPermission(PermissaoCodigo.ACAO_CONFIG_ASSINATURA_GERIR)
+
   const [config, setConfig] = useState<CatecAssinaturaConfig | null>(null)
   const [candidatos, setCandidatos] = useState<CatecUsuarioCandidatoSignatario[]>([])
   const [carregando, setCarregando] = useState(true)
@@ -111,6 +127,7 @@ const AssinaturaConfigView = () => {
   const [usuarioSelecionadoId, setUsuarioSelecionadoId] = useState('')
 
   const [exigeSignatarioCatec, setExigeSignatarioCatec] = useState(true)
+  const [permiteInteracaoManualContrato, setPermiteInteracaoManualContrato] = useState(false)
   const [clientePapelPreferido, setClientePapelPreferido] = useState<'EMPRESA' | 'RESPONSAVEL'>('RESPONSAVEL')
 
   const carregar = useCallback(async () => {
@@ -122,6 +139,7 @@ const AssinaturaConfigView = () => {
 
       setConfig(data)
       setExigeSignatarioCatec(data.exigeSignatarioCatec)
+      setPermiteInteracaoManualContrato(data.permiteInteracaoManualContrato)
       setClientePapelPreferido(data.clientePapelPreferido)
     } catch (err) {
       setErro(err instanceof Error ? err.message : 'Falha ao carregar configuração.')
@@ -161,18 +179,26 @@ const AssinaturaConfigView = () => {
 
   const provedorDiag = useMemo(() => resolverDiagnosticoProvedor(config), [config])
 
-  async function salvarParametros() {
+  async function salvarParametros(payload: CatecAssinaturaConfigUpdate) {
+    if (!podeGerir) return
+
     setSalvando(true)
 
     try {
-      const atualizado = await atualizarAssinaturaConfigCatec({
-        exigeSignatarioCatec,
-        clientePapelPreferido
-      })
+      const atualizado = await atualizarAssinaturaConfigCatec(payload)
 
       setConfig(atualizado)
+      setExigeSignatarioCatec(atualizado.exigeSignatarioCatec)
+      setPermiteInteracaoManualContrato(atualizado.permiteInteracaoManualContrato)
+      setClientePapelPreferido(atualizado.clientePapelPreferido)
       toast.success('Configuração salva.')
     } catch (err) {
+      if (config) {
+        setExigeSignatarioCatec(config.exigeSignatarioCatec)
+        setPermiteInteracaoManualContrato(config.permiteInteracaoManualContrato)
+        setClientePapelPreferido(config.clientePapelPreferido)
+      }
+
       toast.error(err instanceof Error ? err.message : 'Falha ao salvar.')
     } finally {
       setSalvando(false)
@@ -353,6 +379,10 @@ const AssinaturaConfigView = () => {
               <strong>Exige CATEC:</strong> {exigeSignatarioCatec ? 'sim' : 'não'}
             </Typography>
 
+            <Typography variant='body2'>
+              <strong>Contingência manual:</strong> {permiteInteracaoManualContrato ? 'ligada' : 'desligada'}
+            </Typography>
+
             {exigeSignatarioCatec && ativosNoEnvio.length === 0 ? (
               <Alert severity='warning' variant='outlined'>
                 Envio de contratos bloqueado até haver ao menos um CATEC ativo.
@@ -362,6 +392,9 @@ const AssinaturaConfigView = () => {
             {!config?.providerAtivo ? (
               <Alert severity='info' variant='outlined'>
                 Provedor inativo — o botão de envio fica indisponível nos contratos.
+                {permiteInteracaoManualContrato
+                  ? ' A contingência manual está ligada para registrar aceite/recusa na aba Contrato.'
+                  : ' Ligue a contingência manual abaixo se precisar aceitar ou recusar contratos sem o provedor.'}
               </Alert>
             ) : null}
           </CardContent>
@@ -462,32 +495,75 @@ const AssinaturaConfigView = () => {
               control={
                 <Switch
                   checked={exigeSignatarioCatec}
-                  onChange={e => setExigeSignatarioCatec(e.target.checked)}
+                  disabled={!podeGerir || salvando}
+                  onChange={e => {
+                    const checked = e.target.checked
+
+                    setExigeSignatarioCatec(checked)
+                    void salvarParametros({
+                      exigeSignatarioCatec: checked,
+                      permiteInteracaoManualContrato,
+                      clientePapelPreferido
+                    })
+                  }}
                 />
               }
-              label='Exigir ao menos um responsável CATEC ativo no envio'
+              label={
+                <RotuloComInfo
+                  texto='Exigir ao menos um responsável CATEC ativo no envio'
+                  ariaLabel='Sobre exigir responsável CATEC'
+                  dica='Quando ligado, o contrato só vai para assinatura se houver pelo menos um responsável CATEC ativo na lista. Esse usuário entra automaticamente no envelope junto com o cliente. Desligue só se quiser enviar sem signatário interno.'
+                />
+              }
             />
 
-            <FormControl fullWidth>
-              <InputLabel id='papel-preferido-label'>Papel preferido do cliente</InputLabel>
-              <Select
-                labelId='papel-preferido-label'
-                label='Papel preferido do cliente'
-                value={clientePapelPreferido}
-                onChange={e => setClientePapelPreferido(e.target.value as 'EMPRESA' | 'RESPONSAVEL')}
-              >
-                <MenuItem value='RESPONSAVEL'>Responsável</MenuItem>
-                <MenuItem value='EMPRESA'>Empresa (contato)</MenuItem>
-              </Select>
-            </FormControl>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={permiteInteracaoManualContrato}
+                  disabled={!podeGerir || salvando}
+                  onChange={e => {
+                    const checked = e.target.checked
 
-            <CanPermission code={PermissaoCodigo.ACAO_CONFIG_ASSINATURA_GERIR}>
-              <div>
-                <Button variant='contained' onClick={() => void salvarParametros()} disabled={salvando}>
-                  Salvar parâmetros
-                </Button>
-              </div>
-            </CanPermission>
+                    setPermiteInteracaoManualContrato(checked)
+                    void salvarParametros({
+                      exigeSignatarioCatec,
+                      permiteInteracaoManualContrato: checked,
+                      clientePapelPreferido
+                    })
+                  }}
+                />
+              }
+              label={
+                <RotuloComInfo
+                  texto='Permitir resposta manual do contrato (contingência)'
+                  ariaLabel='Sobre a contingência manual'
+                  dica='Exibe os botões Ajustar contrato, Contrato aceito e Contrato recusado na aba Contrato e oculta o painel de assinatura eletrônica. Deixe desligado no dia a dia; ligue só se a assinatura eletrônica falhar. O webhook continua funcionando.'
+                />
+              }
+            />
+
+            <CustomTextField
+              select
+              fullWidth
+              size='small'
+              label='Papel preferido do cliente'
+              value={clientePapelPreferido}
+              disabled={!podeGerir || salvando}
+              onChange={e => {
+                const papel = e.target.value as 'EMPRESA' | 'RESPONSAVEL'
+
+                setClientePapelPreferido(papel)
+                void salvarParametros({
+                  exigeSignatarioCatec,
+                  permiteInteracaoManualContrato,
+                  clientePapelPreferido: papel
+                })
+              }}
+            >
+              <MenuItem value='RESPONSAVEL'>Responsável</MenuItem>
+              <MenuItem value='EMPRESA'>Empresa (contato)</MenuItem>
+            </CustomTextField>
           </CardContent>
         </Card>
       </Grid>

@@ -230,7 +230,8 @@ export function useProjetoFluxoStore(projetoId: number, onAfterMutation?: () => 
       const ciclo = await atualizarStatusAssinaturaContratoCatec(projetoId, data.contrato.id)
 
       setAssinatura(ciclo)
-      await recarregar()
+      await recarregar({ silent: true })
+      return ciclo
     } finally {
       setProcessando(false)
     }

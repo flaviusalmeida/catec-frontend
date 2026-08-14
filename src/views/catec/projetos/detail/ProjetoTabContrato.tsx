@@ -97,10 +97,6 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
   }, [projeto.id, projeto.prazoInicioExecucaoDias, projeto.prazoConclusaoDias])
 
   useEffect(() => {
-    if (!hasPermission(PermissaoCodigo.ACAO_CONTRATO_ASSINATURA_ENVIAR)) {
-      return
-    }
-
     void obterAssinaturaConfigCatec()
       .then(cfg => {
         setAssinaturaConfig(cfg)
@@ -108,7 +104,7 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
       .catch(() => {
         setAssinaturaConfig(null)
       })
-  }, [hasPermission, projeto.id])
+  }, [projeto.id])
 
   const contrato = data.contrato
   const documentoAtual = contrato?.documentos[0] ?? null
@@ -148,7 +144,10 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
     contrato != null && STATUS_CONTRATO_INTERACAO_CLIENTE.includes(contrato.status)
 
   const podeRegistrarRespostaCliente =
-    aguardandoRespostaCliente && hasPermission(PermissaoCodigo.ACAO_INTERACAO_REGISTRAR)
+    aguardandoRespostaCliente &&
+    hasPermission(PermissaoCodigo.ACAO_INTERACAO_REGISTRAR) &&
+    (contrato?.status === 'ENVIADO_AO_CLIENTE' ||
+      Boolean(assinaturaConfig?.permiteInteracaoManualContrato))
 
   const podeEnviarAssinatura =
     podeEditarContrato &&
@@ -353,15 +352,13 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
   const precisaRecuperarPdfAssinado =
     contrato?.status === 'ACEITO' &&
     assinatura?.id != null &&
-    assinatura.documentoAssinadoId == null &&
     Boolean(assinatura.externalEnvelopeId)
 
   const mostrarAssinaturaDiagnostico =
+    !assinaturaConfig?.permiteInteracaoManualContrato &&
     assinatura?.id != null &&
     Boolean(assinatura.externalEnvelopeId) &&
-    (contrato?.status === 'AGUARDANDO_ASSINATURA' ||
-      contrato?.status === 'ACEITO' ||
-      contrato?.status === 'RECUSADO')
+    (contrato?.status === 'AGUARDANDO_ASSINATURA' || precisaRecuperarPdfAssinado)
 
   const mostrarContratoAceitoCard = contrato?.status === 'ACEITO' && temAnexo
 
@@ -594,11 +591,6 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
           <Card variant='outlined'>
             <CardHeader
               title='Assinatura eletrônica'
-              subheader={
-                precisaRecuperarPdfAssinado
-                  ? 'Contrato aceito, mas o PDF assinado ainda não foi anexado. Busque no provedor.'
-                  : 'Diagnóstico do ciclo com o provedor (sem secrets).'
-              }
               action={
                 contrato?.status === 'AGUARDANDO_ASSINATURA' || precisaRecuperarPdfAssinado ? (
                   <Button
@@ -607,13 +599,17 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
                     disabled={processando}
                     onClick={() =>
                       void atualizarStatusAssinatura()
-                        .then(() =>
+                        .then(ciclo => {
+                          if (ciclo?.ultimoErro) {
+                            toast.error(ciclo.ultimoErro)
+                            return
+                          }
                           toast.success(
                             precisaRecuperarPdfAssinado
                               ? 'PDF assinado atualizado.'
                               : 'Status atualizado.'
                           )
-                        )
+                        })
                         .catch(err =>
                           toast.error(err instanceof Error ? err.message : 'Falha ao atualizar status.')
                         )
@@ -624,36 +620,6 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
                 ) : undefined
               }
             />
-            <CardContent className='flex flex-col gap-2'>
-              <Typography variant='body2'>
-                Provedor: {assinatura.providerCodigo} · Status interno: {assinatura.statusInterno ?? '—'}
-              </Typography>
-              <Typography variant='body2'>Status externo: {assinatura.statusExterno ?? '—'}</Typography>
-              <Typography variant='body2'>Envelope: {assinatura.externalEnvelopeId ?? '—'}</Typography>
-              {assinatura.signatarios.length > 0 ? (
-                <Typography variant='body2'>
-                  Signatários:{' '}
-                  {assinatura.signatarios.map(s => `${s.rotulo} — ${s.nome} (${s.email})`).join('; ')}
-                </Typography>
-              ) : null}
-              {assinatura.documentoAssinadoId != null ? (
-                <Typography variant='body2' color='success.main'>
-                  PDF assinado anexado (documento #{assinatura.documentoAssinadoId}).
-                </Typography>
-              ) : null}
-              {assinatura.ultimoErro && assinatura.documentoAssinadoId == null ? (
-                <Typography variant='body2' color='error'>
-                  Último erro: {assinatura.ultimoErro}
-                </Typography>
-              ) : null}
-              <Typography variant='caption' color='text.secondary'>
-                {precisaRecuperarPdfAssinado
-                  ? 'Isso substitui o PDF do contrato pelo arquivo assinado da ClickSign.'
-                  : contrato?.status === 'AGUARDANDO_ASSINATURA'
-                    ? 'O status do contrato atualiza automaticamente quando a assinatura for concluída ou recusada.'
-                    : 'Histórico do envio ao provedor de assinatura eletrônica.'}
-              </Typography>
-            </CardContent>
           </Card>
         </Grid>
       ) : null}
