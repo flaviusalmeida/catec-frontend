@@ -280,8 +280,8 @@ const AssinaturaConfigView = () => {
         </Grid>
       ) : null}
 
-      <Grid size={{ xs: 12, md: 7 }}>
-        <Card>
+      <Grid size={{ xs: 12, md: 6 }}>
+        <Card className='h-full'>
           <CardHeader title='Provedor' />
           <CardContent className='flex flex-col gap-3'>
             {!provedorDiag.diagnosticoCompleto && config?.providerAtivo ? (
@@ -361,8 +361,8 @@ const AssinaturaConfigView = () => {
         </Card>
       </Grid>
 
-      <Grid size={{ xs: 12, md: 5 }}>
-        <Card>
+      <Grid size={{ xs: 12, md: 6 }}>
+        <Card className='h-full'>
           <CardHeader title='Resumo do envio' />
           <CardContent className='flex flex-col gap-3'>
             <Typography variant='body2'>
@@ -401,8 +401,8 @@ const AssinaturaConfigView = () => {
         </Card>
       </Grid>
 
-      <Grid size={{ xs: 12, md: 7 }}>
-        <Card>
+      <Grid size={{ xs: 12, md: 6 }}>
+        <Card className='h-full'>
           <CardHeader title='Responsáveis CATEC' />
           <CardContent className='flex flex-col gap-4'>
             <CanPermission code={PermissaoCodigo.ACAO_CONFIG_ASSINATURA_GERIR}>
@@ -487,8 +487,8 @@ const AssinaturaConfigView = () => {
         </Card>
       </Grid>
 
-      <Grid size={{ xs: 12, md: 5 }}>
-        <Card>
+      <Grid size={{ xs: 12, md: 6 }}>
+        <Card className='h-full'>
           <CardHeader title='Parâmetros do fluxo' />
           <CardContent className='flex flex-col gap-4'>
             <FormControlLabel
