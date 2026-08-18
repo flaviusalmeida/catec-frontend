@@ -104,6 +104,7 @@ const ProjetoDetalhe = ({ id }: Props) => {
         <ProjetoLeftOverview
           projeto={projeto}
           propostaStatus={fluxo.propostaAtual?.status}
+          contratoStatus={fluxo.data.contrato?.status}
           onStatusAlterado={recarregarProjeto}
         />
       </Grid>

@@ -12,7 +12,7 @@ import Typography from '@mui/material/Typography'
 
 import { useCatecPermission } from '@/hooks/useCatecPermission'
 import { PermissaoCodigo } from '@/types/catec/permissao'
-import type { CatecPropostaStatus } from '@/types/catec/projetoFluxoTypes'
+import type { CatecContratoStatus, CatecPropostaStatus } from '@/types/catec/projetoFluxoTypes'
 import type { CatecProjeto } from '@/types/catec/projetoTypes'
 import { STATUS_PROJETO_ROTULO } from '@/types/catec/projetoTypes'
 
@@ -28,6 +28,7 @@ import ProjetoEncerrarStatus from './ProjetoEncerrarStatus'
 type Props = {
   projeto: CatecProjeto
   propostaStatus?: CatecPropostaStatus | null
+  contratoStatus?: CatecContratoStatus | null
   onStatusAlterado?: () => Promise<void>
 }
 
@@ -42,7 +43,7 @@ function DetalheCampo({ label, children }: { label: string; children: React.Reac
   )
 }
 
-const ProjetoDetails = ({ projeto, propostaStatus, onStatusAlterado }: Props) => {
+const ProjetoDetails = ({ projeto, propostaStatus, contratoStatus, onStatusAlterado }: Props) => {
   const { hasPermission, hasAnyPermission } = useCatecPermission()
   const [editOpen, setEditOpen] = useState(false)
 
@@ -78,6 +79,7 @@ const ProjetoDetails = ({ projeto, propostaStatus, onStatusAlterado }: Props) =>
             <ProjetoEncerrarStatus
               projeto={projeto}
               propostaStatus={propostaStatus}
+              contratoStatus={contratoStatus}
               onStatusAlterado={onStatusAlterado}
             />
           </div>

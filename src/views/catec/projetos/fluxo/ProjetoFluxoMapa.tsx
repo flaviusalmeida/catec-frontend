@@ -361,8 +361,10 @@ const ProjetoFluxoMapa = () => {
                       Contrato recusado
                     </Typography>
                     <ContratoStatusBadge status='RECUSADO' />
-                    <FluxoSeta rotulo='sync projeto' />
-                    <ProjetoStatusBadge status='CANCELADO' />
+                    <Typography variant='caption' color='text.secondary' className='block mbs-2'>
+                      Projeto permanece no status atual. Cancelar na sidebar ou trocar o arquivo e enviar para
+                      assinatura.
+                    </Typography>
                   </CardContent>
                 </Card>
                 <Card variant='outlined'>
@@ -371,7 +373,7 @@ const ProjetoFluxoMapa = () => {
                       Manual (sidebar)
                     </Typography>
                     <Typography variant='caption' color='text.secondary' className='block mbe-2'>
-                      De AGUARDANDO_EXECUCAO, EM_EXECUCAO ou após recusa da proposta (só Cancelado)
+                      De AGUARDANDO_EXECUCAO, EM_EXECUCAO ou após recusa da proposta/contrato (só Cancelado)
                     </Typography>
                     <ProjetoStatusBadge status='CANCELADO' />
                   </CardContent>

@@ -121,7 +121,7 @@ export function propostaAguardandoEnvioAoCliente(proposta: {
   return normalizarStatusProposta(proposta.status, proposta.avaliadaSocioEm) === 'AGUARDANDO_ENVIO'
 }
 
-export const STATUS_CONTRATO_UPLOAD: CatecContratoStatus[] = ['RASCUNHO', 'AGUARDANDO_AJUSTE']
+export const STATUS_CONTRATO_UPLOAD: CatecContratoStatus[] = ['RASCUNHO', 'AGUARDANDO_AJUSTE', 'RECUSADO']
 export const STATUS_CONTRATO_INTERACAO_CLIENTE: CatecContratoStatus[] = [
   'ENVIADO_AO_CLIENTE',
   'AGUARDANDO_ASSINATURA'

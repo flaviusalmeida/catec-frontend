@@ -14,7 +14,7 @@ import { toast } from 'react-toastify'
 
 import { useCatecPermission } from '@/hooks/useCatecPermission'
 import { PermissaoCodigo } from '@/types/catec/permissao'
-import type { CatecPropostaStatus } from '@/types/catec/projetoFluxoTypes'
+import type { CatecContratoStatus, CatecPropostaStatus } from '@/types/catec/projetoFluxoTypes'
 import type { CatecProjeto, CatecProjetoStatus } from '@/types/catec/projetoTypes'
 import { STATUS_PROJETO_ROTULO } from '@/types/catec/projetoTypes'
 
@@ -23,6 +23,7 @@ import { useProjetosStore } from '../useProjetosStore'
 type Props = {
   projeto: CatecProjeto
   propostaStatus?: CatecPropostaStatus | null
+  contratoStatus?: CatecContratoStatus | null
   onStatusAlterado?: () => Promise<void>
 }
 
@@ -56,22 +57,26 @@ function isStatusComBotao(status: CatecProjetoStatus): status is keyof typeof OP
   return status === 'AGUARDANDO_EXECUCAO' || status === 'EM_EXECUCAO'
 }
 
-function opcoesPara(projeto: CatecProjeto, propostaStatus?: CatecPropostaStatus | null): OpcaoStatus[] {
+function opcoesPara(
+  projeto: CatecProjeto,
+  propostaStatus?: CatecPropostaStatus | null,
+  contratoStatus?: CatecContratoStatus | null
+): OpcaoStatus[] {
   if (isStatusComBotao(projeto.status)) {
     return OPCOES_POR_STATUS[projeto.status]
   }
 
-  const propostaRecusada = propostaStatus === 'NEGADA'
+  const recusaPendente = propostaStatus === 'NEGADA' || contratoStatus === 'RECUSADO'
   const projetoAberto = projeto.status !== 'CANCELADO' && projeto.status !== 'FINALIZADO'
 
-  if (propostaRecusada && projetoAberto) {
+  if (recusaPendente && projetoAberto) {
     return [OPCAO_CANCELADO]
   }
 
   return []
 }
 
-const ProjetoEncerrarStatus = ({ projeto, propostaStatus, onStatusAlterado }: Props) => {
+const ProjetoEncerrarStatus = ({ projeto, propostaStatus, contratoStatus, onStatusAlterado }: Props) => {
   const { hasAnyPermission } = useCatecPermission()
   const { atualizarStatusProjeto } = useProjetosStore()
 
@@ -84,7 +89,7 @@ const ProjetoEncerrarStatus = ({ projeto, propostaStatus, onStatusAlterado }: Pr
     PermissaoCodigo.ACAO_SOCIO_PROPOSTA_APROVAR
   ])
 
-  const opcoesDisponiveis = opcoesPara(projeto, propostaStatus)
+  const opcoesDisponiveis = opcoesPara(projeto, propostaStatus, contratoStatus)
   const podeAlterarStatus = temPermissao && opcoesDisponiveis.length > 0
 
   if (!podeAlterarStatus) return null

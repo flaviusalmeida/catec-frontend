@@ -574,10 +574,10 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
       {mostrarContratoRecusadoCard ? (
         <Grid size={{ xs: 12 }}>
           <ProjetoUploadCard
-            titulo='Contrato'
+            titulo='Contrato recusado pelo cliente'
             nomeArquivo={documentoAtual?.nomeOriginal}
             {...propsDocumentoEstruturado}
-            permitirSubstituir={false}
+            permitirSubstituir={podeEditarContrato}
             disabled={processando}
             onUpload={uploadContrato}
             onDownload={downloadDocumento}
