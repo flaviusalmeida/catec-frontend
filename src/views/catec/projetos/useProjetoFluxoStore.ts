@@ -231,6 +231,7 @@ export function useProjetoFluxoStore(projetoId: number, onAfterMutation?: () => 
 
       setAssinatura(ciclo)
       await recarregar({ silent: true })
+
       return ciclo
     } finally {
       setProcessando(false)

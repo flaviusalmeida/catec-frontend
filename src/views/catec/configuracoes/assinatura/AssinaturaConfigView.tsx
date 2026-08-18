@@ -60,9 +60,11 @@ function rotuloAmbiente(ambiente: string | undefined): string {
 
 function resolverDiagnosticoProvedor(config: CatecAssinaturaConfig | null) {
   const codigo = (config?.providerCodigo ?? 'none').toLowerCase()
+
   const webhookPath =
     config?.webhookPath?.trim() ||
     (codigo !== 'none' ? `/api/v1/webhooks/assinatura/${codigo}` : '')
+
   const webhookUrl =
     config?.webhookUrl?.trim() ||
     (webhookPath ? `http://localhost:8080${webhookPath}` : '')
@@ -83,6 +85,7 @@ function resolverDiagnosticoProvedor(config: CatecAssinaturaConfig | null) {
 
   const tokenOk =
     codigo === 'clicksign' ? Boolean(config?.accessTokenConfigurado || config?.providerAtivo) : false
+
   const secretOk = Boolean(config?.webhookSecretConfigurado)
   const diagnosticoCompleto = Boolean(config?.webhookPath || config?.webhookUrl)
 

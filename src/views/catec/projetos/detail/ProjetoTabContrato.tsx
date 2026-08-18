@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react'
 
+import Link from 'next/link'
+
 import Alert from '@mui/material/Alert'
 import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
@@ -18,7 +20,6 @@ import Grid from '@mui/material/Grid'
 import Radio from '@mui/material/Radio'
 import RadioGroup from '@mui/material/RadioGroup'
 import Typography from '@mui/material/Typography'
-import Link from 'next/link'
 import { toast } from 'react-toastify'
 
 import type { CatecProjeto } from '@/types/catec/projetoTypes'
@@ -287,6 +288,7 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
         }
 
         const papelPreferido = cfg?.clientePapelPreferido ?? 'RESPONSAVEL'
+
         const preferido =
           lista.find(s => s.papel === papelPreferido) ??
           lista.find(s => s.papel === 'RESPONSAVEL') ??
@@ -659,8 +661,10 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
                         .then(ciclo => {
                           if (ciclo?.ultimoErro) {
                             toast.error(ciclo.ultimoErro)
+
                             return
                           }
+
                           toast.success(
                             precisaRecuperarPdfAssinado
                               ? 'PDF assinado atualizado.'

@@ -29,6 +29,7 @@ export async function atualizarAssinaturaConfigCatec(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   })
+
   const data = await readCatecJsonBody(res)
 
   assertCatecOk(res, data, 'Não foi possível salvar a configuração de assinatura.')
@@ -51,6 +52,7 @@ export async function adicionarSignatarioCatec(usuarioId: number): Promise<Catec
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ usuarioId })
   })
+
   const data = await readCatecJsonBody(res)
 
   assertCatecOk(res, data, 'Não foi possível adicionar o responsável CATEC.')
@@ -67,6 +69,7 @@ export async function atualizarSignatarioCatec(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   })
+
   const data = await readCatecJsonBody(res)
 
   assertCatecOk(res, data, 'Não foi possível atualizar o responsável CATEC.')

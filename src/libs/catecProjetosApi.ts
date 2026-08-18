@@ -337,6 +337,7 @@ export async function listarSignatariosAssinaturaCatec(
   const res = await catecApiFetch(
     `/api/v1/projetos/${projetoId}/contratos/${contratoId}/assinatura/signatarios`
   )
+
   const data = await readCatecJsonBody(res)
 
   assertCatecOk(res, data, 'Não foi possível listar os e-mails para assinatura.')

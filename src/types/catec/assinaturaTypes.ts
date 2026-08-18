@@ -216,8 +216,10 @@ export function parseCatecSignatarioCatec(data: unknown): CatecSignatarioCatec {
 export function parseCatecAssinaturaConfig(data: unknown): CatecAssinaturaConfig {
   const raw = (data ?? {}) as Record<string, unknown>
   const papelRaw = String(raw.clientePapelPreferido ?? 'RESPONSAVEL').toUpperCase()
+
   const clientePapelPreferido: 'EMPRESA' | 'RESPONSAVEL' =
     papelRaw === 'EMPRESA' ? 'EMPRESA' : 'RESPONSAVEL'
+
   const signatariosRaw = Array.isArray(raw.signatariosCatec) ? raw.signatariosCatec : []
   const eventosWebhookRaw = Array.isArray(raw.webhookEventosEsperados) ? raw.webhookEventosEsperados : []
 
