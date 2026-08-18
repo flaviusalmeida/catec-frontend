@@ -86,7 +86,12 @@ export const TIPO_INTERACAO_ROTULO_CONTRATO: Record<CatecTipoInteracaoFluxo, str
   CONSIDERACOES_CLIENTE: 'Ajustar contrato'
 }
 
-export const STATUS_PROPOSTA_UPLOAD: CatecPropostaStatus[] = ['RASCUNHO', 'PENDENTE_AVALIACAO', 'AGUARDANDO_AJUSTE']
+export const STATUS_PROPOSTA_UPLOAD: CatecPropostaStatus[] = [
+  'RASCUNHO',
+  'PENDENTE_AVALIACAO',
+  'AGUARDANDO_AJUSTE',
+  'NEGADA'
+]
 export const STATUS_PROPOSTA_ENVIADA: CatecPropostaStatus[] = [
   'ENVIADA_AO_CLIENTE',
   'AGUARDANDO_AJUSTE',

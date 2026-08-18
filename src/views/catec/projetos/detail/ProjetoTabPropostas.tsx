@@ -293,7 +293,8 @@ const ProjetoTabPropostas = ({ projeto, fluxo }: Props) => {
   }
 
   async function handleUploadProposta(file: File) {
-    const eraAjustePendente = ajustandoProposta && propostaAtual?.status === 'AGUARDANDO_AJUSTE'
+    const eraAjustePendente =
+      propostaAtual?.status === 'AGUARDANDO_AJUSTE' || propostaAtual?.status === 'NEGADA'
 
     await uploadProposta(file)
 
@@ -480,7 +481,7 @@ const ProjetoTabPropostas = ({ projeto, fluxo }: Props) => {
       {mostrarPropostaNegadaCard ? (
         <Grid size={{ xs: 12 }}>
           <ProjetoUploadCard
-            titulo='Documento da proposta'
+            titulo='Proposta recusada pelo cliente'
             nomeArquivo={documentoAtual?.nomeOriginal}
             meta={
               documentoAtual
@@ -492,12 +493,12 @@ const ProjetoTabPropostas = ({ projeto, fluxo }: Props) => {
                 <PropostaStatusBadge status={propostaAtual.status} />
               ) : undefined
             }
-            permitirSubstituir={false}
+            permitirSubstituir
             disabled={processando}
             documentoId={documentoAtual?.id}
             previewTitulo='Proposta comercial'
             previewSubtitulo={previewPropostaSubtitulo}
-            onUpload={uploadProposta}
+            onUpload={handleUploadProposta}
             onDownload={() =>
               void downloadDocumentoCatec(documentoAtual!.id, documentoAtual!.nomeOriginal).catch(err =>
                 toast.error(err instanceof Error ? err.message : 'Download falhou.')

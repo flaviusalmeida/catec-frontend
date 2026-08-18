@@ -101,7 +101,11 @@ const ProjetoDetalhe = ({ id }: Props) => {
         </Grid>
       ) : null}
       <Grid size={{ xs: 12, lg: 4, md: 5 }}>
-        <ProjetoLeftOverview projeto={projeto} onStatusAlterado={recarregarProjeto} />
+        <ProjetoLeftOverview
+          projeto={projeto}
+          propostaStatus={fluxo.propostaAtual?.status}
+          onStatusAlterado={recarregarProjeto}
+        />
       </Grid>
       <Grid size={{ xs: 12, lg: 8, md: 7 }}>
         <ProjetoRight projeto={projeto} fluxo={fluxo} />

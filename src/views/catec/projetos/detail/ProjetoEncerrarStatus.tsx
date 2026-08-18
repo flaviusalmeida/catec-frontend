@@ -14,6 +14,7 @@ import { toast } from 'react-toastify'
 
 import { useCatecPermission } from '@/hooks/useCatecPermission'
 import { PermissaoCodigo } from '@/types/catec/permissao'
+import type { CatecPropostaStatus } from '@/types/catec/projetoFluxoTypes'
 import type { CatecProjeto, CatecProjetoStatus } from '@/types/catec/projetoTypes'
 import { STATUS_PROJETO_ROTULO } from '@/types/catec/projetoTypes'
 
@@ -21,27 +22,33 @@ import { useProjetosStore } from '../useProjetosStore'
 
 type Props = {
   projeto: CatecProjeto
+  propostaStatus?: CatecPropostaStatus | null
   onStatusAlterado?: () => Promise<void>
 }
 
 type StatusDestino = Extract<CatecProjetoStatus, 'EM_EXECUCAO' | 'CANCELADO' | 'FINALIZADO'>
 
-const OPCOES_POR_STATUS: Record<
-  Extract<CatecProjetoStatus, 'AGUARDANDO_EXECUCAO' | 'EM_EXECUCAO'>,
-  Array<{
-    status: StatusDestino
-    label: string
-    confirmColor: 'primary' | 'success' | 'error'
-  }>
-> = {
+type OpcaoStatus = {
+  status: StatusDestino
+  label: string
+  confirmColor: 'primary' | 'success' | 'error'
+}
+
+const OPCAO_CANCELADO: OpcaoStatus = {
+  status: 'CANCELADO',
+  label: 'Marcar como cancelado',
+  confirmColor: 'error'
+}
+
+const OPCOES_POR_STATUS: Record<Extract<CatecProjetoStatus, 'AGUARDANDO_EXECUCAO' | 'EM_EXECUCAO'>, OpcaoStatus[]> = {
   AGUARDANDO_EXECUCAO: [
     { status: 'EM_EXECUCAO', label: 'Marcar como em execução', confirmColor: 'primary' },
     { status: 'FINALIZADO', label: 'Marcar como finalizado', confirmColor: 'success' },
-    { status: 'CANCELADO', label: 'Marcar como cancelado', confirmColor: 'error' }
+    OPCAO_CANCELADO
   ],
   EM_EXECUCAO: [
     { status: 'FINALIZADO', label: 'Marcar como finalizado', confirmColor: 'success' },
-    { status: 'CANCELADO', label: 'Marcar como cancelado', confirmColor: 'error' }
+    OPCAO_CANCELADO
   ]
 }
 
@@ -49,7 +56,22 @@ function isStatusComBotao(status: CatecProjetoStatus): status is keyof typeof OP
   return status === 'AGUARDANDO_EXECUCAO' || status === 'EM_EXECUCAO'
 }
 
-const ProjetoEncerrarStatus = ({ projeto, onStatusAlterado }: Props) => {
+function opcoesPara(projeto: CatecProjeto, propostaStatus?: CatecPropostaStatus | null): OpcaoStatus[] {
+  if (isStatusComBotao(projeto.status)) {
+    return OPCOES_POR_STATUS[projeto.status]
+  }
+
+  const propostaRecusada = propostaStatus === 'NEGADA'
+  const projetoAberto = projeto.status !== 'CANCELADO' && projeto.status !== 'FINALIZADO'
+
+  if (propostaRecusada && projetoAberto) {
+    return [OPCAO_CANCELADO]
+  }
+
+  return []
+}
+
+const ProjetoEncerrarStatus = ({ projeto, propostaStatus, onStatusAlterado }: Props) => {
   const { hasAnyPermission } = useCatecPermission()
   const { atualizarStatusProjeto } = useProjetosStore()
 
@@ -62,12 +84,11 @@ const ProjetoEncerrarStatus = ({ projeto, onStatusAlterado }: Props) => {
     PermissaoCodigo.ACAO_SOCIO_PROPOSTA_APROVAR
   ])
 
-  const podeAlterarStatus =
-    temPermissao && isStatusComBotao(projeto.status)
+  const opcoesDisponiveis = opcoesPara(projeto, propostaStatus)
+  const podeAlterarStatus = temPermissao && opcoesDisponiveis.length > 0
 
   if (!podeAlterarStatus) return null
 
-  const opcoesDisponiveis = OPCOES_POR_STATUS[projeto.status]
   const opcaoPendente = opcoesDisponiveis.find(opcao => opcao.status === statusPendente)
 
   function abrirConfirmacao(status: StatusDestino) {
