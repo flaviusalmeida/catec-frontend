@@ -62,6 +62,7 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
     assinaturaProviderAtivo,
     uploadContrato,
     enviarAssinatura,
+    enviarContratoCliente,
     atualizarStatusAssinatura,
     registrarInteracao,
     recarregar,
@@ -149,12 +150,23 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
     (contrato?.status === 'ENVIADO_AO_CLIENTE' ||
       Boolean(assinaturaConfig?.permiteInteracaoManualContrato))
 
+  const desativaAssinaturaViaApi = Boolean(assinaturaConfig?.desativaAssinaturaViaApi)
+
   const podeEnviarAssinatura =
     podeEditarContrato &&
     contrato?.status === 'RASCUNHO' &&
     temAnexo &&
     assinaturaProviderAtivo &&
+    !desativaAssinaturaViaApi &&
     hasPermission(PermissaoCodigo.ACAO_CONTRATO_ASSINATURA_ENVIAR)
+
+  const podeEnviarContratoManual =
+    podeEditarContrato &&
+    contrato?.status === 'RASCUNHO' &&
+    temAnexo &&
+    desativaAssinaturaViaApi &&
+    (hasPermission(PermissaoCodigo.ACAO_CONTRATO_ENVIAR) ||
+      hasPermission(PermissaoCodigo.ACAO_CONTRATO_ASSINATURA_ENVIAR))
 
   const acoesRespostaCliente: Array<{
     tipo: CatecTipoInteracaoFluxo
@@ -319,6 +331,32 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
       .catch(err => toast.error(err instanceof Error ? err.message : 'Envio para assinatura falhou.'))
   }
 
+  function handleEnviarContratoManual() {
+    const diasInicio = Number.parseInt(prazoInicioExecucaoDias.trim(), 10)
+    const diasConclusao = Number.parseInt(prazoConclusaoDias.trim(), 10)
+
+    if (!Number.isFinite(diasInicio) || diasInicio < 1) {
+      toast.error('Informe o prazo para início da execução em dias.')
+
+      return
+    }
+
+    if (!Number.isFinite(diasConclusao) || diasConclusao < 1) {
+      toast.error('Informe o prazo para conclusão do projeto em dias.')
+
+      return
+    }
+
+    void enviarContratoCliente({
+      prazoInicioExecucaoDias: diasInicio,
+      prazoConclusaoDias: diasConclusao
+    })
+      .then(() => {
+        toast.success('Contrato enviado. Aceite e recusa são manuais (sem e-mail da ClickSign).')
+      })
+      .catch(err => toast.error(err instanceof Error ? err.message : 'Não foi possível enviar o contrato.'))
+  }
+
   if (!podeVisualizarContrato) {
     return (
       <ProjetoStateCard
@@ -372,15 +410,24 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
         (ajustandoContratoCliente || (contrato?.status === 'RASCUNHO' && !temAnexo)))
   )
 
-  const acaoEnviarAssinatura =
-    podeEnviarAssinatura
+  const acaoEnviarAssinatura = podeEnviarAssinatura
+    ? [
+        {
+          key: 'enviar-assinatura',
+          label: 'Enviar para assinatura',
+          color: 'primary' as const,
+          alinhamento: 'fim' as const,
+          onClick: handleEnviarAssinatura
+        }
+      ]
+    : podeEnviarContratoManual
       ? [
           {
-            key: 'enviar-assinatura',
-            label: 'Enviar para assinatura',
+            key: 'enviar-cliente',
+            label: 'Enviar ao cliente',
             color: 'primary' as const,
             alinhamento: 'fim' as const,
-            onClick: handleEnviarAssinatura
+            onClick: handleEnviarContratoManual
           }
         ]
       : []
@@ -501,7 +548,12 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
             areaEntreArquivoEAcoes={
               <>
                 {campoPrazos}
-                {ajustandoContratoCliente && !assinaturaProviderAtivo ? (
+                {ajustandoContratoCliente && desativaAssinaturaViaApi ? (
+                  <Typography variant='body2' color='text.secondary'>
+                    Assinatura via API ClickSign desativada. Reenvie o contrato nesta tela; aceite e recusa
+                    continuam manuais, sem e-mail do provedor.
+                  </Typography>
+                ) : ajustandoContratoCliente && !assinaturaProviderAtivo ? (
                   <Typography variant='body2' color='text.secondary'>
                     Ative o provedor de assinatura (`stub` ou `clicksign`) para reenviar o contrato. Não há envio
                     manual.
@@ -527,7 +579,12 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
             areaEntreArquivoEAcoes={
               <>
                 {campoPrazos}
-                {!assinaturaProviderAtivo ? (
+                {desativaAssinaturaViaApi ? (
+                  <Typography variant='body2' color='text.secondary'>
+                    Assinatura via API ClickSign desativada. O envio não dispara e-mail; registre aceite ou recusa
+                    na aba Contrato.
+                  </Typography>
+                ) : !assinaturaProviderAtivo ? (
                   <Typography variant='body2' color='text.secondary'>
                     Ative o provedor de assinatura (`stub` ou `clicksign`) para enviar o contrato. Não há envio
                     manual.

@@ -128,6 +128,7 @@ const AssinaturaConfigView = () => {
 
   const [exigeSignatarioCatec, setExigeSignatarioCatec] = useState(true)
   const [permiteInteracaoManualContrato, setPermiteInteracaoManualContrato] = useState(false)
+  const [desativaAssinaturaViaApi, setDesativaAssinaturaViaApi] = useState(false)
   const [clientePapelPreferido, setClientePapelPreferido] = useState<'EMPRESA' | 'RESPONSAVEL'>('RESPONSAVEL')
 
   const carregar = useCallback(async () => {
@@ -140,6 +141,7 @@ const AssinaturaConfigView = () => {
       setConfig(data)
       setExigeSignatarioCatec(data.exigeSignatarioCatec)
       setPermiteInteracaoManualContrato(data.permiteInteracaoManualContrato)
+      setDesativaAssinaturaViaApi(data.desativaAssinaturaViaApi)
       setClientePapelPreferido(data.clientePapelPreferido)
     } catch (err) {
       setErro(err instanceof Error ? err.message : 'Falha ao carregar configuração.')
@@ -190,12 +192,14 @@ const AssinaturaConfigView = () => {
       setConfig(atualizado)
       setExigeSignatarioCatec(atualizado.exigeSignatarioCatec)
       setPermiteInteracaoManualContrato(atualizado.permiteInteracaoManualContrato)
+      setDesativaAssinaturaViaApi(atualizado.desativaAssinaturaViaApi)
       setClientePapelPreferido(atualizado.clientePapelPreferido)
       toast.success('Configuração salva.')
     } catch (err) {
       if (config) {
         setExigeSignatarioCatec(config.exigeSignatarioCatec)
         setPermiteInteracaoManualContrato(config.permiteInteracaoManualContrato)
+        setDesativaAssinaturaViaApi(config.desativaAssinaturaViaApi)
         setClientePapelPreferido(config.clientePapelPreferido)
       }
 
@@ -380,16 +384,21 @@ const AssinaturaConfigView = () => {
             </Typography>
 
             <Typography variant='body2'>
+              <strong>Assinatura via API ClickSign:</strong>{' '}
+              {desativaAssinaturaViaApi ? 'desativada (fluxo 100% manual)' : 'ativa'}
+            </Typography>
+
+            <Typography variant='body2'>
               <strong>Contingência manual:</strong> {permiteInteracaoManualContrato ? 'ligada' : 'desligada'}
             </Typography>
 
-            {exigeSignatarioCatec && ativosNoEnvio.length === 0 ? (
+            {exigeSignatarioCatec && ativosNoEnvio.length === 0 && !desativaAssinaturaViaApi ? (
               <Alert severity='warning' variant='outlined'>
                 Envio de contratos bloqueado até haver ao menos um CATEC ativo.
               </Alert>
             ) : null}
 
-            {!config?.providerAtivo ? (
+            {!desativaAssinaturaViaApi && !config?.providerAtivo ? (
               <Alert severity='info' variant='outlined'>
                 Provedor inativo — o botão de envio fica indisponível nos contratos.
                 {permiteInteracaoManualContrato
@@ -503,6 +512,7 @@ const AssinaturaConfigView = () => {
                     void salvarParametros({
                       exigeSignatarioCatec: checked,
                       permiteInteracaoManualContrato,
+                      desativaAssinaturaViaApi,
                       clientePapelPreferido
                     })
                   }}
@@ -520,8 +530,40 @@ const AssinaturaConfigView = () => {
             <FormControlLabel
               control={
                 <Switch
-                  checked={permiteInteracaoManualContrato}
+                  checked={desativaAssinaturaViaApi}
                   disabled={!podeGerir || salvando}
+                  onChange={e => {
+                    const checked = e.target.checked
+
+                    setDesativaAssinaturaViaApi(checked)
+
+                    if (checked) {
+                      setPermiteInteracaoManualContrato(true)
+                    }
+
+                    void salvarParametros({
+                      exigeSignatarioCatec,
+                      permiteInteracaoManualContrato: checked ? true : permiteInteracaoManualContrato,
+                      desativaAssinaturaViaApi: checked,
+                      clientePapelPreferido
+                    })
+                  }}
+                />
+              }
+              label={
+                <RotuloComInfo
+                  texto='Desativar assinatura via API ClickSign'
+                  ariaLabel='Sobre desativar a API ClickSign'
+                  dica='Quando ligado, o CATEC não envia o contrato à ClickSign e nenhum e-mail do provedor sai. A contingência manual é marcada automaticamente: aceite, recusa e considerações ficam só na aba Contrato.'
+                />
+              }
+            />
+
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={permiteInteracaoManualContrato}
+                  disabled={!podeGerir || salvando || desativaAssinaturaViaApi}
                   onChange={e => {
                     const checked = e.target.checked
 
@@ -529,6 +571,7 @@ const AssinaturaConfigView = () => {
                     void salvarParametros({
                       exigeSignatarioCatec,
                       permiteInteracaoManualContrato: checked,
+                      desativaAssinaturaViaApi,
                       clientePapelPreferido
                     })
                   }}
@@ -538,7 +581,11 @@ const AssinaturaConfigView = () => {
                 <RotuloComInfo
                   texto='Permitir resposta manual do contrato (contingência)'
                   ariaLabel='Sobre a contingência manual'
-                  dica='Exibe os botões Ajustar contrato, Contrato aceito e Contrato recusado na aba Contrato e oculta o painel de assinatura eletrônica. Deixe desligado no dia a dia; ligue só se a assinatura eletrônica falhar. O webhook continua funcionando.'
+                  dica={
+                    desativaAssinaturaViaApi
+                      ? 'Fica ligada automaticamente enquanto a assinatura via API ClickSign estiver desativada, porque o fluxo passa a ser 100% manual.'
+                      : 'Exibe os botões Ajustar contrato, Contrato aceito e Contrato recusado na aba Contrato e oculta o painel de assinatura eletrônica. Deixe desligado no dia a dia; ligue só se a assinatura eletrônica falhar. O webhook continua funcionando.'
+                  }
                 />
               }
             />
@@ -557,6 +604,7 @@ const AssinaturaConfigView = () => {
                 void salvarParametros({
                   exigeSignatarioCatec,
                   permiteInteracaoManualContrato,
+                  desativaAssinaturaViaApi,
                   clientePapelPreferido: papel
                 })
               }}

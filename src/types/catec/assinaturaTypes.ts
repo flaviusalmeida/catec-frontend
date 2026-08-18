@@ -83,6 +83,7 @@ export type CatecSignatarioCatec = {
 export type CatecAssinaturaConfig = {
   exigeSignatarioCatec: boolean
   permiteInteracaoManualContrato: boolean
+  desativaAssinaturaViaApi: boolean
   clientePapelPreferido: 'EMPRESA' | 'RESPONSAVEL'
   atualizadoEm: string | null
   providerAtivo: boolean
@@ -101,6 +102,7 @@ export type CatecAssinaturaConfig = {
 export type CatecAssinaturaConfigUpdate = {
   exigeSignatarioCatec: boolean
   permiteInteracaoManualContrato: boolean
+  desativaAssinaturaViaApi: boolean
   clientePapelPreferido: 'EMPRESA' | 'RESPONSAVEL'
 }
 
@@ -222,6 +224,7 @@ export function parseCatecAssinaturaConfig(data: unknown): CatecAssinaturaConfig
   return {
     exigeSignatarioCatec: raw.exigeSignatarioCatec === true,
     permiteInteracaoManualContrato: raw.permiteInteracaoManualContrato === true,
+    desativaAssinaturaViaApi: raw.desativaAssinaturaViaApi === true,
     clientePapelPreferido,
     atualizadoEm: raw.atualizadoEm == null ? null : String(raw.atualizadoEm),
     providerAtivo: raw.providerAtivo === true,
