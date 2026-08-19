@@ -55,6 +55,8 @@ function tituloAcaoAuditoria(acao: string, tipoEntidade: string): string {
       return 'Proposta devolvida para ajustes'
     case 'APROVAR_SOCIO':
       return 'Proposta aprovada pelo sócio'
+    case 'REABRIR_APOS_RECUSA':
+      return 'Proposta reaberta após recusa do cliente'
     case 'PROPOSTA_ACEITA_CLIENTE':
       return 'Proposta aceita pelo cliente'
     case 'PROPOSTA_NEGADA_CLIENTE':

@@ -73,5 +73,14 @@ export const catecNavItems: CatecNavItem[] = [
     section: 'Segurança',
     subtitle: 'Permissões e grupos',
     permission: PermissaoCodigo.TELA_GRUPOS
+  },
+  {
+    id: 'config-assinatura',
+    name: 'Assinatura eletrônica',
+    url: '/catec/configuracoes/assinatura',
+    icon: 'tabler-signature',
+    section: 'Configurações',
+    subtitle: 'Responsáveis CATEC e parâmetros do fluxo',
+    permission: PermissaoCodigo.TELA_CONFIG_ASSINATURA
   }
 ]

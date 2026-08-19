@@ -6,11 +6,13 @@ import { aprovarPropostaSocioCatec, devolverPropostaSocioCatec } from '@/libs/ca
 import type {
   CatecAssinatura,
   CatecAssinaturaProviderInfo,
-  CatecEnviarAssinaturaPayload
+  CatecEnviarAssinaturaPayload,
+  CatecSignatarioDisponivel
 } from '@/types/catec/assinaturaTypes'
 import {
   parseCatecAssinatura,
-  parseCatecAssinaturaProviderInfo
+  parseCatecAssinaturaProviderInfo,
+  parseCatecSignatariosDisponiveis
 } from '@/types/catec/assinaturaTypes'
 import type {
   CatecContrato,
@@ -328,6 +330,21 @@ export async function obterAssinaturaContratoCatec(
   return parseCatecAssinatura(data)
 }
 
+export async function listarSignatariosAssinaturaCatec(
+  projetoId: number,
+  contratoId: number
+): Promise<CatecSignatarioDisponivel[]> {
+  const res = await catecApiFetch(
+    `/api/v1/projetos/${projetoId}/contratos/${contratoId}/assinatura/signatarios`
+  )
+
+  const data = await readCatecJsonBody(res)
+
+  assertCatecOk(res, data, 'Não foi possível listar os e-mails para assinatura.')
+
+  return parseCatecSignatariosDisponiveis(data)
+}
+
 export async function enviarAssinaturaContratoCatec(
   projetoId: number,
   contratoId: number,
@@ -383,34 +400,6 @@ async function listarInteracoesPropostaCatec(
     criadoEm: i.criadoEm,
     origem: 'PROPOSTA' as const
   }))
-}
-
-async function obterUltimaConsideracaoClienteProposta(
-  projetoId: number,
-  propostaId: number
-): Promise<string | null> {
-  const res = await catecApiFetch(`/api/v1/projetos/${projetoId}/propostas/${propostaId}/interacoes`)
-  const data = await readCatecJsonBody(res)
-
-  if (!res.ok || !Array.isArray(data)) return null
-
-  const ultima = (data as InteracaoApi[]).find(i => i.tipoInteracao === 'CONSIDERACOES_CLIENTE')
-
-  return ultima?.texto?.trim() ? ultima.texto.trim() : null
-}
-
-async function obterUltimaConsideracaoClienteContrato(
-  projetoId: number,
-  contratoId: number
-): Promise<string | null> {
-  const res = await catecApiFetch(`/api/v1/projetos/${projetoId}/contratos/${contratoId}/interacoes`)
-  const data = await readCatecJsonBody(res)
-
-  if (!res.ok || !Array.isArray(data)) return null
-
-  const ultima = (data as InteracaoApi[]).find(i => i.tipoInteracao === 'CONSIDERACOES_CLIENTE')
-
-  return ultima?.texto?.trim() ? ultima.texto.trim() : null
 }
 
 async function listarInteracoesContratoCatec(
@@ -515,17 +504,8 @@ export async function carregarPropostasComDocumentosCatec(projetoId: number): Pr
   return Promise.all(
     propostas.map(async proposta => {
       const documentos = await listarDocumentosPropostaCatec(projetoId, proposta.id)
-      let consideracoesCliente = proposta.consideracoesCliente
 
-      if (
-        !consideracoesCliente &&
-        proposta.consideracoesPendentes &&
-        proposta.status === 'AGUARDANDO_AJUSTE'
-      ) {
-        consideracoesCliente = await obterUltimaConsideracaoClienteProposta(projetoId, proposta.id)
-      }
-
-      return { ...proposta, documentos, consideracoesCliente }
+      return { ...proposta, documentos }
     })
   )
 }
@@ -537,17 +517,8 @@ export async function carregarContratoComDocumentosCatec(projetoId: number): Pro
   if (!contrato) return null
 
   const documentos = await listarDocumentosContratoCatec(projetoId, contrato.id)
-  let consideracoesCliente = contrato.consideracoesCliente
 
-  if (
-    !consideracoesCliente &&
-    contrato.consideracoesPendentes &&
-    (contrato.status === 'AGUARDANDO_AJUSTE' || contrato.status === 'RASCUNHO')
-  ) {
-    consideracoesCliente = await obterUltimaConsideracaoClienteContrato(projetoId, contrato.id)
-  }
-
-  return { ...contrato, documentos, consideracoesCliente }
+  return { ...contrato, documentos }
 }
 
 export function propostaParaRegistroInteracao(propostas: CatecProposta[]): CatecProposta | null {

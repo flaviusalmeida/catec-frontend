@@ -80,7 +80,7 @@ const ProjetoTabPropostas = ({ projeto, fluxo }: Props) => {
   const ajustandoProposta =
     propostaAtual?.status === 'AGUARDANDO_AJUSTE' ||
     (propostaAtual?.status === 'RASCUNHO' &&
-      Boolean(propostaAtual.parecerSocio || propostaAtual.consideracoesPendentes))
+      Boolean(propostaAtual.comentarioCliente || propostaAtual.consideracoesPendentes))
 
   useEffect(() => {
     if (!ajustandoProposta) {
@@ -153,6 +153,8 @@ const ProjetoTabPropostas = ({ projeto, fluxo }: Props) => {
   const mostrarPropostaAceitaCard = propostaAtual?.status === 'ACEITA' && temAnexo
 
   const mostrarPropostaNegadaCard = propostaAtual?.status === 'NEGADA' && temAnexo
+
+  const motivoCliente = propostaAtual?.comentarioCliente?.trim() || null
 
   const acoesRevisaoSocio = [...acoesWorkflowRestantes]
     .sort((a, b) => {
@@ -291,7 +293,8 @@ const ProjetoTabPropostas = ({ projeto, fluxo }: Props) => {
   }
 
   async function handleUploadProposta(file: File) {
-    const eraAjustePendente = ajustandoProposta && propostaAtual?.status === 'AGUARDANDO_AJUSTE'
+    const eraAjustePendente =
+      propostaAtual?.status === 'AGUARDANDO_AJUSTE' || propostaAtual?.status === 'NEGADA'
 
     await uploadProposta(file)
 
@@ -349,38 +352,6 @@ const ProjetoTabPropostas = ({ projeto, fluxo }: Props) => {
             }
             acoes={acoesAjustarPropostaCard}
           />
-        </Grid>
-      ) : null}
-
-      {propostaAtual?.parecerSocio ? (
-        <Grid size={{ xs: 12 }}>
-          <Card variant='outlined'>
-            <CardHeader
-              title='Parecer do sócio'
-              subheader='Ajuste a proposta conforme os comentários abaixo e reenvie para revisão.'
-            />
-            <CardContent className='pts-0'>
-              <Typography variant='body1' color='text.primary' sx={{ whiteSpace: 'pre-wrap' }}>
-                {propostaAtual.parecerSocio}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      ) : null}
-
-      {propostaAtual?.consideracoesCliente ? (
-        <Grid size={{ xs: 12 }}>
-          <Card variant='outlined'>
-            <CardHeader
-              title='Considerações do cliente'
-              subheader='Ajuste a proposta conforme os comentários abaixo e reenvie para revisão.'
-            />
-            <CardContent className='pts-0'>
-              <Typography variant='body1' color='text.primary' sx={{ whiteSpace: 'pre-wrap' }}>
-                {propostaAtual.consideracoesCliente}
-              </Typography>
-            </CardContent>
-          </Card>
         </Grid>
       ) : null}
 
@@ -510,7 +481,7 @@ const ProjetoTabPropostas = ({ projeto, fluxo }: Props) => {
       {mostrarPropostaNegadaCard ? (
         <Grid size={{ xs: 12 }}>
           <ProjetoUploadCard
-            titulo='Documento da proposta'
+            titulo='Proposta recusada pelo cliente'
             nomeArquivo={documentoAtual?.nomeOriginal}
             meta={
               documentoAtual
@@ -522,12 +493,12 @@ const ProjetoTabPropostas = ({ projeto, fluxo }: Props) => {
                 <PropostaStatusBadge status={propostaAtual.status} />
               ) : undefined
             }
-            permitirSubstituir={false}
+            permitirSubstituir
             disabled={processando}
             documentoId={documentoAtual?.id}
             previewTitulo='Proposta comercial'
             previewSubtitulo={previewPropostaSubtitulo}
-            onUpload={uploadProposta}
+            onUpload={handleUploadProposta}
             onDownload={() =>
               void downloadDocumentoCatec(documentoAtual!.id, documentoAtual!.nomeOriginal).catch(err =>
                 toast.error(err instanceof Error ? err.message : 'Download falhou.')
@@ -570,6 +541,19 @@ const ProjetoTabPropostas = ({ projeto, fluxo }: Props) => {
                   }
                 />
               ))}
+            </CardContent>
+          </Card>
+        </Grid>
+      ) : null}
+
+      {motivoCliente ? (
+        <Grid size={{ xs: 12 }}>
+          <Card variant='outlined'>
+            <CardHeader title='Comentários' />
+            <CardContent className='pts-0'>
+              <Typography variant='body1' color='text.primary' sx={{ whiteSpace: 'pre-wrap' }}>
+                {motivoCliente}
+              </Typography>
             </CardContent>
           </Card>
         </Grid>

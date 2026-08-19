@@ -48,8 +48,6 @@ const ProjetoDetalhe = ({ id }: Props) => {
       return
     }
 
-    if (fluxo.carregando) return
-
     let cancelled = false
 
     void (async () => {
@@ -66,7 +64,7 @@ const ProjetoDetalhe = ({ id }: Props) => {
     return () => {
       cancelled = true
     }
-  }, [projetoId, fluxo.carregando, refreshProjeto])
+  }, [projetoId, refreshProjeto])
 
   const aguardandoConteudoInicial = (carregando || fluxo.carregando) && !projeto
 
@@ -103,7 +101,12 @@ const ProjetoDetalhe = ({ id }: Props) => {
         </Grid>
       ) : null}
       <Grid size={{ xs: 12, lg: 4, md: 5 }}>
-        <ProjetoLeftOverview projeto={projeto} onStatusAlterado={recarregarProjeto} />
+        <ProjetoLeftOverview
+          projeto={projeto}
+          propostaStatus={fluxo.propostaAtual?.status}
+          contratoStatus={fluxo.data.contrato?.status}
+          onStatusAlterado={recarregarProjeto}
+        />
       </Grid>
       <Grid size={{ xs: 12, lg: 8, md: 7 }}>
         <ProjetoRight projeto={projeto} fluxo={fluxo} />

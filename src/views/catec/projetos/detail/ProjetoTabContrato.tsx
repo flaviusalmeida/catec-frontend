@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from 'react'
 
+import Link from 'next/link'
+
+import Alert from '@mui/material/Alert'
 import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
@@ -10,11 +13,17 @@ import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
 import DialogTitle from '@mui/material/DialogTitle'
+import FormControl from '@mui/material/FormControl'
+import FormControlLabel from '@mui/material/FormControlLabel'
+import FormLabel from '@mui/material/FormLabel'
 import Grid from '@mui/material/Grid'
+import Radio from '@mui/material/Radio'
+import RadioGroup from '@mui/material/RadioGroup'
 import Typography from '@mui/material/Typography'
 import { toast } from 'react-toastify'
 
 import type { CatecProjeto } from '@/types/catec/projetoTypes'
+import type { CatecAssinaturaConfig, CatecSignatarioDisponivel } from '@/types/catec/assinaturaTypes'
 import {
   STATUS_CONTRATO_INTERACAO_CLIENTE,
   STATUS_CONTRATO_ROTULO,
@@ -24,6 +33,8 @@ import {
 } from '@/types/catec/projetoFluxoTypes'
 
 import { downloadDocumentoCatec } from '@/utils/catec/downloadDocumento'
+import { obterAssinaturaConfigCatec } from '@/libs/catecAssinaturaConfigApi'
+import { listarSignatariosAssinaturaCatec } from '@/libs/catecProjetosApi'
 
 import { useCatecPermission } from '@/hooks/useCatecPermission'
 import { PermissaoCodigo } from '@/types/catec/permissao'
@@ -52,6 +63,7 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
     assinaturaProviderAtivo,
     uploadContrato,
     enviarAssinatura,
+    enviarContratoCliente,
     atualizarStatusAssinatura,
     registrarInteracao,
     recarregar,
@@ -62,6 +74,11 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
   const { hasPermission } = useCatecPermission()
   const [dialogInteracaoCliente, setDialogInteracaoCliente] = useState<DialogInteracaoCliente>(null)
   const [textoInteracaoCliente, setTextoInteracaoCliente] = useState('')
+  const [dialogEnvioAssinaturaAberto, setDialogEnvioAssinaturaAberto] = useState(false)
+  const [signatariosDisponiveis, setSignatariosDisponiveis] = useState<CatecSignatarioDisponivel[]>([])
+  const [emailSignatarioSelecionado, setEmailSignatarioSelecionado] = useState('')
+  const [carregandoSignatarios, setCarregandoSignatarios] = useState(false)
+  const [assinaturaConfig, setAssinaturaConfig] = useState<CatecAssinaturaConfig | null>(null)
 
   const [prazoInicioExecucaoDias, setPrazoInicioExecucaoDias] = useState(
     projeto.prazoInicioExecucaoDias != null ? String(projeto.prazoInicioExecucaoDias) : ''
@@ -80,6 +97,16 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
       setPrazoConclusaoDias(String(projeto.prazoConclusaoDias))
     }
   }, [projeto.id, projeto.prazoInicioExecucaoDias, projeto.prazoConclusaoDias])
+
+  useEffect(() => {
+    void obterAssinaturaConfigCatec()
+      .then(cfg => {
+        setAssinaturaConfig(cfg)
+      })
+      .catch(() => {
+        setAssinaturaConfig(null)
+      })
+  }, [projeto.id])
 
   const contrato = data.contrato
   const documentoAtual = contrato?.documentos[0] ?? null
@@ -119,14 +146,28 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
     contrato != null && STATUS_CONTRATO_INTERACAO_CLIENTE.includes(contrato.status)
 
   const podeRegistrarRespostaCliente =
-    aguardandoRespostaCliente && hasPermission(PermissaoCodigo.ACAO_INTERACAO_REGISTRAR)
+    aguardandoRespostaCliente &&
+    hasPermission(PermissaoCodigo.ACAO_INTERACAO_REGISTRAR) &&
+    (contrato?.status === 'ENVIADO_AO_CLIENTE' ||
+      Boolean(assinaturaConfig?.permiteInteracaoManualContrato))
+
+  const desativaAssinaturaViaApi = Boolean(assinaturaConfig?.desativaAssinaturaViaApi)
 
   const podeEnviarAssinatura =
     podeEditarContrato &&
     contrato?.status === 'RASCUNHO' &&
     temAnexo &&
     assinaturaProviderAtivo &&
+    !desativaAssinaturaViaApi &&
     hasPermission(PermissaoCodigo.ACAO_CONTRATO_ASSINATURA_ENVIAR)
+
+  const podeEnviarContratoManual =
+    podeEditarContrato &&
+    contrato?.status === 'RASCUNHO' &&
+    temAnexo &&
+    desativaAssinaturaViaApi &&
+    (hasPermission(PermissaoCodigo.ACAO_CONTRATO_ENVIAR) ||
+      hasPermission(PermissaoCodigo.ACAO_CONTRATO_ASSINATURA_ENVIAR))
 
   const acoesRespostaCliente: Array<{
     tipo: CatecTipoInteracaoFluxo
@@ -209,12 +250,113 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
       return
     }
 
+    if (!contrato) {
+      return
+    }
+
+    const catecAtivos =
+      assinaturaConfig?.signatariosCatec.filter(s => s.ativo && s.usuarioAtivo) ?? []
+
+    if (assinaturaConfig?.exigeSignatarioCatec && catecAtivos.length === 0) {
+      toast.error(
+        'Configure ao menos um responsável CATEC em Configurações → Assinatura eletrônica antes de enviar.'
+      )
+
+      return
+    }
+
+    setCarregandoSignatarios(true)
+    setDialogEnvioAssinaturaAberto(true)
+    setEmailSignatarioSelecionado('')
+
+    void Promise.all([
+      listarSignatariosAssinaturaCatec(projeto.id, contrato.id),
+      obterAssinaturaConfigCatec().catch(() => assinaturaConfig)
+    ])
+      .then(([lista, cfg]) => {
+        if (cfg) {
+          setAssinaturaConfig(cfg)
+        }
+
+        setSignatariosDisponiveis(lista)
+
+        if (lista.length === 0) {
+          toast.error('Cadastre o e-mail da empresa e/ou do responsável no cliente.')
+          setDialogEnvioAssinaturaAberto(false)
+
+          return
+        }
+
+        const papelPreferido = cfg?.clientePapelPreferido ?? 'RESPONSAVEL'
+
+        const preferido =
+          lista.find(s => s.papel === papelPreferido) ??
+          lista.find(s => s.papel === 'RESPONSAVEL') ??
+          lista[0]
+
+        setEmailSignatarioSelecionado(preferido.email)
+      })
+      .catch(err => {
+        toast.error(err instanceof Error ? err.message : 'Não foi possível carregar os e-mails.')
+        setDialogEnvioAssinaturaAberto(false)
+      })
+      .finally(() => setCarregandoSignatarios(false))
+  }
+
+  function fecharDialogEnvioAssinatura() {
+    if (processando || carregandoSignatarios) {
+      return
+    }
+
+    setDialogEnvioAssinaturaAberto(false)
+  }
+
+  function confirmarEnvioAssinatura() {
+    const diasInicio = Number.parseInt(prazoInicioExecucaoDias.trim(), 10)
+    const diasConclusao = Number.parseInt(prazoConclusaoDias.trim(), 10)
+
+    if (!emailSignatarioSelecionado.trim()) {
+      toast.error('Selecione para quem enviar a assinatura.')
+
+      return
+    }
+
     void enviarAssinatura({
+      prazoInicioExecucaoDias: diasInicio,
+      prazoConclusaoDias: diasConclusao,
+      emails: [emailSignatarioSelecionado.trim()]
+    })
+      .then(() => {
+        toast.success('Contrato enviado para assinatura eletrônica.')
+        setDialogEnvioAssinaturaAberto(false)
+      })
+      .catch(err => toast.error(err instanceof Error ? err.message : 'Envio para assinatura falhou.'))
+  }
+
+  function handleEnviarContratoManual() {
+    const diasInicio = Number.parseInt(prazoInicioExecucaoDias.trim(), 10)
+    const diasConclusao = Number.parseInt(prazoConclusaoDias.trim(), 10)
+
+    if (!Number.isFinite(diasInicio) || diasInicio < 1) {
+      toast.error('Informe o prazo para início da execução em dias.')
+
+      return
+    }
+
+    if (!Number.isFinite(diasConclusao) || diasConclusao < 1) {
+      toast.error('Informe o prazo para conclusão do projeto em dias.')
+
+      return
+    }
+
+    void enviarContratoCliente({
       prazoInicioExecucaoDias: diasInicio,
       prazoConclusaoDias: diasConclusao
     })
-      .then(() => toast.success('Contrato enviado para assinatura eletrônica.'))
-      .catch(err => toast.error(err instanceof Error ? err.message : 'Envio para assinatura falhou.'))
+      .then(() => {
+        toast.success('Contrato enviado. Aceite e recusa são manuais (sem e-mail da ClickSign).')
+      })
+      .catch(err => toast.error(err instanceof Error ? err.message : 'Não foi possível enviar o contrato.'))
   }
 
   if (!podeVisualizarContrato) {
@@ -247,11 +389,22 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
   const mostrarRespostaClienteCard =
     (contrato?.status === 'ENVIADO_AO_CLIENTE' || contrato?.status === 'AGUARDANDO_ASSINATURA') && temAnexo
 
-  const mostrarAssinaturaDiagnostico = contrato?.status === 'AGUARDANDO_ASSINATURA' && assinatura?.id != null
+  const precisaRecuperarPdfAssinado =
+    contrato?.status === 'ACEITO' &&
+    assinatura?.id != null &&
+    Boolean(assinatura.externalEnvelopeId)
+
+  const mostrarAssinaturaDiagnostico =
+    !assinaturaConfig?.permiteInteracaoManualContrato &&
+    assinatura?.id != null &&
+    Boolean(assinatura.externalEnvelopeId) &&
+    (contrato?.status === 'AGUARDANDO_ASSINATURA' || precisaRecuperarPdfAssinado)
 
   const mostrarContratoAceitoCard = contrato?.status === 'ACEITO' && temAnexo
 
   const mostrarContratoRecusadoCard = contrato?.status === 'RECUSADO' && temAnexo
+
+  const motivoCliente = contrato?.comentarioCliente?.trim() || null
 
   const mostrarUploadCard = Boolean(
     podeIniciarContrato ||
@@ -259,15 +412,24 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
         (ajustandoContratoCliente || (contrato?.status === 'RASCUNHO' && !temAnexo)))
   )
 
-  const acaoEnviarAssinatura =
-    podeEnviarAssinatura
+  const acaoEnviarAssinatura = podeEnviarAssinatura
+    ? [
+        {
+          key: 'enviar-assinatura',
+          label: 'Enviar para assinatura',
+          color: 'primary' as const,
+          alinhamento: 'fim' as const,
+          onClick: handleEnviarAssinatura
+        }
+      ]
+    : podeEnviarContratoManual
       ? [
           {
-            key: 'enviar-assinatura',
-            label: 'Enviar para assinatura',
+            key: 'enviar-cliente',
+            label: 'Enviar ao cliente',
             color: 'primary' as const,
             alinhamento: 'fim' as const,
-            onClick: handleEnviarAssinatura
+            onClick: handleEnviarContratoManual
           }
         ]
       : []
@@ -388,7 +550,12 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
             areaEntreArquivoEAcoes={
               <>
                 {campoPrazos}
-                {ajustandoContratoCliente && !assinaturaProviderAtivo ? (
+                {ajustandoContratoCliente && desativaAssinaturaViaApi ? (
+                  <Typography variant='body2' color='text.secondary'>
+                    Assinatura via API ClickSign desativada. Reenvie o contrato nesta tela; aceite e recusa
+                    continuam manuais, sem e-mail do provedor.
+                  </Typography>
+                ) : ajustandoContratoCliente && !assinaturaProviderAtivo ? (
                   <Typography variant='body2' color='text.secondary'>
                     Ative o provedor de assinatura (`stub` ou `clicksign`) para reenviar o contrato. Não há envio
                     manual.
@@ -398,22 +565,6 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
             }
             acoes={acoesAjustarContratoCard}
           />
-        </Grid>
-      ) : null}
-
-      {contrato?.consideracoesCliente ? (
-        <Grid size={{ xs: 12 }}>
-          <Card variant='outlined'>
-            <CardHeader
-              title='Considerações do cliente'
-              subheader='Ajuste o contrato conforme os comentários abaixo e reenvie ao cliente.'
-            />
-            <CardContent className='pts-0'>
-              <Typography variant='body1' color='text.primary' sx={{ whiteSpace: 'pre-wrap' }}>
-                {contrato.consideracoesCliente}
-              </Typography>
-            </CardContent>
-          </Card>
         </Grid>
       ) : null}
 
@@ -430,7 +581,12 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
             areaEntreArquivoEAcoes={
               <>
                 {campoPrazos}
-                {!assinaturaProviderAtivo ? (
+                {desativaAssinaturaViaApi ? (
+                  <Typography variant='body2' color='text.secondary'>
+                    Assinatura via API ClickSign desativada. O envio não dispara e-mail; registre aceite ou recusa
+                    na aba Contrato.
+                  </Typography>
+                ) : !assinaturaProviderAtivo ? (
                   <Typography variant='body2' color='text.secondary'>
                     Ative o provedor de assinatura (`stub` ou `clicksign`) para enviar o contrato. Não há envio
                     manual.
@@ -440,48 +596,6 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
             }
             acoes={acaoEnviarAssinatura}
           />
-        </Grid>
-      ) : null}
-
-      {mostrarAssinaturaDiagnostico && assinatura ? (
-        <Grid size={{ xs: 12 }}>
-          <Card variant='outlined'>
-            <CardHeader
-              title='Assinatura eletrônica'
-              subheader='Diagnóstico do ciclo com o provedor (sem secrets).'
-              action={
-                <Button
-                  size='small'
-                  variant='tonal'
-                  disabled={processando}
-                  onClick={() =>
-                    void atualizarStatusAssinatura()
-                      .then(() => toast.success('Status atualizado.'))
-                      .catch(err =>
-                        toast.error(err instanceof Error ? err.message : 'Falha ao atualizar status.')
-                      )
-                  }
-                >
-                  Atualizar status
-                </Button>
-              }
-            />
-            <CardContent className='flex flex-col gap-2'>
-              <Typography variant='body2'>
-                Provedor: {assinatura.providerCodigo} · Status interno: {assinatura.statusInterno ?? '—'}
-              </Typography>
-              <Typography variant='body2'>Status externo: {assinatura.statusExterno ?? '—'}</Typography>
-              <Typography variant='body2'>Envelope: {assinatura.externalEnvelopeId ?? '—'}</Typography>
-              {assinatura.ultimoErro ? (
-                <Typography variant='body2' color='error'>
-                  Último erro: {assinatura.ultimoErro}
-                </Typography>
-              ) : null}
-              <Typography variant='caption' color='text.secondary'>
-                O status do contrato atualiza automaticamente quando a assinatura for concluída ou recusada.
-              </Typography>
-            </CardContent>
-          </Card>
         </Grid>
       ) : null}
 
@@ -519,15 +633,73 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
       {mostrarContratoRecusadoCard ? (
         <Grid size={{ xs: 12 }}>
           <ProjetoUploadCard
-            titulo='Contrato'
+            titulo='Contrato recusado pelo cliente'
             nomeArquivo={documentoAtual?.nomeOriginal}
             {...propsDocumentoEstruturado}
-            permitirSubstituir={false}
+            permitirSubstituir={podeEditarContrato}
             disabled={processando}
             onUpload={uploadContrato}
             onDownload={downloadDocumento}
             {...previewDocumentoProps}
           />
+        </Grid>
+      ) : null}
+
+      {mostrarAssinaturaDiagnostico && assinatura ? (
+        <Grid size={{ xs: 12 }}>
+          <Card variant='outlined'>
+            <CardHeader
+              title='Assinatura eletrônica'
+              action={
+                contrato?.status === 'AGUARDANDO_ASSINATURA' || precisaRecuperarPdfAssinado ? (
+                  <Button
+                    size='small'
+                    variant='tonal'
+                    disabled={processando}
+                    onClick={() =>
+                      void atualizarStatusAssinatura()
+                        .then(ciclo => {
+                          if (ciclo?.ultimoErro) {
+                            toast.error(ciclo.ultimoErro)
+
+                            return
+                          }
+
+                          toast.success(
+                            precisaRecuperarPdfAssinado
+                              ? 'PDF assinado atualizado.'
+                              : 'Status atualizado.'
+                          )
+                        })
+                        .catch(err =>
+                          toast.error(err instanceof Error ? err.message : 'Falha ao atualizar status.')
+                        )
+                    }
+                  >
+                    {precisaRecuperarPdfAssinado ? 'Buscar PDF assinado' : 'Atualizar status'}
+                  </Button>
+                ) : undefined
+              }
+            />
+            <CardContent className='flex flex-col gap-2'>
+              <Typography variant='body2'>
+                Provedor: {assinatura.providerCodigo} · Status interno: {assinatura.statusInterno ?? '—'}
+              </Typography>
+              <Typography variant='body2'>Status externo: {assinatura.statusExterno ?? '—'}</Typography>
+              <Typography variant='body2'>Envelope: {assinatura.externalEnvelopeId ?? '—'}</Typography>
+              {assinatura.signatarios.length > 0 ? (
+                <Typography variant='body2'>
+                  Signatários:{' '}
+                  {assinatura.signatarios.map(s => `${s.rotulo} — ${s.nome} (${s.email})`).join('; ')}
+                </Typography>
+              ) : null}
+              {assinatura.ultimoErro ? (
+                <Typography variant='body2' color='error'>
+                  Último erro: {assinatura.ultimoErro}
+                </Typography>
+              ) : null}
+            </CardContent>
+          </Card>
         </Grid>
       ) : null}
 
@@ -563,6 +735,98 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
           </Card>
         </Grid>
       ) : null}
+
+      {motivoCliente ? (
+        <Grid size={{ xs: 12 }}>
+          <Card variant='outlined'>
+            <CardHeader title='Comentários' />
+            <CardContent className='pts-0'>
+              <Typography variant='body1' color='text.primary' sx={{ whiteSpace: 'pre-wrap' }}>
+                {motivoCliente}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      ) : null}
+
+      <Dialog open={dialogEnvioAssinaturaAberto} onClose={fecharDialogEnvioAssinatura} fullWidth maxWidth='sm'>
+        <DialogTitle>Enviar para assinatura</DialogTitle>
+        <DialogContent className='flex flex-col gap-4 pbs-2'>
+          <Typography variant='body2' color='text.secondary'>
+            Escolha o e-mail do cliente. Os responsáveis CATEC ativos entram automaticamente no envelope.
+          </Typography>
+          {carregandoSignatarios ? (
+            <Typography variant='body2' color='text.secondary'>
+              Carregando e-mails…
+            </Typography>
+          ) : (
+            <>
+              <FormControl>
+                <FormLabel id='signatario-assinatura-label'>Assinatura do cliente</FormLabel>
+                <RadioGroup
+                  aria-labelledby='signatario-assinatura-label'
+                  name='signatario-assinatura'
+                  value={emailSignatarioSelecionado}
+                  onChange={e => setEmailSignatarioSelecionado(e.target.value)}
+                >
+                  {signatariosDisponiveis.map(s => (
+                    <FormControlLabel
+                      key={s.email}
+                      value={s.email}
+                      control={<Radio />}
+                      label={
+                        <span>
+                          <strong>{s.rotulo}</strong> — {s.nome} ({s.email})
+                        </span>
+                      }
+                    />
+                  ))}
+                </RadioGroup>
+              </FormControl>
+
+              {(() => {
+                const catecAtivos =
+                  assinaturaConfig?.signatariosCatec.filter(s => s.ativo && s.usuarioAtivo) ?? []
+
+                if (catecAtivos.length === 0) {
+                  return (
+                    <Alert severity='warning' variant='outlined'>
+                      Nenhum responsável CATEC ativo.{' '}
+                      <Link href='/catec/configuracoes/assinatura' className='underline'>
+                        Abrir configuração
+                      </Link>
+                    </Alert>
+                  )
+                }
+
+                return (
+                  <Alert severity='info' variant='outlined'>
+                    Também assinam (CATEC):{' '}
+                    {catecAtivos.map(s => `${s.nome} (${s.email})`).join('; ')}
+                  </Alert>
+                )
+              })()}
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button
+            variant='tonal'
+            color='secondary'
+            onClick={fecharDialogEnvioAssinatura}
+            disabled={processando || carregandoSignatarios}
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant='contained'
+            onClick={confirmarEnvioAssinatura}
+            disabled={processando || carregandoSignatarios || !emailSignatarioSelecionado}
+          >
+            Enviar
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog open={dialogInteracaoCliente != null} onClose={fecharDialogInteracaoCliente} fullWidth maxWidth='sm'>
         <DialogTitle>

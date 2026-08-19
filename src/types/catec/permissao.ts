@@ -8,6 +8,7 @@ export const PermissaoCodigo = {
   TELA_USUARIOS: 'tela.usuarios',
   TELA_SOCIO_PROPOSTAS: 'tela.socio.propostas',
   TELA_GRUPOS: 'tela.grupos',
+  TELA_CONFIG_ASSINATURA: 'tela.config.assinatura',
 
   ACAO_ATIVIDADE_CRIAR: 'acao.atividade.criar',
   ACAO_ATIVIDADE_EDITAR: 'acao.atividade.editar',
@@ -33,7 +34,8 @@ export const PermissaoCodigo = {
   ACAO_CONTRATO_ASSINATURA_ENVIAR: 'acao.contrato.assinatura_enviar',
   ACAO_DOCUMENTO_UPLOAD: 'acao.documento.upload',
   ACAO_INTERACAO_REGISTRAR: 'acao.interacao.registrar',
-  ACAO_GRUPO_GERIR: 'acao.grupo.gerir'
+  ACAO_GRUPO_GERIR: 'acao.grupo.gerir',
+  ACAO_CONFIG_ASSINATURA_GERIR: 'acao.config.assinatura.gerir'
 } as const
 
 export type PermissaoCodigoValor = (typeof PermissaoCodigo)[keyof typeof PermissaoCodigo]

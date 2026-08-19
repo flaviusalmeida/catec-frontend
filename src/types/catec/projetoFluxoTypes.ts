@@ -86,7 +86,12 @@ export const TIPO_INTERACAO_ROTULO_CONTRATO: Record<CatecTipoInteracaoFluxo, str
   CONSIDERACOES_CLIENTE: 'Ajustar contrato'
 }
 
-export const STATUS_PROPOSTA_UPLOAD: CatecPropostaStatus[] = ['RASCUNHO', 'PENDENTE_AVALIACAO', 'AGUARDANDO_AJUSTE']
+export const STATUS_PROPOSTA_UPLOAD: CatecPropostaStatus[] = [
+  'RASCUNHO',
+  'PENDENTE_AVALIACAO',
+  'AGUARDANDO_AJUSTE',
+  'NEGADA'
+]
 export const STATUS_PROPOSTA_ENVIADA: CatecPropostaStatus[] = [
   'ENVIADA_AO_CLIENTE',
   'AGUARDANDO_AJUSTE',
@@ -116,7 +121,7 @@ export function propostaAguardandoEnvioAoCliente(proposta: {
   return normalizarStatusProposta(proposta.status, proposta.avaliadaSocioEm) === 'AGUARDANDO_ENVIO'
 }
 
-export const STATUS_CONTRATO_UPLOAD: CatecContratoStatus[] = ['RASCUNHO', 'AGUARDANDO_AJUSTE']
+export const STATUS_CONTRATO_UPLOAD: CatecContratoStatus[] = ['RASCUNHO', 'AGUARDANDO_AJUSTE', 'RECUSADO']
 export const STATUS_CONTRATO_INTERACAO_CLIENTE: CatecContratoStatus[] = [
   'ENVIADO_AO_CLIENTE',
   'AGUARDANDO_ASSINATURA'
@@ -148,8 +153,7 @@ export type CatecProposta = {
   enviadaClienteEm: string | null
   avaliadaSocioEm: string | null
   consideracoesPendentes: boolean
-  consideracoesCliente: string | null
-  parecerSocio: string | null
+  comentarioCliente: string | null
   criadoEm: string
   atualizadoEm: string
   documentos: CatecDocumentoAnexo[]
@@ -163,8 +167,9 @@ export type CatecContrato = {
   elaboradoPorNome: string
   enviadoClienteEm: string | null
   aceitoClienteEm: string | null
+  recusadoClienteEm: string | null
   consideracoesPendentes: boolean
-  consideracoesCliente: string | null
+  comentarioCliente: string | null
   criadoEm: string
   atualizadoEm: string
   documentos: CatecDocumentoAnexo[]
@@ -241,8 +246,7 @@ export function parseCatecProposta(raw: unknown): CatecProposta {
     enviadaClienteEm: data.enviadaClienteEm == null ? null : String(data.enviadaClienteEm),
     avaliadaSocioEm,
     consideracoesPendentes: data.consideracoesPendentes === true,
-    consideracoesCliente: data.consideracoesCliente == null ? null : String(data.consideracoesCliente),
-    parecerSocio: data.parecerSocio == null ? null : String(data.parecerSocio),
+    comentarioCliente: data.comentarioCliente == null ? null : String(data.comentarioCliente),
     criadoEm: String(data.criadoEm ?? ''),
     atualizadoEm: String(data.atualizadoEm ?? ''),
     documentos: []
@@ -266,8 +270,9 @@ export function parseCatecContrato(raw: unknown): CatecContrato {
     elaboradoPorNome: String(data.elaboradoPorNome ?? ''),
     enviadoClienteEm: data.enviadoClienteEm == null ? null : String(data.enviadoClienteEm),
     aceitoClienteEm: data.aceitoClienteEm == null ? null : String(data.aceitoClienteEm),
+    recusadoClienteEm: data.recusadoClienteEm == null ? null : String(data.recusadoClienteEm),
     consideracoesPendentes: data.consideracoesPendentes === true,
-    consideracoesCliente: data.consideracoesCliente == null ? null : String(data.consideracoesCliente),
+    comentarioCliente: data.comentarioCliente == null ? null : String(data.comentarioCliente),
     criadoEm: String(data.criadoEm ?? ''),
     atualizadoEm: String(data.atualizadoEm ?? ''),
     documentos: []
