@@ -31,7 +31,7 @@ export type CatecAssinatura = {
   documentoOrigemId: number | null
   documentoAssinadoId: number | null
   correlationId: string | null
-  ultimoErro: string | null
+  ultimaIteracao: string | null
   tentativas: number
   enviadoEm: string | null
   atualizadoEm: string | null
@@ -61,6 +61,7 @@ export type CatecEnviarAssinaturaPayload = {
   prazoInicioExecucaoDias: number
   prazoConclusaoDias: number
   emails: string[]
+  papel?: 'EMPRESA' | 'RESPONSAVEL'
 }
 
 export type CatecSignatarioDisponivel = {
@@ -68,6 +69,20 @@ export type CatecSignatarioDisponivel = {
   email: string
   papel: string
   rotulo: string
+}
+
+export function chaveSignatarioCliente(s: Pick<CatecSignatarioDisponivel, 'papel' | 'email'>): string {
+  return `${s.papel}|${s.email}`
+}
+
+export function parseChaveSignatarioCliente(chave: string): { papel: string; email: string } {
+  const i = chave.indexOf('|')
+
+  if (i < 0) {
+    return { papel: '', email: chave }
+  }
+
+  return { papel: chave.slice(0, i), email: chave.slice(i + 1) }
 }
 
 export type CatecSignatarioCatec = {
@@ -140,6 +155,21 @@ export function parseCatecAssinaturaProviderInfo(data: unknown): CatecAssinatura
   }
 }
 
+function parseUltimaIteracao(raw: Record<string, unknown>): string | null {
+  const value = raw.ultimaIteracao ?? raw.ultimoErro
+
+  return value == null ? null : String(value)
+}
+
+/** Falha da iteração atual (PDF/provedor), não um mero registro de webhook/consulta. */
+export function isFalhaUltimaIteracao(mensagem: string | null | undefined): boolean {
+  if (!mensagem) {
+    return false
+  }
+
+  return /não retornou URL|não está pronta|vazio|Falha ao|Evento de erro|Download do PDF/i.test(mensagem)
+}
+
 export function parseCatecAssinatura(data: unknown): CatecAssinatura {
   const raw = (data ?? {}) as Record<string, unknown>
   const eventosRaw = Array.isArray(raw.eventos) ? raw.eventos : []
@@ -156,7 +186,7 @@ export function parseCatecAssinatura(data: unknown): CatecAssinatura {
     documentoOrigemId: raw.documentoOrigemId == null ? null : Number(raw.documentoOrigemId),
     documentoAssinadoId: raw.documentoAssinadoId == null ? null : Number(raw.documentoAssinadoId),
     correlationId: raw.correlationId == null ? null : String(raw.correlationId),
-    ultimoErro: raw.ultimoErro == null ? null : String(raw.ultimoErro),
+    ultimaIteracao: parseUltimaIteracao(raw),
     tentativas: Number(raw.tentativas ?? 0),
     enviadoEm: raw.enviadoEm == null ? null : String(raw.enviadoEm),
     atualizadoEm: raw.atualizadoEm == null ? null : String(raw.atualizadoEm),
