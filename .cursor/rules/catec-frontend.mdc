@@ -28,3 +28,4 @@ Fonte da verdade para novas features:
 4. Não criar portal do cliente nem módulos Fase 2 (OS, relatórios, assinatura, notificações) sem pedido explícito
 5. Preferir `pnpm dev` (Webpack); não reintroduzir i18n nas URLs do produto
 6. Atualizar docs funcionais quando o comportamento da UI mudar
+7. **Antes de concluir** (sempre): rodar `pnpm lint` na raiz do `catec-frontend` e corrigir **erros** introduzidos ou já falhando no CI. Warnings `react-hooks/exhaustive-deps` em `views/catec/` também devem ser resolvidos (não deixar o lint vermelho no pipeline). Não dar a tarefa por encerrada com `pnpm lint` falhando.

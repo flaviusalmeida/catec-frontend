@@ -23,7 +23,13 @@ import Typography from '@mui/material/Typography'
 import { toast } from 'react-toastify'
 
 import type { CatecProjeto } from '@/types/catec/projetoTypes'
-import type { CatecAssinaturaConfig, CatecSignatarioDisponivel } from '@/types/catec/assinaturaTypes'
+import {
+  chaveSignatarioCliente,
+  isFalhaUltimaIteracao,
+  parseChaveSignatarioCliente,
+  type CatecAssinaturaConfig,
+  type CatecSignatarioDisponivel
+} from '@/types/catec/assinaturaTypes'
 import {
   STATUS_CONTRATO_INTERACAO_CLIENTE,
   STATUS_CONTRATO_ROTULO,
@@ -76,7 +82,7 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
   const [textoInteracaoCliente, setTextoInteracaoCliente] = useState('')
   const [dialogEnvioAssinaturaAberto, setDialogEnvioAssinaturaAberto] = useState(false)
   const [signatariosDisponiveis, setSignatariosDisponiveis] = useState<CatecSignatarioDisponivel[]>([])
-  const [emailSignatarioSelecionado, setEmailSignatarioSelecionado] = useState('')
+  const [chaveSignatarioSelecionado, setChaveSignatarioSelecionado] = useState('')
   const [carregandoSignatarios, setCarregandoSignatarios] = useState(false)
   const [assinaturaConfig, setAssinaturaConfig] = useState<CatecAssinaturaConfig | null>(null)
 
@@ -267,7 +273,7 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
 
     setCarregandoSignatarios(true)
     setDialogEnvioAssinaturaAberto(true)
-    setEmailSignatarioSelecionado('')
+    setChaveSignatarioSelecionado('')
 
     void Promise.all([
       listarSignatariosAssinaturaCatec(projeto.id, contrato.id),
@@ -294,7 +300,7 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
           lista.find(s => s.papel === 'RESPONSAVEL') ??
           lista[0]
 
-        setEmailSignatarioSelecionado(preferido.email)
+        setChaveSignatarioSelecionado(chaveSignatarioCliente(preferido))
       })
       .catch(err => {
         toast.error(err instanceof Error ? err.message : 'Não foi possível carregar os e-mails.')
@@ -315,16 +321,24 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
     const diasInicio = Number.parseInt(prazoInicioExecucaoDias.trim(), 10)
     const diasConclusao = Number.parseInt(prazoConclusaoDias.trim(), 10)
 
-    if (!emailSignatarioSelecionado.trim()) {
+    if (!chaveSignatarioSelecionado.trim()) {
       toast.error('Selecione para quem enviar a assinatura.')
 
       return
     }
 
+    const selecionado = parseChaveSignatarioCliente(chaveSignatarioSelecionado)
+
+    const papel =
+      selecionado.papel === 'EMPRESA' || selecionado.papel === 'RESPONSAVEL'
+        ? selecionado.papel
+        : undefined
+
     void enviarAssinatura({
       prazoInicioExecucaoDias: diasInicio,
       prazoConclusaoDias: diasConclusao,
-      emails: [emailSignatarioSelecionado.trim()]
+      emails: [selecionado.email.trim()],
+      papel
     })
       .then(() => {
         toast.success('Contrato enviado para assinatura eletrônica.')
@@ -659,8 +673,8 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
                     onClick={() =>
                       void atualizarStatusAssinatura()
                         .then(ciclo => {
-                          if (ciclo?.ultimoErro) {
-                            toast.error(ciclo.ultimoErro)
+                          if (isFalhaUltimaIteracao(ciclo?.ultimaIteracao)) {
+                            toast.error(ciclo?.ultimaIteracao ?? 'Falha ao atualizar status.')
 
                             return
                           }
@@ -693,9 +707,12 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
                   {assinatura.signatarios.map(s => `${s.rotulo} — ${s.nome} (${s.email})`).join('; ')}
                 </Typography>
               ) : null}
-              {assinatura.ultimoErro ? (
-                <Typography variant='body2' color='error'>
-                  Último erro: {assinatura.ultimoErro}
+              {assinatura.ultimaIteracao ? (
+                <Typography
+                  variant='body2'
+                  color={isFalhaUltimaIteracao(assinatura.ultimaIteracao) ? 'error' : 'text.secondary'}
+                >
+                  Última iteração: {assinatura.ultimaIteracao}
                 </Typography>
               ) : null}
             </CardContent>
@@ -766,13 +783,13 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
                 <RadioGroup
                   aria-labelledby='signatario-assinatura-label'
                   name='signatario-assinatura'
-                  value={emailSignatarioSelecionado}
-                  onChange={e => setEmailSignatarioSelecionado(e.target.value)}
+                  value={chaveSignatarioSelecionado}
+                  onChange={e => setChaveSignatarioSelecionado(e.target.value)}
                 >
                   {signatariosDisponiveis.map(s => (
                     <FormControlLabel
-                      key={s.email}
-                      value={s.email}
+                      key={chaveSignatarioCliente(s)}
+                      value={chaveSignatarioCliente(s)}
                       control={<Radio />}
                       label={
                         <span>
@@ -821,7 +838,7 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
           <Button
             variant='contained'
             onClick={confirmarEnvioAssinatura}
-            disabled={processando || carregandoSignatarios || !emailSignatarioSelecionado}
+            disabled={processando || carregandoSignatarios || !chaveSignatarioSelecionado}
           >
             Enviar
           </Button>

@@ -1,0 +1,206 @@
+.linha {
+  border: 1px solid var(--mui-palette-divider);
+  border-radius: 8px;
+  background: var(--mui-palette-background-paper);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.linha:hover {
+  border-color: color-mix(in srgb, var(--mui-palette-primary-main) 35%, var(--mui-palette-divider));
+}
+
+.linhaEtapa {
+  border-inline-start: 3px solid var(--mui-palette-primary-main);
+}
+
+.linhaAtividade {
+  border-radius: 6px;
+}
+
+.linhaSub {
+  border-radius: 6px;
+  border-color: color-mix(in srgb, var(--mui-palette-divider) 80%, transparent);
+  background: color-mix(in srgb, var(--mui-palette-background-paper) 92%, var(--mui-palette-action-hover));
+}
+
+.linhaMain {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding: 0.5rem 0.65rem;
+}
+
+.linhaSub .linhaMain {
+  padding-block: 0.35rem;
+}
+
+.linhaEsquerda {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.15rem;
+  min-inline-size: 0;
+  flex: 1 1 14rem;
+}
+
+.chevronBtn {
+  margin-block-start: 0.05rem;
+  color: var(--mui-palette-text-secondary);
+}
+
+.chevronSpacer {
+  display: inline-flex;
+  inline-size: 1.75rem;
+  flex-shrink: 0;
+}
+
+.linhaConteudo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-inline-size: 0;
+  flex: 1;
+  padding: 0.15rem 0.25rem;
+  margin: -0.15rem -0.25rem;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  text-align: start;
+  cursor: pointer;
+  color: inherit;
+}
+
+.linhaConteudo:hover {
+  background: color-mix(in srgb, var(--mui-palette-action-hover) 70%, transparent);
+}
+
+.tituloLinha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.5rem;
+  min-inline-size: 0;
+}
+
+.codigo {
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  flex-shrink: 0;
+}
+
+.titulo {
+  font-weight: 500;
+  font-size: 0.9375rem;
+  line-height: 1.35;
+  color: var(--mui-palette-text-primary);
+  overflow-wrap: anywhere;
+}
+
+.tituloEtapa {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.tituloSub {
+  font-weight: 400;
+  font-size: 0.875rem;
+  color: var(--mui-palette-text-primary);
+}
+
+.iconeMenor {
+  font-size: 0.85rem !important;
+}
+
+.metaLinha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+  padding-inline-start: 1.35rem;
+}
+
+.chipCompacto {
+  height: 1.35rem !important;
+}
+
+.chipCompacto :global(.MuiChip-label) {
+  padding-inline: 0.45rem;
+  font-size: 0.7rem;
+}
+
+.prioridadeLinha {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-weight: 500;
+}
+
+.linhaDireita {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+  margin-inline-start: auto;
+}
+
+.responsavelBloco {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.1rem;
+  min-inline-size: 0;
+}
+
+.responsavelLinha {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  max-inline-size: 12rem;
+}
+
+.responsavelNome {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8125rem;
+}
+
+.avatar {
+  flex-shrink: 0;
+  background: color-mix(in srgb, var(--mui-palette-primary-main) 18%, transparent);
+  color: var(--mui-palette-primary-main);
+  font-weight: 600;
+}
+
+.grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.filhos {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-inline-start: 0.85rem;
+  padding-inline-start: 0.65rem;
+  border-inline-start: 1px solid var(--mui-palette-divider);
+}
+
+.filhosNivel2 {
+  margin-inline-start: 0.65rem;
+  padding-inline-start: 0.5rem;
+}
+
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.vazioEtapa {
+  padding: 0.4rem 0.5rem;
+  color: var(--mui-palette-text-secondary);
+  font-size: 0.8125rem;
+}

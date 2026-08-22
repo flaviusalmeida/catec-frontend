@@ -73,9 +73,11 @@ const GrupoView = ({ id }: Props) => {
   }, [grupoId, lista, storeCarregando, obterGrupo])
 
   useEffect(() => {
-    if (!grupo) return
+    const grupoIdAtual = grupo?.id
 
-    const atualizado = lista.find(g => g.id === grupo.id)
+    if (grupoIdAtual == null) return
+
+    const atualizado = lista.find(g => g.id === grupoIdAtual)
 
     if (atualizado) {
       setGrupo(atualizado)
