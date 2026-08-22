@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 
 import Alert from '@mui/material/Alert'
 import Button from '@mui/material/Button'
@@ -15,24 +14,16 @@ import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
 import DialogTitle from '@mui/material/DialogTitle'
-import FormControl from '@mui/material/FormControl'
 import Grid from '@mui/material/Grid'
-import InputLabel from '@mui/material/InputLabel'
-import MenuItem from '@mui/material/MenuItem'
-import Select from '@mui/material/Select'
-import TablePagination from '@mui/material/TablePagination'
 import Typography from '@mui/material/Typography'
 import { toast } from 'react-toastify'
 
 import CanPermission from '@/components/catec/CanPermission'
 import {
-  alterarStatusAtividadeCatec,
-  atualizarAtividadeCatec,
   criarAtividadeRaizCatec,
-  excluirAtividadeCatec,
-  listarAtividadesPorProjetoCatec
+  listarAtividadesPorProjetoCatec,
+  obterAtividadeCatec
 } from '@/libs/catecAtividadesApi'
-import { listarUsuariosCatec } from '@/libs/catecUsuariosApi'
 import type { CatecAtividade, CatecAtividadeStatus } from '@/types/catec/atividadeTypes'
 import {
   ORDEM_STATUS_ATIVIDADE,
@@ -41,10 +32,12 @@ import {
 } from '@/types/catec/atividadeTypes'
 import { PermissaoCodigo } from '@/types/catec/permissao'
 import type { CatecProjeto, CatecProjetoStatus } from '@/types/catec/projetoTypes'
-import type { CatecAdminUsuario } from '@/types/catec/usuarioTypes'
-import { useCatecPermission } from '@/hooks/useCatecPermission'
 
 import CustomTextField from '@core/components/mui/TextField'
+
+import AtividadeDrawer from '@/views/catec/atividades/AtividadeDrawer'
+import { useAtividadesStore } from '@/views/catec/atividades/useAtividadesStore'
+import drawerStyles from '@/views/catec/atividades/styles.module.css'
 
 import ProjetoAtividadeLinha from './ProjetoAtividadeLinha'
 import styles from './projetoAtividades.module.css'
@@ -58,8 +51,6 @@ type NoAtividade = {
   filhos: NoAtividade[]
 }
 
-type DialogAcao = 'responsavel' | 'prazo' | 'excluir' | null
-
 const STATUS_LEITURA: CatecProjetoStatus[] = [
   'AGUARDANDO_EXECUCAO',
   'EM_EXECUCAO',
@@ -68,9 +59,6 @@ const STATUS_LEITURA: CatecProjetoStatus[] = [
 ]
 
 const STATUS_CRIACAO: CatecProjetoStatus[] = ['AGUARDANDO_EXECUCAO', 'EM_EXECUCAO']
-
-const LIMITE_FILHAS_EXPANDIDAS = 3
-const PAGE_SIZE_DEFAULT = 10
 
 function compararOrdem(a: CatecAtividade, b: CatecAtividade): number {
   if (a.ordem !== b.ordem) return a.ordem - b.ordem
@@ -122,12 +110,7 @@ function metaAtividade(filhos: NoAtividade[]): string | null {
   return filhos.length === 1 ? '1 subatividade' : `${filhos.length} subatividades`
 }
 
-function defaultColapsada(no: NoAtividade): boolean {
-  if (no.atividade.tipo === 'ETAPA') return false
-  if (no.atividade.tipo === 'ATIVIDADE') {
-    return no.filhos.length > LIMITE_FILHAS_EXPANDIDAS
-  }
-
+function defaultColapsada(_no: NoAtividade): boolean {
   return true
 }
 
@@ -148,19 +131,8 @@ function idsExpansiveis(nos: NoAtividade[]): number[] {
   return ids
 }
 
-function prazoInputValue(iso: string | null): string {
-  if (!iso) return ''
-
-  const d = new Date(iso)
-
-  if (Number.isNaN(d.getTime())) return ''
-
-  return d.toISOString().slice(0, 10)
-}
-
 const ProjetoTabAtividades = ({ projeto }: Props) => {
-  const router = useRouter()
-  const { hasPermission } = useCatecPermission()
+  const { atualizar, criarFilha, excluir, obter, carregar: carregarStore } = useAtividadesStore()
 
   const [lista, setLista] = useState<CatecAtividade[]>([])
   const [carregando, setCarregando] = useState(true)
@@ -169,24 +141,13 @@ const ProjetoTabAtividades = ({ projeto }: Props) => {
   const [titulo, setTitulo] = useState('')
   const [salvando, setSalvando] = useState(false)
   const [colapsadas, setColapsadas] = useState<Record<number, boolean>>({})
-  const [page, setPage] = useState(0)
-  const [rowsPerPage, setRowsPerPage] = useState(PAGE_SIZE_DEFAULT)
 
-  const [acaoDialog, setAcaoDialog] = useState<DialogAcao>(null)
-  const [atividadeAcao, setAtividadeAcao] = useState<CatecAtividade | null>(null)
-  const [usuarios, setUsuarios] = useState<CatecAdminUsuario[]>([])
-  const [responsavelId, setResponsavelId] = useState<number | ''>('')
-  const [prazoValor, setPrazoValor] = useState('')
-  const [salvandoAcao, setSalvandoAcao] = useState(false)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [atividadeAtual, setAtividadeAtual] = useState<CatecAtividade | null>(null)
 
   const permiteLeitura = STATUS_LEITURA.includes(projeto.status)
   const permiteCriacao = STATUS_CRIACAO.includes(projeto.status)
-  const projetoMutavel = STATUS_CRIACAO.includes(projeto.status)
   const boardHref = `/catec/atividades?projetoId=${projeto.id}`
-
-  const podeEditar = projetoMutavel && hasPermission(PermissaoCodigo.ACAO_ATIVIDADE_EDITAR)
-  const podeMoverStatus = projetoMutavel && hasPermission(PermissaoCodigo.ACAO_ATIVIDADE_MOVER_STATUS)
-  const podeExcluir = projetoMutavel && hasPermission(PermissaoCodigo.ACAO_ATIVIDADE_EXCLUIR)
 
   const carregar = useCallback(async () => {
     if (!permiteLeitura) {
@@ -205,17 +166,46 @@ const ProjetoTabAtividades = ({ projeto }: Props) => {
 
       setLista(data)
       setColapsadas({})
+      void carregarStore({ projetoId: projeto.id })
     } catch (err) {
       setLista([])
       setErro(err instanceof Error ? err.message : 'Não foi possível carregar as atividades.')
     } finally {
       setCarregando(false)
     }
-  }, [permiteLeitura, projeto.id])
+  }, [carregarStore, permiteLeitura, projeto.id])
 
   useEffect(() => {
     void carregar()
   }, [carregar])
+
+  const abrirAtividade = useCallback((atividade: CatecAtividade) => {
+    setAtividadeAtual(atividade)
+    setDrawerOpen(true)
+  }, [])
+
+  const handleAbrirAtividadePorId = useCallback(
+    async (id: number) => {
+      const naLista = lista.find(a => a.id === id) ?? obter(id)
+
+      if (naLista) {
+        setAtividadeAtual(naLista)
+        setDrawerOpen(true)
+
+        return
+      }
+
+      try {
+        const carregada = await obterAtividadeCatec(id)
+
+        setAtividadeAtual(carregada)
+        setDrawerOpen(true)
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Não foi possível abrir a atividade.')
+      }
+    },
+    [lista, obter]
+  )
 
   const arvore = useMemo(() => montarArvore(lista), [lista])
 
@@ -231,18 +221,6 @@ const ProjetoTabAtividades = ({ projeto }: Props) => {
 
     return map
   }, [lista])
-
-  const etapasPaginadas = useMemo(() => {
-    const start = page * rowsPerPage
-
-    return arvore.slice(start, start + rowsPerPage)
-  }, [arvore, page, rowsPerPage])
-
-  useEffect(() => {
-    const maxPage = Math.max(0, Math.ceil(arvore.length / rowsPerPage) - 1)
-
-    if (page > maxPage) setPage(maxPage)
-  }, [arvore.length, page, rowsPerPage])
 
   const isColapsada = useCallback(
     (no: NoAtividade) => {
@@ -283,127 +261,8 @@ const ProjetoTabAtividades = ({ projeto }: Props) => {
     setColapsadas(next)
   }, [arvore])
 
-  const abrirBoard = useCallback(() => {
-    router.push(boardHref)
-  }, [boardHref, router])
-
-  const fecharAcaoDialog = () => {
-    setAcaoDialog(null)
-    setAtividadeAcao(null)
-    setResponsavelId('')
-    setPrazoValor('')
-  }
-
-  const abrirResponsavel = async (atividade: CatecAtividade) => {
-    setAtividadeAcao(atividade)
-    setResponsavelId(atividade.responsavelId ?? '')
-    setAcaoDialog('responsavel')
-
-    if (usuarios.length === 0) {
-      try {
-        const data = await listarUsuariosCatec()
-
-        setUsuarios(data)
-      } catch {
-        setUsuarios([])
-        toast.error('Não foi possível carregar a lista de usuários.')
-      }
-    }
-  }
-
-  const abrirPrazo = (atividade: CatecAtividade) => {
-    setAtividadeAcao(atividade)
-    setPrazoValor(prazoInputValue(atividade.prazoEm))
-    setAcaoDialog('prazo')
-  }
-
-  const abrirExcluir = (atividade: CatecAtividade) => {
-    setAtividadeAcao(atividade)
-    setAcaoDialog('excluir')
-  }
-
   const patchLocal = (atualizada: CatecAtividade) => {
     setLista(prev => prev.map(item => (item.id === atualizada.id ? atualizada : item)))
-  }
-
-  const handleAlterarStatus = async (atividade: CatecAtividade, status: CatecAtividadeStatus) => {
-    try {
-      const atualizada = await alterarStatusAtividadeCatec(atividade.id, { status })
-
-      patchLocal(atualizada)
-      toast.success('Status atualizado.')
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Não foi possível alterar o status.')
-    }
-  }
-
-  const salvarResponsavel = async () => {
-    if (!atividadeAcao) return
-
-    setSalvandoAcao(true)
-
-    try {
-      const atualizada = await atualizarAtividadeCatec(atividadeAcao.id, {
-        titulo: atividadeAcao.titulo,
-        descricao: atividadeAcao.descricao,
-        status: atividadeAcao.status,
-        prioridade: atividadeAcao.prioridade,
-        responsavelId: responsavelId === '' ? null : Number(responsavelId),
-        prazoEm: atividadeAcao.prazoEm,
-        ordem: atividadeAcao.ordem
-      })
-
-      patchLocal(atualizada)
-      toast.success('Responsável atualizado.')
-      fecharAcaoDialog()
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Não foi possível alterar o responsável.')
-    } finally {
-      setSalvandoAcao(false)
-    }
-  }
-
-  const salvarPrazo = async () => {
-    if (!atividadeAcao) return
-
-    setSalvandoAcao(true)
-
-    try {
-      const atualizada = await atualizarAtividadeCatec(atividadeAcao.id, {
-        titulo: atividadeAcao.titulo,
-        descricao: atividadeAcao.descricao,
-        status: atividadeAcao.status,
-        prioridade: atividadeAcao.prioridade,
-        responsavelId: atividadeAcao.responsavelId,
-        prazoEm: prazoValor ? new Date(`${prazoValor}T12:00:00`).toISOString() : null,
-        ordem: atividadeAcao.ordem
-      })
-
-      patchLocal(atualizada)
-      toast.success('Prazo atualizado.')
-      fecharAcaoDialog()
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Não foi possível alterar o prazo.')
-    } finally {
-      setSalvandoAcao(false)
-    }
-  }
-
-  const confirmarExcluir = async () => {
-    if (!atividadeAcao) return
-
-    setSalvandoAcao(true)
-
-    try {
-      await excluirAtividadeCatec(atividadeAcao.id)
-      toast.success('Item excluído.')
-      fecharAcaoDialog()
-      await carregar()
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Não foi possível excluir.')
-    } finally {
-      setSalvandoAcao(false)
-    }
   }
 
   const handleCriar = async (e: FormEvent) => {
@@ -432,21 +291,6 @@ const ProjetoTabAtividades = ({ projeto }: Props) => {
     }
   }
 
-  const propsMenu = (atividade: CatecAtividade, comMenu: boolean) =>
-    comMenu
-      ? {
-          showMenu: true as const,
-          podeEditar,
-          podeMoverStatus,
-          podeExcluir,
-          onEditar: abrirBoard,
-          onAlterarStatus: (status: CatecAtividadeStatus) => void handleAlterarStatus(atividade, status),
-          onAlterarResponsavel: () => void abrirResponsavel(atividade),
-          onAlterarPrazo: () => abrirPrazo(atividade),
-          onExcluir: () => abrirExcluir(atividade)
-        }
-      : { showMenu: false as const }
-
   const renderSubatividades = (filhos: NoAtividade[]) => (
     <div className={`${styles.filhos} ${styles.filhosNivel2}`}>
       {filhos.map(sub => (
@@ -454,7 +298,7 @@ const ProjetoTabAtividades = ({ projeto }: Props) => {
           key={sub.atividade.id}
           atividade={sub.atividade}
           variant='subatividade'
-          onOpenBoard={abrirBoard}
+          onAbrir={() => abrirAtividade(sub.atividade)}
         />
       ))}
     </div>
@@ -475,8 +319,7 @@ const ProjetoTabAtividades = ({ projeto }: Props) => {
               aberta={temFilhos && !colapsada}
               onToggle={() => toggleNo(no)}
               metaFilhos={metaAtividade(no.filhos)}
-              onOpenBoard={abrirBoard}
-              {...propsMenu(no.atividade, true)}
+              onAbrir={() => abrirAtividade(no.atividade)}
             />
             {temFilhos ? (
               <Collapse in={!colapsada} timeout='auto' unmountOnExit>
@@ -491,7 +334,7 @@ const ProjetoTabAtividades = ({ projeto }: Props) => {
 
   const renderEtapas = () => (
     <div className={styles.lista}>
-      {etapasPaginadas.map(etapa => {
+      {arvore.map(etapa => {
         const colapsada = isColapsada(etapa)
         const temAtividades = etapa.filhos.length > 0
 
@@ -504,8 +347,7 @@ const ProjetoTabAtividades = ({ projeto }: Props) => {
               aberta={temAtividades && !colapsada}
               onToggle={() => toggleNo(etapa)}
               metaFilhos={metaEtapa(etapa.filhos)}
-              onOpenBoard={abrirBoard}
-              {...propsMenu(etapa.atividade, true)}
+              onAbrir={() => abrirAtividade(etapa.atividade)}
             />
             {temAtividades ? (
               <Collapse in={!colapsada} timeout='auto' unmountOnExit>
@@ -535,209 +377,149 @@ const ProjetoTabAtividades = ({ projeto }: Props) => {
   }
 
   return (
-    <Grid container spacing={4}>
-      <Grid size={{ xs: 12 }} className='flex flex-wrap items-center justify-between gap-3'>
-        <Typography variant='h5'>Atividades do projeto</Typography>
-        <div className='flex flex-wrap gap-2'>
-          <Button
-            component={Link}
-            href={boardHref}
-            variant='tonal'
-            startIcon={<i className='tabler-layout-kanban' />}
-          >
-            Abrir no board
-          </Button>
-          <CanPermission code={PermissaoCodigo.ACAO_ATIVIDADE_CRIAR}>
-            {permiteCriacao ? (
-              <Button variant='contained' startIcon={<i className='tabler-plus' />} onClick={() => setDialogOpen(true)}>
-                Nova etapa
-              </Button>
-            ) : null}
-          </CanPermission>
-        </div>
-      </Grid>
-
-      <Grid size={{ xs: 12 }}>
-        <div className='flex flex-wrap items-center justify-between gap-2'>
+    <>
+      <Grid container spacing={4}>
+        <Grid size={{ xs: 12 }} className='flex flex-wrap items-center justify-between gap-3'>
+          <Typography variant='h5'>Atividades do projeto</Typography>
           <div className='flex flex-wrap gap-2'>
-            {ORDEM_STATUS_ATIVIDADE.map(status => (
-              <Chip
-                key={status}
-                size='small'
-                variant='tonal'
-                color={STATUS_ATIVIDADE_COR[status]}
-                label={`${STATUS_ATIVIDADE_ROTULO[status]}: ${contadores[status]}`}
-              />
-            ))}
+            <Button
+              component={Link}
+              href={boardHref}
+              variant='tonal'
+              startIcon={<i className='tabler-layout-kanban' />}
+            >
+              Abrir no board
+            </Button>
+            <CanPermission code={PermissaoCodigo.ACAO_ATIVIDADE_CRIAR}>
+              {permiteCriacao ? (
+                <Button
+                  variant='contained'
+                  startIcon={<i className='tabler-plus' />}
+                  onClick={() => setDialogOpen(true)}
+                >
+                  Nova etapa
+                </Button>
+              ) : null}
+            </CanPermission>
           </div>
-          {arvore.length > 0 ? (
-            <div className='flex flex-wrap gap-1'>
-              <Button size='small' variant='text' onClick={expandirTudo}>
-                Expandir tudo
-              </Button>
-              <Button size='small' variant='text' onClick={recolherTudo}>
-                Recolher tudo
-              </Button>
+        </Grid>
+
+        <Grid size={{ xs: 12 }}>
+          <div className='flex flex-wrap items-center justify-between gap-2'>
+            <div className='flex flex-wrap gap-2'>
+              {ORDEM_STATUS_ATIVIDADE.map(status => (
+                <Chip
+                  key={status}
+                  size='small'
+                  label={`${STATUS_ATIVIDADE_ROTULO[status]}: ${contadores[status]}`}
+                  variant={status === 'A_FAZER' || status === 'EM_ANDAMENTO' ? 'filled' : 'tonal'}
+                  color={status === 'A_FAZER' ? 'secondary' : STATUS_ATIVIDADE_COR[status]}
+                  className={[
+                    drawerStyles.subatividadeStatusChip,
+                    status === 'A_FAZER' ? drawerStyles.detalheStatusAFazer : '',
+                    status === 'EM_ANDAMENTO' ? drawerStyles.detalheStatusEmAndamento : ''
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                />
+              ))}
             </div>
-          ) : null}
-        </div>
+            {arvore.length > 0 ? (
+              <div className='flex flex-wrap gap-1'>
+                <Button size='small' variant='text' onClick={expandirTudo}>
+                  Expandir tudo
+                </Button>
+                <Button size='small' variant='text' onClick={recolherTudo}>
+                  Recolher tudo
+                </Button>
+              </div>
+            ) : null}
+          </div>
+        </Grid>
+
+        {erro ? (
+          <Grid size={{ xs: 12 }}>
+            <Alert severity='error' variant='outlined'>
+              {erro}
+            </Alert>
+          </Grid>
+        ) : null}
+
+        {carregando ? (
+          <Grid size={{ xs: 12 }} className='flex justify-center p-8'>
+            <CircularProgress />
+          </Grid>
+        ) : lista.length === 0 ? (
+          <Grid size={{ xs: 12 }}>
+            <Alert severity='info' variant='outlined'>
+              Nenhuma atividade cadastrada neste projeto.
+            </Alert>
+          </Grid>
+        ) : (
+          <Grid size={{ xs: 12 }}>
+            <CanPermission
+              anyOf={[PermissaoCodigo.TELA_ATIVIDADES, PermissaoCodigo.TELA_PROJETO_DETALHE]}
+              fallback={
+                <Alert severity='warning' variant='outlined'>
+                  Sem permissão para listar atividades.
+                </Alert>
+              }
+            >
+              {renderEtapas()}
+            </CanPermission>
+          </Grid>
+        )}
+
+        <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} fullWidth maxWidth='xs'>
+          <form onSubmit={handleCriar}>
+            <DialogTitle>Nova etapa</DialogTitle>
+            <DialogContent>
+              <CustomTextField
+                autoFocus
+                fullWidth
+                label='Título'
+                value={titulo}
+                onChange={e => setTitulo(e.target.value)}
+                required
+                className='mbs-2'
+              />
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setDialogOpen(false)} color='secondary' disabled={salvando}>
+                Cancelar
+              </Button>
+              <Button type='submit' variant='contained' disabled={salvando}>
+                Criar
+              </Button>
+            </DialogActions>
+          </form>
+        </Dialog>
       </Grid>
 
-      {erro ? (
-        <Grid size={{ xs: 12 }}>
-          <Alert severity='error' variant='outlined'>
-            {erro}
-          </Alert>
-        </Grid>
-      ) : null}
+      <AtividadeDrawer
+        open={drawerOpen}
+        atividade={atividadeAtual}
+        onClose={() => setDrawerOpen(false)}
+        onUpdate={async (id, body) => {
+          const atualizada = await atualizar(id, body)
 
-      {carregando ? (
-        <Grid size={{ xs: 12 }} className='flex justify-center p-8'>
-          <CircularProgress />
-        </Grid>
-      ) : lista.length === 0 ? (
-        <Grid size={{ xs: 12 }}>
-          <Alert severity='info' variant='outlined'>
-            Nenhuma atividade cadastrada neste projeto.
-          </Alert>
-        </Grid>
-      ) : (
-        <Grid size={{ xs: 12 }}>
-          <CanPermission
-            anyOf={[PermissaoCodigo.TELA_ATIVIDADES, PermissaoCodigo.TELA_PROJETO_DETALHE]}
-            fallback={
-              <Alert severity='warning' variant='outlined'>
-                Sem permissão para listar atividades.
-              </Alert>
-            }
-          >
-            {renderEtapas()}
-            {arvore.length > 0 ? (
-              <TablePagination
-                component='div'
-                className={styles.paginacao}
-                count={arvore.length}
-                page={page}
-                onPageChange={(_, p) => setPage(p)}
-                rowsPerPage={rowsPerPage}
-                onRowsPerPageChange={e => {
-                  setRowsPerPage(Number.parseInt(e.target.value, 10))
-                  setPage(0)
-                }}
-                rowsPerPageOptions={[5, 10, 25]}
-                labelRowsPerPage='por página'
-                labelDisplayedRows={({ from, to, count }) =>
-                  `Mostrando ${from}–${to} de ${count !== -1 ? count : `mais de ${to}`} etapas`
-                }
-              />
-            ) : null}
-          </CanPermission>
-        </Grid>
-      )}
-
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} fullWidth maxWidth='xs'>
-        <form onSubmit={handleCriar}>
-          <DialogTitle>Nova etapa</DialogTitle>
-          <DialogContent>
-            <CustomTextField
-              autoFocus
-              fullWidth
-              label='Título'
-              value={titulo}
-              onChange={e => setTitulo(e.target.value)}
-              required
-              className='mbs-2'
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setDialogOpen(false)} color='secondary' disabled={salvando}>
-              Cancelar
-            </Button>
-            <Button type='submit' variant='contained' disabled={salvando}>
-              Criar
-            </Button>
-          </DialogActions>
-        </form>
-      </Dialog>
-
-      <Dialog open={acaoDialog === 'responsavel'} onClose={fecharAcaoDialog} fullWidth maxWidth='xs'>
-        <DialogTitle>Alterar responsável</DialogTitle>
-        <DialogContent>
-          <FormControl fullWidth className='mbs-2'>
-            <InputLabel id='resp-label'>Responsável</InputLabel>
-            <Select
-              labelId='resp-label'
-              label='Responsável'
-              value={responsavelId === '' ? '' : String(responsavelId)}
-              onChange={e => {
-                const v = e.target.value
-
-                setResponsavelId(v === '' ? '' : Number(v))
-              }}
-            >
-              <MenuItem value=''>
-                <em>Sem responsável</em>
-              </MenuItem>
-              {usuarios.map(u => (
-                <MenuItem key={u.id} value={String(u.id)}>
-                  {u.nome}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={fecharAcaoDialog} color='secondary' disabled={salvandoAcao}>
-            Cancelar
-          </Button>
-          <Button variant='contained' onClick={() => void salvarResponsavel()} disabled={salvandoAcao}>
-            Salvar
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      <Dialog open={acaoDialog === 'prazo'} onClose={fecharAcaoDialog} fullWidth maxWidth='xs'>
-        <DialogTitle>Alterar prazo</DialogTitle>
-        <DialogContent>
-          <CustomTextField
-            autoFocus
-            fullWidth
-            type='date'
-            label='Prazo'
-            value={prazoValor}
-            onChange={e => setPrazoValor(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-            className='mbs-2'
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={fecharAcaoDialog} color='secondary' disabled={salvandoAcao}>
-            Cancelar
-          </Button>
-          <Button variant='contained' onClick={() => void salvarPrazo()} disabled={salvandoAcao}>
-            Salvar
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      <Dialog open={acaoDialog === 'excluir'} onClose={fecharAcaoDialog} fullWidth maxWidth='xs'>
-        <DialogTitle>Excluir</DialogTitle>
-        <DialogContent>
-          <Typography>
-            Deseja excluir <strong>{atividadeAcao?.codigo}</strong> — {atividadeAcao?.titulo}? Itens com filhos não
-            podem ser excluídos.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={fecharAcaoDialog} color='secondary' disabled={salvandoAcao}>
-            Cancelar
-          </Button>
-          <Button color='error' variant='contained' onClick={() => void confirmarExcluir()} disabled={salvandoAcao}>
-            Excluir
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Grid>
+          setAtividadeAtual(atualizada)
+          patchLocal(atualizada)
+          await carregar()
+        }}
+        onCreateFilha={async (paiId, body) => {
+          await criarFilha(paiId, body)
+          await carregar()
+        }}
+        onDelete={async id => {
+          await excluir(id)
+          setAtividadeAtual(null)
+          setDrawerOpen(false)
+          await carregar()
+        }}
+        onAbrirAtividade={handleAbrirAtividadePorId}
+      />
+    </>
   )
 }
 

@@ -129,6 +129,13 @@
   font-size: 0.7rem;
 }
 
+.prioridadeLinha {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-weight: 500;
+}
+
 .linhaDireita {
   display: flex;
   align-items: center;
@@ -190,17 +197,6 @@
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
-}
-
-.paginacao {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem 1rem;
-  margin-block-start: 0.75rem;
-  color: var(--mui-palette-text-secondary);
-  font-size: 0.8125rem;
 }
 
 .vazioEtapa {

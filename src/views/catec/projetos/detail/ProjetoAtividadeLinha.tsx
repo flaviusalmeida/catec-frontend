@@ -1,28 +1,19 @@
 'use client'
 
-import { useState } from 'react'
-import type { MouseEvent } from 'react'
-
 import Avatar from '@mui/material/Avatar'
 import Chip from '@mui/material/Chip'
-import Divider from '@mui/material/Divider'
 import IconButton from '@mui/material/IconButton'
-import ListItemIcon from '@mui/material/ListItemIcon'
-import ListItemText from '@mui/material/ListItemText'
-import Menu from '@mui/material/Menu'
-import MenuItem from '@mui/material/MenuItem'
 import Typography from '@mui/material/Typography'
 
-import type { CatecAtividade, CatecAtividadeStatus } from '@/types/catec/atividadeTypes'
+import type { CatecAtividade, CatecAtividadePrioridade } from '@/types/catec/atividadeTypes'
 import {
-  ORDEM_STATUS_ATIVIDADE,
-  PRIORIDADE_ATIVIDADE_COR,
   PRIORIDADE_ATIVIDADE_ROTULO,
   STATUS_ATIVIDADE_COR,
   STATUS_ATIVIDADE_ROTULO
 } from '@/types/catec/atividadeTypes'
 
 import AtividadeTipoIcone from '@/views/catec/atividades/AtividadeTipoIcone'
+import drawerStyles from '@/views/catec/atividades/styles.module.css'
 
 import styles from './projetoAtividades.module.css'
 
@@ -35,16 +26,7 @@ type Props = {
   aberta?: boolean
   onToggle?: () => void
   metaFilhos?: string | null
-  onOpenBoard: () => void
-  showMenu?: boolean
-  podeEditar?: boolean
-  podeMoverStatus?: boolean
-  podeExcluir?: boolean
-  onEditar?: () => void
-  onAlterarStatus?: (status: CatecAtividadeStatus) => void
-  onAlterarResponsavel?: () => void
-  onAlterarPrazo?: () => void
-  onExcluir?: () => void
+  onAbrir: () => void
 }
 
 function formatarPrazo(iso: string | null): string {
@@ -63,6 +45,20 @@ function iniciais(nome: string): string {
   return `${partes[0][0]}${partes[partes.length - 1][0]}`.toUpperCase()
 }
 
+function prioridadeIcone(prioridade: CatecAtividadePrioridade): string {
+  if (prioridade === 'ALTA') return 'tabler-chevrons-up'
+  if (prioridade === 'BAIXA') return 'tabler-chevrons-down'
+
+  return 'tabler-equal'
+}
+
+function prioridadeCorClass(prioridade: CatecAtividadePrioridade): string {
+  if (prioridade === 'ALTA') return drawerStyles.prioAlta
+  if (prioridade === 'BAIXA') return drawerStyles.prioBaixa
+
+  return drawerStyles.prioMedia
+}
+
 const ProjetoAtividadeLinha = ({
   atividade,
   variant,
@@ -70,38 +66,10 @@ const ProjetoAtividadeLinha = ({
   aberta = false,
   onToggle,
   metaFilhos = null,
-  onOpenBoard,
-  showMenu = false,
-  podeEditar = false,
-  podeMoverStatus = false,
-  podeExcluir = false,
-  onEditar,
-  onAlterarStatus,
-  onAlterarResponsavel,
-  onAlterarPrazo,
-  onExcluir
+  onAbrir
 }: Props) => {
-  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null)
-  const [statusAnchor, setStatusAnchor] = useState<HTMLElement | null>(null)
-
   const isEtapa = variant === 'etapa'
   const isSub = variant === 'subatividade'
-  const temMenu = showMenu && (podeEditar || podeMoverStatus || podeExcluir)
-
-  const handlePrimaryClick = () => {
-    if (isEtapa && expansivel) {
-      onToggle?.()
-
-      return
-    }
-
-    onOpenBoard()
-  }
-
-  const fecharMenus = () => {
-    setMenuAnchor(null)
-    setStatusAnchor(null)
-  }
 
   return (
     <div
@@ -126,7 +94,7 @@ const ProjetoAtividadeLinha = ({
             <span className={styles.chevronSpacer} aria-hidden />
           )}
 
-          <button type='button' className={styles.linhaConteudo} onClick={handlePrimaryClick}>
+          <button type='button' className={styles.linhaConteudo} onClick={onAbrir}>
             <div className={styles.tituloLinha}>
               <AtividadeTipoIcone
                 tipo={atividade.tipo}
@@ -147,18 +115,27 @@ const ProjetoAtividadeLinha = ({
             <div className={styles.metaLinha}>
               <Chip
                 size='small'
-                variant='tonal'
-                color={STATUS_ATIVIDADE_COR[atividade.status]}
                 label={STATUS_ATIVIDADE_ROTULO[atividade.status]}
-                className={styles.chipCompacto}
+                variant={
+                  atividade.status === 'A_FAZER' || atividade.status === 'EM_ANDAMENTO' ? 'filled' : 'tonal'
+                }
+                color={atividade.status === 'A_FAZER' ? 'secondary' : STATUS_ATIVIDADE_COR[atividade.status]}
+                className={[
+                  drawerStyles.subatividadeStatusChip,
+                  atividade.status === 'A_FAZER' ? drawerStyles.detalheStatusAFazer : '',
+                  atividade.status === 'EM_ANDAMENTO' ? drawerStyles.detalheStatusEmAndamento : ''
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
               />
-              <Chip
-                size='small'
-                variant='tonal'
-                color={PRIORIDADE_ATIVIDADE_COR[atividade.prioridade]}
-                label={PRIORIDADE_ATIVIDADE_ROTULO[atividade.prioridade]}
-                className={styles.chipCompacto}
-              />
+              <span className={styles.prioridadeLinha}>
+                <i
+                  className={`${prioridadeIcone(atividade.prioridade)} text-base ${prioridadeCorClass(atividade.prioridade)}`}
+                />
+                <Typography component='span' variant='caption' className={prioridadeCorClass(atividade.prioridade)}>
+                  {PRIORIDADE_ATIVIDADE_ROTULO[atividade.prioridade]}
+                </Typography>
+              </span>
               {metaFilhos ? (
                 <Typography variant='caption' color='text.secondary'>
                   {metaFilhos}
@@ -188,118 +165,6 @@ const ProjetoAtividadeLinha = ({
               Prazo: {formatarPrazo(atividade.prazoEm)}
             </Typography>
           </div>
-
-          {temMenu ? (
-            <>
-              <IconButton
-                size='small'
-                aria-label='Ações'
-                onClick={(e: MouseEvent<HTMLElement>) => {
-                  e.stopPropagation()
-                  setMenuAnchor(e.currentTarget)
-                }}
-              >
-                <i className='tabler-dots-vertical' />
-              </IconButton>
-              <Menu
-                anchorEl={menuAnchor}
-                open={Boolean(menuAnchor)}
-                onClose={fecharMenus}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-              >
-                {podeEditar ? (
-                  <MenuItem
-                    onClick={() => {
-                      fecharMenus()
-                      onEditar?.()
-                    }}
-                  >
-                    <ListItemIcon>
-                      <i className='tabler-edit text-xl' />
-                    </ListItemIcon>
-                    <ListItemText>Editar</ListItemText>
-                  </MenuItem>
-                ) : null}
-                {podeMoverStatus ? (
-                  <MenuItem
-                    onClick={e => {
-                      setStatusAnchor(e.currentTarget)
-                    }}
-                  >
-                    <ListItemIcon>
-                      <i className='tabler-status-change text-xl' />
-                    </ListItemIcon>
-                    <ListItemText>Alterar status</ListItemText>
-                    <i className='tabler-chevron-right text-xl text-textSecondary' />
-                  </MenuItem>
-                ) : null}
-                {podeEditar ? (
-                  <MenuItem
-                    onClick={() => {
-                      fecharMenus()
-                      onAlterarResponsavel?.()
-                    }}
-                  >
-                    <ListItemIcon>
-                      <i className='tabler-user text-xl' />
-                    </ListItemIcon>
-                    <ListItemText>Alterar responsável</ListItemText>
-                  </MenuItem>
-                ) : null}
-                {podeEditar ? (
-                  <MenuItem
-                    onClick={() => {
-                      fecharMenus()
-                      onAlterarPrazo?.()
-                    }}
-                  >
-                    <ListItemIcon>
-                      <i className='tabler-calendar text-xl' />
-                    </ListItemIcon>
-                    <ListItemText>Alterar prazo</ListItemText>
-                  </MenuItem>
-                ) : null}
-                {podeExcluir ? (
-                  <>
-                    <Divider />
-                    <MenuItem
-                      onClick={() => {
-                        fecharMenus()
-                        onExcluir?.()
-                      }}
-                    >
-                      <ListItemIcon>
-                        <i className='tabler-trash text-xl text-error' />
-                      </ListItemIcon>
-                      <ListItemText className='text-error'>Excluir</ListItemText>
-                    </MenuItem>
-                  </>
-                ) : null}
-              </Menu>
-              <Menu
-                anchorEl={statusAnchor}
-                open={Boolean(statusAnchor)}
-                onClose={() => setStatusAnchor(null)}
-                anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-                transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-              >
-                {ORDEM_STATUS_ATIVIDADE.map(status => (
-                  <MenuItem
-                    key={status}
-                    selected={atividade.status === status}
-                    disabled={atividade.status === status}
-                    onClick={() => {
-                      fecharMenus()
-                      onAlterarStatus?.(status)
-                    }}
-                  >
-                    {STATUS_ATIVIDADE_ROTULO[status]}
-                  </MenuItem>
-                ))}
-              </Menu>
-            </>
-          ) : null}
         </div>
       </div>
     </div>
