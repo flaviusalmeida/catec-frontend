@@ -97,15 +97,15 @@ const ProjetoListTable = ({ lista, clientes, onAdd }: Props) => {
       columnHelper.accessor('titulo', {
         header: 'Projeto',
         cell: ({ row }) => (
-          <div className='flex items-center gap-4'>
-            <CustomAvatar size={34} skin='light' color='primary'>
+          <div className='flex items-center gap-4 min-is-0 max-is-[320px]'>
+            <CustomAvatar size={34} skin='light' color='primary' className='shrink-0'>
               <i className='tabler-briefcase' />
             </CustomAvatar>
-            <div className='flex flex-col'>
-              <Typography color='text.primary' className='font-medium'>
+            <div className='flex flex-col min-is-0'>
+              <Typography color='text.primary' className='font-medium truncate' title={row.original.titulo}>
                 {row.original.titulo}
               </Typography>
-              <Typography variant='body2' className='line-clamp-1 max-is-[280px]'>
+              <Typography variant='body2' className='truncate' title={row.original.escopo}>
                 {row.original.escopo}
               </Typography>
             </div>
@@ -114,11 +114,19 @@ const ProjetoListTable = ({ lista, clientes, onAdd }: Props) => {
       }),
       columnHelper.accessor('clienteNome', {
         header: 'Cliente',
-        cell: ({ row }) => <Typography>{row.original.clienteNome ?? '—'}</Typography>
+        cell: ({ row }) => (
+          <Typography className='truncate max-is-[220px]' title={row.original.clienteNome ?? undefined}>
+            {row.original.clienteNome ?? '—'}
+          </Typography>
+        )
       }),
       columnHelper.accessor('criadoPorNome', {
         header: 'Criado por',
-        cell: ({ row }) => <Typography color='text.secondary'>{row.original.criadoPorNome}</Typography>
+        cell: ({ row }) => (
+          <Typography color='text.secondary' className='truncate max-is-[160px]' title={row.original.criadoPorNome}>
+            {row.original.criadoPorNome}
+          </Typography>
+        )
       }),
       columnHelper.display({
         id: 'status',

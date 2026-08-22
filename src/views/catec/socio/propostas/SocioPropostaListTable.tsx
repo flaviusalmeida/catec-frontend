@@ -158,25 +158,41 @@ const SocioPropostaListTable = ({ lista, onRecarregar }: Props) => {
     () => [
       columnHelper.accessor('projetoTitulo', {
         header: 'Projeto',
-        cell: ({ row }) => (
-          <div className='flex items-center gap-4'>
-            <CustomAvatar size={34} skin='light' color='primary'>
-              <i className='tabler-file-text' />
-            </CustomAvatar>
-            <div className='flex flex-col'>
-              <Typography color='text.primary' className='font-medium'>
-                {row.original.projetoTitulo}
-              </Typography>
-              <Typography variant='body2' className='line-clamp-1 max-is-[280px]'>
-                {row.original.clienteNome ?? '—'}
-              </Typography>
+        cell: ({ row }) => {
+          const cliente = row.original.clienteNome ?? '—'
+
+          return (
+            <div className='flex items-center gap-4 min-is-0 max-is-[320px]'>
+              <CustomAvatar size={34} skin='light' color='primary' className='shrink-0'>
+                <i className='tabler-file-text' />
+              </CustomAvatar>
+              <div className='flex flex-col min-is-0'>
+                <Typography
+                  color='text.primary'
+                  className='font-medium truncate'
+                  title={row.original.projetoTitulo}
+                >
+                  {row.original.projetoTitulo}
+                </Typography>
+                <Typography variant='body2' className='truncate' title={cliente}>
+                  {cliente}
+                </Typography>
+              </div>
             </div>
-          </div>
-        )
+          )
+        }
       }),
       columnHelper.accessor('elaboradoPorNome', {
         header: 'Elaborado por',
-        cell: ({ getValue }) => <Typography color='text.secondary'>{getValue()}</Typography>
+        cell: ({ getValue }) => {
+          const nome = getValue()
+
+          return (
+            <Typography color='text.secondary' className='truncate max-is-[160px]' title={nome}>
+              {nome}
+            </Typography>
+          )
+        }
       }),
       columnHelper.accessor('criadoEm', {
         header: 'Enviado em',
