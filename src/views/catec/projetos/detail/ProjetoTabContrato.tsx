@@ -328,6 +328,7 @@ const ProjetoTabContrato = ({ projeto, fluxo }: Props) => {
     }
 
     const selecionado = parseChaveSignatarioCliente(chaveSignatarioSelecionado)
+
     const papel =
       selecionado.papel === 'EMPRESA' || selecionado.papel === 'RESPONSAVEL'
         ? selecionado.papel

@@ -70,9 +70,11 @@ const Usuario2View = ({ id }: Props) => {
   }, [usuarioId, lista, storeCarregando, obterUsuario])
 
   useEffect(() => {
-    if (!usuario) return
+    const usuarioIdAtual = usuario?.id
 
-    const atualizado = lista.find(u => u.id === usuario.id)
+    if (usuarioIdAtual == null) return
+
+    const atualizado = lista.find(u => u.id === usuarioIdAtual)
 
     if (atualizado) setUsuario(atualizado)
   }, [lista, usuario?.id])
