@@ -108,17 +108,29 @@ const ClienteListTable = ({ lista, onAdd }: Props) => {
     () => [
       columnHelper.accessor('razaoSocialOuNome', {
         header: 'Cliente',
-        cell: ({ row }) => (
-          <div className='flex items-center gap-4'>
-            <CustomAvatar size={34}>{getInitials(row.original.razaoSocialOuNome)}</CustomAvatar>
-            <div className='flex flex-col'>
-              <Typography color='text.primary' className='font-medium'>
-                {row.original.razaoSocialOuNome}
-              </Typography>
-              <Typography variant='body2'>{row.original.nomeFantasia ?? row.original.email ?? '—'}</Typography>
+        cell: ({ row }) => {
+          const secundario = row.original.nomeFantasia ?? row.original.email ?? '—'
+
+          return (
+            <div className='flex items-center gap-4 min-is-0 max-is-[320px]'>
+              <CustomAvatar size={34} className='shrink-0'>
+                {getInitials(row.original.razaoSocialOuNome)}
+              </CustomAvatar>
+              <div className='flex flex-col min-is-0'>
+                <Typography
+                  color='text.primary'
+                  className='font-medium truncate'
+                  title={row.original.razaoSocialOuNome}
+                >
+                  {row.original.razaoSocialOuNome}
+                </Typography>
+                <Typography variant='body2' className='truncate' title={secundario}>
+                  {secundario}
+                </Typography>
+              </div>
             </div>
-          </div>
-        )
+          )
+        }
       }),
       columnHelper.display({
         id: 'documento',
@@ -147,7 +159,11 @@ const ClienteListTable = ({ lista, onAdd }: Props) => {
       }),
       columnHelper.accessor('email', {
         header: 'E-mail',
-        cell: ({ row }) => <Typography color='text.secondary'>{row.original.email ?? '—'}</Typography>
+        cell: ({ row }) => (
+          <Typography color='text.secondary' className='truncate max-is-[220px]' title={row.original.email ?? undefined}>
+            {row.original.email ?? '—'}
+          </Typography>
+        )
       }),
       columnHelper.display({
         id: 'action',
