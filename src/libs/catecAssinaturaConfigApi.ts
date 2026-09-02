@@ -3,11 +3,13 @@ import { assertCatecOk, readCatecJsonBody } from '@/libs/catecApiHelpers'
 import type {
   CatecAssinaturaConfig,
   CatecAssinaturaConfigUpdate,
+  CatecAssinaturaTesteConexao,
   CatecSignatarioCatec,
   CatecUsuarioCandidatoSignatario
 } from '@/types/catec/assinaturaTypes'
 import {
   parseCatecAssinaturaConfig,
+  parseCatecAssinaturaTesteConexao,
   parseCatecSignatarioCatec,
   parseCatecUsuariosCandidatosSignatario
 } from '@/types/catec/assinaturaTypes'
@@ -37,13 +39,29 @@ export async function atualizarAssinaturaConfigCatec(
   return parseCatecAssinaturaConfig(data)
 }
 
-export async function listarUsuariosDisponiveisSignatarioCatec(): Promise<CatecUsuarioCandidatoSignatario[]> {
-  const res = await catecApiFetch('/api/v1/assinatura/config/usuarios-disponiveis')
+export async function testarConexaoAssinaturaCatec(): Promise<CatecAssinaturaTesteConexao> {
+  const res = await catecApiFetch('/api/v1/assinatura/config/testar-conexao', { method: 'POST' })
   const data = await readCatecJsonBody(res)
 
-  assertCatecOk(res, data, 'Não foi possível carregar os usuários disponíveis.')
+  assertCatecOk(res, data, 'Não foi possível testar a conexão com o provedor.')
+
+  return parseCatecAssinaturaTesteConexao(data)
+}
+
+export async function listarUsuariosCandidatosAssinaturaCatec(
+  q?: string
+): Promise<CatecUsuarioCandidatoSignatario[]> {
+  const query = q?.trim() ? `?q=${encodeURIComponent(q.trim())}` : ''
+  const res = await catecApiFetch(`/api/v1/assinatura/config/usuarios-candidatos${query}`)
+  const data = await readCatecJsonBody(res)
+
+  assertCatecOk(res, data, 'Não foi possível carregar os usuários CATEC.')
 
   return parseCatecUsuariosCandidatosSignatario(data)
+}
+
+export async function listarUsuariosDisponiveisSignatarioCatec(): Promise<CatecUsuarioCandidatoSignatario[]> {
+  return listarUsuariosCandidatosAssinaturaCatec()
 }
 
 export async function adicionarSignatarioCatec(usuarioId: number): Promise<CatecSignatarioCatec> {

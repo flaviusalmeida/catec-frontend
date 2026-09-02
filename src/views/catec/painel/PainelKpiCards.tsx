@@ -10,16 +10,16 @@ import classnames from 'classnames'
 
 import CustomAvatar from '@core/components/mui/Avatar'
 
-import type { CatecProjetoPainel, CatecProjetoStatus } from '@/types/catec/projetoTypes'
-import { ORDEM_STATUS_PROJETO, STATUS_PROJETO_ROTULO_BADGE } from '@/types/catec/projetoTypes'
-import { corPainelProjetoStatus } from '@/utils/catec/projetoStatusCores'
+import type { CatecServicoPainel, CatecServicoStatus } from '@/types/catec/servicoTypes'
+import { ORDEM_STATUS_SERVICO, STATUS_SERVICO_ROTULO_BADGE } from '@/types/catec/servicoTypes'
+import { corPainelServicoStatus } from '@/utils/catec/servicoStatusCores'
 
 type Props = {
-  painel: CatecProjetoPainel
+  painel: CatecServicoPainel
   compact?: boolean
 }
 
-const ICON_POR_STATUS: Record<CatecProjetoStatus, string> = {
+const ICON_POR_STATUS: Record<CatecServicoStatus, string> = {
   PENDENTE_CLIENTE: 'tabler-user-plus',
   AGUARDANDO_PROPOSTA_COMERCIAL: 'tabler-clock-pause',
   ELABORANDO_PROPOSTA: 'tabler-file-pencil',
@@ -37,17 +37,17 @@ const ICON_POR_STATUS: Record<CatecProjetoStatus, string> = {
 const PainelKpiCards = ({ painel, compact = false }: Props) => {
   return (
     <Grid container spacing={compact ? 3 : 6} alignItems='stretch'>
-      {ORDEM_STATUS_PROJETO.map(status => {
+      {ORDEM_STATUS_SERVICO.map(status => {
         const total = painel.totais.porStatus[status] ?? 0
-        const cores = corPainelProjetoStatus(status)
-        const rotulo = STATUS_PROJETO_ROTULO_BADGE[status]
+        const cores = corPainelServicoStatus(status)
+        const rotulo = STATUS_SERVICO_ROTULO_BADGE[status]
 
         return (
           <Grid key={status} size={{ xs: 12, sm: 6, md: 4, lg: 3 }} className='flex'>
             <Link
-              href={`/catec/projetos?status=${status}`}
+              href={`/catec/servicos?status=${status}`}
               className='flex is-full text-inherit no-underline'
-              aria-label={`Ver projetos: ${rotulo}`}
+              aria-label={`Ver servicos: ${rotulo}`}
             >
               <Card
                 sx={{

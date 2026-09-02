@@ -11,16 +11,16 @@ import { useTheme } from '@mui/material/styles'
 
 import type { ApexOptions } from 'apexcharts'
 
-import type { CatecProjetoPainel, CatecProjetoStatus } from '@/types/catec/projetoTypes'
-import { ORDEM_STATUS_PROJETO, STATUS_PROJETO_ROTULO_BADGE } from '@/types/catec/projetoTypes'
-import { corGraficoProjetoStatus } from '@/utils/catec/projetoStatusCores'
+import type { CatecServicoPainel, CatecServicoStatus } from '@/types/catec/servicoTypes'
+import { ORDEM_STATUS_SERVICO, STATUS_SERVICO_ROTULO_BADGE } from '@/types/catec/servicoTypes'
+import { corGraficoServicoStatus } from '@/utils/catec/servicoStatusCores'
 
 const AppReactApexCharts = dynamic(() => import('@/libs/styles/AppReactApexCharts'))
 
 type Props = {
-  painel: CatecProjetoPainel
-  statusSelecionado: CatecProjetoStatus | null
-  onStatusClick: (status: CatecProjetoStatus | null) => void
+  painel: CatecServicoPainel
+  statusSelecionado: CatecServicoStatus | null
+  onStatusClick: (status: CatecServicoStatus | null) => void
   compact?: boolean
 }
 
@@ -53,11 +53,11 @@ const PainelStatusDonut = ({ painel, statusSelecionado, onStatusClick, compact =
   }, [compact])
 
   const chartData = useMemo(() => {
-    const entries = ORDEM_STATUS_PROJETO.map(status => ({
+    const entries = ORDEM_STATUS_SERVICO.map(status => ({
       status,
-      label: STATUS_PROJETO_ROTULO_BADGE[status],
+      label: STATUS_SERVICO_ROTULO_BADGE[status],
       value: painel.totais.porStatus[status] ?? 0,
-      color: corGraficoProjetoStatus(status)
+      color: corGraficoServicoStatus(status)
     })).filter(e => e.value > 0)
 
     return entries
@@ -130,7 +130,7 @@ const PainelStatusDonut = ({ painel, statusSelecionado, onStatusClick, compact =
       <Card className={compact ? 'flex h-full w-full flex-col' : 'bs-full'}>
         <CardHeader title='Distribuição por status' />
         <CardContent>
-          <p className='text-textSecondary m-0 p-6 text-center'>Nenhum projeto para exibir.</p>
+          <p className='text-textSecondary m-0 p-6 text-center'>Nenhum servico para exibir.</p>
         </CardContent>
       </Card>
     )
@@ -142,7 +142,7 @@ const PainelStatusDonut = ({ painel, statusSelecionado, onStatusClick, compact =
         title='Distribuição por status'
         subheader={
           statusSelecionado
-            ? `Filtrando: ${STATUS_PROJETO_ROTULO_BADGE[statusSelecionado]} (clique novamente para limpar)`
+            ? `Filtrando: ${STATUS_SERVICO_ROTULO_BADGE[statusSelecionado]} (clique novamente para limpar)`
             : compact
               ? 'Clique em uma fatia para filtrar'
               : 'Clique em uma fatia para filtrar a tabela'

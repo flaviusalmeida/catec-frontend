@@ -1,13 +1,13 @@
 import type { ThemeColor } from '@core/types'
 
 import type {
-  CatecAlertaPrazoProjeto,
-  CatecProjeto,
-  CatecProjetoPainelItem,
-  CatecProjetoStatus
-} from '@/types/catec/projetoTypes'
+  CatecAlertaPrazoServico,
+  CatecServico,
+  CatecServicoPainelItem,
+  CatecServicoStatus
+} from '@/types/catec/servicoTypes'
 
-export const STATUS_EXECUCAO_PRAZO: CatecProjetoStatus[] = ['AGUARDANDO_EXECUCAO', 'EM_EXECUCAO']
+export const STATUS_EXECUCAO_PRAZO: CatecServicoStatus[] = ['AGUARDANDO_EXECUCAO', 'EM_EXECUCAO']
 
 export type FaixaFiltroPrazo = '' | 'ATRASADO' | 'CRITICO' | 'ATENCAO' | 'SEM_PREVISAO'
 
@@ -20,8 +20,8 @@ export const FAIXAS_FILTRO_PRAZO: Exclude<FaixaFiltroPrazo, ''>[] = [
   'SEM_PREVISAO'
 ]
 
-type ProjetoPrazoLike = Pick<
-  CatecProjeto,
+type ServicoPrazoLike = Pick<
+  CatecServico,
   'status' | 'previsaoInicioExecucaoEm' | 'previsaoConclusaoEm'
 >
 
@@ -42,19 +42,19 @@ function diasEntreDatasLocal(inicioYmd: string, fimYmd: string): number {
   return Math.round((fim - inicio) / 86_400_000)
 }
 
-export function previsaoAtivaProjeto(projeto: ProjetoPrazoLike): string | null {
+export function previsaoAtivaServico(servico: ServicoPrazoLike): string | null {
   // Em execução, o prazo de início deixa de ser validado.
-  if (projeto.status === 'AGUARDANDO_EXECUCAO') return projeto.previsaoInicioExecucaoEm
-  if (projeto.status === 'EM_EXECUCAO') return projeto.previsaoConclusaoEm
+  if (servico.status === 'AGUARDANDO_EXECUCAO') return servico.previsaoInicioExecucaoEm
+  if (servico.status === 'EM_EXECUCAO') return servico.previsaoConclusaoEm
 
   return null
 }
 
 /** Alinhado ao cálculo do painel (backend): prazo ativo conforme o status. */
-export function calcularAlertaPrazoProjeto(projeto: ProjetoPrazoLike): CatecAlertaPrazoProjeto | null {
-  if (projeto.status !== 'AGUARDANDO_EXECUCAO' && projeto.status !== 'EM_EXECUCAO') return null
+export function calcularAlertaPrazoServico(servico: ServicoPrazoLike): CatecAlertaPrazoServico | null {
+  if (servico.status !== 'AGUARDANDO_EXECUCAO' && servico.status !== 'EM_EXECUCAO') return null
 
-  const previsaoIso = previsaoAtivaProjeto(projeto)
+  const previsaoIso = previsaoAtivaServico(servico)
 
   if (!previsaoIso) return null
 
@@ -69,18 +69,18 @@ export function calcularAlertaPrazoProjeto(projeto: ProjetoPrazoLike): CatecAler
   return 'OK'
 }
 
-export function projetoSemPrevisao(projeto: ProjetoPrazoLike): boolean {
-  if (projeto.status === 'AGUARDANDO_EXECUCAO') return projeto.previsaoInicioExecucaoEm == null
-  if (projeto.status === 'EM_EXECUCAO') return projeto.previsaoConclusaoEm == null
+export function servicoSemPrevisao(servico: ServicoPrazoLike): boolean {
+  if (servico.status === 'AGUARDANDO_EXECUCAO') return servico.previsaoInicioExecucaoEm == null
+  if (servico.status === 'EM_EXECUCAO') return servico.previsaoConclusaoEm == null
 
   return false
 }
 
-export function projetoPassaFiltroPrazo(projeto: ProjetoPrazoLike, faixa: FaixaFiltroPrazo): boolean {
+export function servicoPassaFiltroPrazo(servico: ServicoPrazoLike, faixa: FaixaFiltroPrazo): boolean {
   if (!faixa) return true
-  if (faixa === 'SEM_PREVISAO') return projetoSemPrevisao(projeto)
+  if (faixa === 'SEM_PREVISAO') return servicoSemPrevisao(servico)
 
-  return calcularAlertaPrazoProjeto(projeto) === faixa
+  return calcularAlertaPrazoServico(servico) === faixa
 }
 
 export function parseFaixaFiltroPrazo(value: string | null): FaixaFiltroPrazo {
@@ -91,14 +91,14 @@ export function parseFaixaFiltroPrazo(value: string | null): FaixaFiltroPrazo {
   return ''
 }
 
-export const ROTULO_ALERTA_PRAZO: Record<CatecAlertaPrazoProjeto, string> = {
+export const ROTULO_ALERTA_PRAZO: Record<CatecAlertaPrazoServico, string> = {
   ATRASADO: 'Atrasado',
   CRITICO: 'Crítico',
   ATENCAO: 'Atenção',
   OK: 'Em dia'
 }
 
-export const COR_ALERTA_PRAZO: Record<CatecAlertaPrazoProjeto, ThemeColor> = {
+export const COR_ALERTA_PRAZO: Record<CatecAlertaPrazoServico, ThemeColor> = {
   ATRASADO: 'error',
   CRITICO: 'warning',
   ATENCAO: 'warning',
@@ -120,14 +120,14 @@ export function rotuloFaixaFiltroPrazo(faixa: FaixaFiltroPrazo): string {
   }
 }
 
-export function itemSemPrevisao(item: CatecProjetoPainelItem): boolean {
+export function itemSemPrevisao(item: CatecServicoPainelItem): boolean {
   if (item.status === 'AGUARDANDO_EXECUCAO') return item.previsaoInicioExecucaoEm == null
   if (item.status === 'EM_EXECUCAO') return item.previsaoConclusaoEm == null
 
   return false
 }
 
-export function previsaoAtivaPainelItem(item: CatecProjetoPainelItem): string | null {
+export function previsaoAtivaPainelItem(item: CatecServicoPainelItem): string | null {
   // Em execução, o prazo de início deixa de ser validado.
   if (item.status === 'AGUARDANDO_EXECUCAO') return item.previsaoInicioExecucaoEm
   if (item.status === 'EM_EXECUCAO') return item.previsaoConclusaoEm
@@ -135,14 +135,14 @@ export function previsaoAtivaPainelItem(item: CatecProjetoPainelItem): string | 
   return null
 }
 
-export function itemPassaFiltroPrazo(item: CatecProjetoPainelItem, faixa: FaixaFiltroPrazo): boolean {
+export function itemPassaFiltroPrazo(item: CatecServicoPainelItem, faixa: FaixaFiltroPrazo): boolean {
   if (!faixa) return true
   if (faixa === 'SEM_PREVISAO') return itemSemPrevisao(item)
 
   return item.alertaPrazo === faixa
 }
 
-export function corProgressoPrazo(item: CatecProjetoPainelItem): ThemeColor {
+export function corProgressoPrazo(item: CatecServicoPainelItem): ThemeColor {
   if (item.alertaPrazo === 'ATRASADO') return 'error'
   if (item.alertaPrazo === 'CRITICO') return 'warning'
   if (item.alertaPrazo === 'ATENCAO') return 'warning'

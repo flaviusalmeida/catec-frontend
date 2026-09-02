@@ -28,14 +28,14 @@ export const catecGruposDb: CatecGrupo[] = [
     id: 2,
     codigo: 'COLABORADOR',
     nome: 'Colaborador',
-    descricao: 'Operações do dia a dia em projetos e interações.',
+    descricao: 'Operações do dia a dia em servicos e interações.',
     ativo: true,
     sistema: true,
     permissoes: [
-      'tela.projetos',
-      'tela.projeto.detalhe',
-      'acao.projeto.criar',
-      'acao.projeto.editar',
+      'tela.servicos',
+      'tela.servico.detalhe',
+      'acao.servico.criar',
+      'acao.servico.editar',
       'acao.interacao.registrar',
       'acao.documento.upload'
     ],
@@ -51,10 +51,10 @@ export const catecGruposDb: CatecGrupo[] = [
     sistema: true,
     permissoes: [
       'tela.painel',
-      'tela.projetos',
-      'tela.projeto.detalhe',
+      'tela.servicos',
+      'tela.servico.detalhe',
       'tela.socio.propostas',
-      'acao.projeto.listar_todos',
+      'acao.servico.listar_todos',
       'acao.socio.proposta.aprovar',
       'acao.socio.proposta.devolver'
     ],
@@ -69,8 +69,8 @@ export const catecGruposDb: CatecGrupo[] = [
     ativo: true,
     sistema: true,
     permissoes: [
-      'tela.projetos',
-      'tela.projeto.detalhe',
+      'tela.servicos',
+      'tela.servico.detalhe',
       'acao.contrato.criar',
       'acao.contrato.enviar',
       'acao.documento.upload'

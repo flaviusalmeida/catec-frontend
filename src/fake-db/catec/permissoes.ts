@@ -2,49 +2,49 @@ import type { CatecPermissaoCatalogo } from '@/types/catec/grupoTypes'
 
 export const catecPermissoesCatalogo: CatecPermissaoCatalogo[] = [
   { id: 1, codigo: 'tela.painel', nome: 'Painel', tipo: 'TELA', modulo: 'painel', descricao: 'Acesso ao painel inicial.' },
-  { id: 2, codigo: 'tela.projetos', nome: 'Projetos', tipo: 'TELA', modulo: 'projeto', descricao: 'Listagem de projetos.' },
+  { id: 2, codigo: 'tela.servicos', nome: 'Servicos', tipo: 'TELA', modulo: 'servico', descricao: 'Listagem de servicos.' },
   {
     id: 3,
-    codigo: 'tela.projeto.detalhe',
-    nome: 'Detalhe do projeto',
+    codigo: 'tela.servico.detalhe',
+    nome: 'Detalhe do servico',
     tipo: 'TELA',
-    modulo: 'projeto',
-    descricao: 'Visualizar página de detalhe do projeto.'
+    modulo: 'servico',
+    descricao: 'Visualizar página de detalhe do servico.'
   },
   { id: 4, codigo: 'tela.clientes', nome: 'Clientes', tipo: 'TELA', modulo: 'cliente', descricao: 'Gestão de clientes.' },
   { id: 5, codigo: 'tela.usuarios', nome: 'Usuários', tipo: 'TELA', modulo: 'usuario', descricao: 'Gestão de usuários.' },
   { id: 6, codigo: 'tela.grupos', nome: 'Grupos', tipo: 'TELA', modulo: 'grupo', descricao: 'Gestão de grupos de acesso.' },
   {
     id: 7,
-    codigo: 'acao.projeto.criar',
-    nome: 'Criar projeto',
+    codigo: 'acao.servico.criar',
+    nome: 'Criar servico',
     tipo: 'ACAO',
-    modulo: 'projeto',
-    descricao: 'Cadastrar novos projetos.'
+    modulo: 'servico',
+    descricao: 'Cadastrar novos servicos.'
   },
   {
     id: 8,
-    codigo: 'acao.projeto.editar',
-    nome: 'Editar projeto',
+    codigo: 'acao.servico.editar',
+    nome: 'Editar servico',
     tipo: 'ACAO',
-    modulo: 'projeto',
-    descricao: 'Alterar dados do projeto.'
+    modulo: 'servico',
+    descricao: 'Alterar dados do servico.'
   },
   {
     id: 9,
-    codigo: 'acao.projeto.associar_cliente',
+    codigo: 'acao.servico.associar_cliente',
     nome: 'Associar cliente',
     tipo: 'ACAO',
-    modulo: 'projeto',
-    descricao: 'Vincular cliente ao projeto.'
+    modulo: 'servico',
+    descricao: 'Vincular cliente ao servico.'
   },
   {
     id: 10,
-    codigo: 'acao.projeto.listar_todos',
-    nome: 'Listar todos os projetos',
+    codigo: 'acao.servico.listar_todos',
+    nome: 'Listar todos os servicos',
     tipo: 'ACAO',
-    modulo: 'projeto',
-    descricao: 'Ver projetos de outros responsáveis.'
+    modulo: 'servico',
+    descricao: 'Ver servicos de outros responsáveis.'
   },
   {
     id: 11,
@@ -116,7 +116,7 @@ export const catecPermissoesCatalogo: CatecPermissaoCatalogo[] = [
     nome: 'Criar contrato',
     tipo: 'ACAO',
     modulo: 'contrato',
-    descricao: 'Registrar contrato do projeto.'
+    descricao: 'Registrar contrato do servico.'
   },
   {
     id: 20,
@@ -132,7 +132,7 @@ export const catecPermissoesCatalogo: CatecPermissaoCatalogo[] = [
     nome: 'Upload de documento',
     tipo: 'ACAO',
     modulo: 'documento',
-    descricao: 'Anexar documentos ao projeto.'
+    descricao: 'Anexar documentos ao servico.'
   },
   {
     id: 22,

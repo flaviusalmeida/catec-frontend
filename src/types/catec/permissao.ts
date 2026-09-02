@@ -1,8 +1,8 @@
 /** Códigos de permissão (espelham backend `PermissaoCodigo`). */
 export const PermissaoCodigo = {
   TELA_PAINEL: 'tela.painel',
-  TELA_PROJETOS: 'tela.projetos',
-  TELA_PROJETO_DETALHE: 'tela.projeto.detalhe',
+  TELA_SERVICOS: 'tela.servicos',
+  TELA_SERVICO_DETALHE: 'tela.servico.detalhe',
   TELA_ATIVIDADES: 'tela.atividades',
   TELA_CLIENTES: 'tela.clientes',
   TELA_USUARIOS: 'tela.usuarios',
@@ -15,10 +15,10 @@ export const PermissaoCodigo = {
   ACAO_ATIVIDADE_MOVER_STATUS: 'acao.atividade.mover_status',
   ACAO_ATIVIDADE_EXCLUIR: 'acao.atividade.excluir',
 
-  ACAO_PROJETO_CRIAR: 'acao.projeto.criar',
-  ACAO_PROJETO_EDITAR: 'acao.projeto.editar',
-  ACAO_PROJETO_ASSOCIAR_CLIENTE: 'acao.projeto.associar_cliente',
-  ACAO_PROJETO_LISTAR_TODOS: 'acao.projeto.listar_todos',
+  ACAO_SERVICO_CRIAR: 'acao.servico.criar',
+  ACAO_SERVICO_EDITAR: 'acao.servico.editar',
+  ACAO_SERVICO_ASSOCIAR_CLIENTE: 'acao.servico.associar_cliente',
+  ACAO_SERVICO_LISTAR_TODOS: 'acao.servico.listar_todos',
   ACAO_CLIENTE_CRIAR: 'acao.cliente.criar',
   ACAO_CLIENTE_EDITAR: 'acao.cliente.editar',
   ACAO_CLIENTE_EXCLUIR: 'acao.cliente.excluir',

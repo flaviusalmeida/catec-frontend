@@ -66,7 +66,7 @@ export const catecClientesDb: CatecCliente[] = [
     enderecoUf: 'MG',
     enderecoCep: '30160120',
     periodoFaturamento: '30 dias após emissão da NF',
-    observacoes: 'Exige cópia do contrato em anexo nos projetos.',
+    observacoes: 'Exige cópia do contrato em anexo nos servicos.',
     responsaveis: [
       {
         id: 3,

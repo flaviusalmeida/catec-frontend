@@ -2,13 +2,13 @@
 
 import { useCallback, useEffect, useSyncExternalStore } from 'react'
 
-import { obterProjetosPainelCatec } from '@/libs/catecProjetosApi'
-import type { CatecProjetoPainel } from '@/types/catec/projetoTypes'
+import { obterServicosPainelCatec } from '@/libs/catecServicosApi'
+import type { CatecServicoPainel } from '@/types/catec/servicoTypes'
 
 const INTERVALO_ATUALIZACAO_MS = 5 * 60 * 1000
 
 type StoreState = {
-  painel: CatecProjetoPainel | null
+  painel: CatecServicoPainel | null
   carregando: boolean
   erro: string | null
   inicializado: boolean
@@ -54,7 +54,7 @@ async function carregarStore(opcoes: CarregarOpcoes = {}) {
     }
 
     try {
-      const painel = await obterProjetosPainelCatec()
+      const painel = await obterServicosPainelCatec()
 
       setState({ painel, carregando: false, erro: null, inicializado: true })
     } catch (err) {

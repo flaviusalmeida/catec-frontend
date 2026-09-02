@@ -21,9 +21,6 @@ type Props = {
 }
 
 const ClienteDetails = ({ cliente }: Props) => {
-  
-  const responsavel = cliente.responsaveis[0]
-
   return (
     <Card>
       <CardContent className='flex flex-col pbs-12 gap-6'>
@@ -77,12 +74,6 @@ const ClienteDetails = ({ cliente }: Props) => {
               <Typography>
                 {cliente.enderecoCidade ? `${cliente.enderecoCidade}${cliente.enderecoUf ? ` / ${cliente.enderecoUf}` : ''}` : '—'}
               </Typography>
-            </div>
-            <div className='flex items-center flex-wrap gap-x-1.5'>
-              <Typography className='font-medium' color='text.primary'>
-                Responsável:
-              </Typography>
-              <Typography>{responsavel?.nome ?? '—'}</Typography>
             </div>
           </div>
         </div>

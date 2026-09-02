@@ -22,7 +22,7 @@ import { toast } from 'react-toastify'
 
 import CanPermission from '@/components/catec/CanPermission'
 import { useCatecPermission } from '@/hooks/useCatecPermission'
-import { obterProjetoCatec } from '@/libs/catecProjetosApi'
+import { obterServicoCatec } from '@/libs/catecServicosApi'
 import { listarUsuariosCatec } from '@/libs/catecUsuariosApi'
 import type {
   CatecAtividade,
@@ -37,8 +37,8 @@ import {
   STATUS_ATIVIDADE_COR,
   STATUS_ATIVIDADE_ROTULO
 } from '@/types/catec/atividadeTypes'
-import type { CatecProjeto } from '@/types/catec/projetoTypes'
-import { STATUS_PROJETO_ROTULO } from '@/types/catec/projetoTypes'
+import type { CatecServico } from '@/types/catec/servicoTypes'
+import { STATUS_SERVICO_ROTULO } from '@/types/catec/servicoTypes'
 import { PermissaoCodigo } from '@/types/catec/permissao'
 import type { CatecAdminUsuario } from '@/types/catec/usuarioTypes'
 
@@ -53,7 +53,7 @@ import {
   dataCivilSp,
   MSG_CONCLUSAO_COM_FILHAS,
   MSG_PRAZO_APOS_PREVISAO,
-  prazoAposPrevisaoProjeto,
+  prazoAposPrevisaoServico,
   temFilhasNaoConcluidas
 } from './atividadeFluxoRules'
 import { useAtividadesStore } from './useAtividadesStore'
@@ -179,11 +179,11 @@ const AtividadeDrawer = ({
   const [prioAnchor, setPrioAnchor] = useState<null | HTMLElement>(null)
   const [sidebarWidth, setSidebarWidth] = useState(330)
   const [infoAberta, setInfoAberta] = useState(true)
-  const [projetoAberto, setProjetoAberto] = useState(true)
+  const [servicoAberto, setServicoAberto] = useState(true)
   const [editandoResponsavel, setEditandoResponsavel] = useState(false)
   const [editandoPrazo, setEditandoPrazo] = useState(false)
-  const [projeto, setProjeto] = useState<CatecProjeto | null>(null)
-  const [carregandoProjeto, setCarregandoProjeto] = useState(false)
+  const [servico, setServico] = useState<CatecServico | null>(null)
+  const [carregandoServico, setCarregandoServico] = useState(false)
   const [arrastandoDivider, setArrastandoDivider] = useState(false)
   const bodyRef = useRef<HTMLDivElement>(null)
   const arrastandoRef = useRef(false)
@@ -208,7 +208,7 @@ const AtividadeDrawer = ({
       .sort((a, b) => a.ordem - b.ordem || a.id - b.id)
   }, [catalogo, atividade])
 
-  /** Pais do root até o pai imediato (Projeto fica fora — já no breadcrumb). */
+  /** Pais do root até o pai imediato (Servico fica fora — já no breadcrumb). */
   const cadeiaPais = useMemo(() => {
     if (!atividade?.paiId) return [] as Array<{ id: number; codigo: string; tipo: CatecAtividadeTipo }>
 
@@ -322,31 +322,31 @@ const AtividadeDrawer = ({
   }, [open])
 
   useEffect(() => {
-    if (!open || !atividade?.projetoId) {
-      setProjeto(null)
+    if (!open || !atividade?.servicoId) {
+      setServico(null)
 
       return
     }
 
     let cancelado = false
 
-    setCarregandoProjeto(true)
+    setCarregandoServico(true)
 
-    void obterProjetoCatec(atividade.projetoId)
+    void obterServicoCatec(atividade.servicoId)
       .then(dados => {
-        if (!cancelado) setProjeto(dados)
+        if (!cancelado) setServico(dados)
       })
       .catch(() => {
-        if (!cancelado) setProjeto(null)
+        if (!cancelado) setServico(null)
       })
       .finally(() => {
-        if (!cancelado) setCarregandoProjeto(false)
+        if (!cancelado) setCarregandoServico(false)
       })
 
     return () => {
       cancelado = true
     }
-  }, [open, atividade?.projetoId])
+  }, [open, atividade?.servicoId])
 
   const opcoesResponsavel: ResponsavelOption[] = (() => {
     const lista: ResponsavelOption[] = [...usuarios]
@@ -396,7 +396,7 @@ const AtividadeDrawer = ({
       return false
     }
 
-    if (prazoAposPrevisaoProjeto(atual.prazo, projeto?.previsaoConclusaoEm)) {
+    if (prazoAposPrevisaoServico(atual.prazo, servico?.previsaoConclusaoEm)) {
       toast.error(MSG_PRAZO_APOS_PREVISAO)
 
       return false
@@ -450,7 +450,7 @@ const AtividadeDrawer = ({
     return persistir()
   }
 
-  const irParaProjeto = async (e: ReactMouseEvent) => {
+  const irParaServico = async (e: ReactMouseEvent) => {
     e.preventDefault()
     if (!atividade) return
 
@@ -459,7 +459,7 @@ const AtividadeDrawer = ({
     if (!ok) return
 
     onClose()
-    router.push(`/catec/projetos/${atividade.projetoId}`)
+    router.push(`/catec/servicos/${atividade.servicoId}`)
   }
 
   const irParaAtividade = async (id: number) => {
@@ -543,14 +543,14 @@ const AtividadeDrawer = ({
           <div className={styles.detalheToolbar}>
             <div className={styles.detalheBreadcrumb}>
               <NextLink
-                href={`/catec/projetos/${atividade.projetoId}`}
+                href={`/catec/servicos/${atividade.servicoId}`}
                 className={styles.detalheBreadcrumbLink}
-                onClick={e => void irParaProjeto(e)}
-                title='Abrir projeto'
+                onClick={e => void irParaServico(e)}
+                title='Abrir servico'
               >
                 <i className='tabler-folder text-lg text-primary' />
                 <span className='truncate font-medium'>
-                  {atividade.projetoTitulo || `Projeto #${atividade.projetoId}`}
+                  {atividade.servicoTitulo || `Servico #${atividade.servicoId}`}
                 </span>
               </NextLink>
               {cadeiaPais.map(pai => (
@@ -630,7 +630,7 @@ const AtividadeDrawer = ({
                   setDescricao(html ?? '')
                   const atual = estadoRef.current
 
-                  if (prazoAposPrevisaoProjeto(atual.prazo, projeto?.previsaoConclusaoEm)) {
+                  if (prazoAposPrevisaoServico(atual.prazo, servico?.previsaoConclusaoEm)) {
                     toast.error(MSG_PRAZO_APOS_PREVISAO)
 
                     return
@@ -1033,7 +1033,7 @@ const AtividadeDrawer = ({
                       type='date'
                       className={styles.detalheDateInput}
                       value={prazo}
-                      max={projeto?.previsaoConclusaoEm ? dataCivilSp(projeto.previsaoConclusaoEm) : undefined}
+                      max={servico?.previsaoConclusaoEm ? dataCivilSp(servico.previsaoConclusaoEm) : undefined}
                       onChange={e => setPrazo(e.target.value)}
                       onBlur={() => {
                         if (!prazo) setEditandoPrazo(false)
@@ -1080,66 +1080,66 @@ const AtividadeDrawer = ({
 
               <div
                 className={
-                  projetoAberto ? styles.detalheInfo : `${styles.detalheInfo} ${styles.detalheInfoFechada}`
+                  servicoAberto ? styles.detalheInfo : `${styles.detalheInfo} ${styles.detalheInfoFechada}`
                 }
               >
                 <button
                   type='button'
                   className={styles.detalheInfoHeadingBtn}
-                  onClick={() => setProjetoAberto(v => !v)}
-                  aria-expanded={projetoAberto}
+                  onClick={() => setServicoAberto(v => !v)}
+                  aria-expanded={servicoAberto}
                 >
-                  <i className={projetoAberto ? 'tabler-chevron-down' : 'tabler-chevron-right'} />
-                  <span className={styles.detalheInfoHeadingTitle}>Projeto</span>
+                  <i className={servicoAberto ? 'tabler-chevron-down' : 'tabler-chevron-right'} />
+                  <span className={styles.detalheInfoHeadingTitle}>Servico</span>
                 </button>
 
-                {projetoAberto ? (
-                  carregandoProjeto ? (
+                {servicoAberto ? (
+                  carregandoServico ? (
                     <Typography variant='body2' color='text.secondary'>
-                      Carregando projeto…
+                      Carregando servico…
                     </Typography>
-                  ) : projeto ? (
+                  ) : servico ? (
                     <>
                       <div className={styles.detalheInfoRow}>
                         <span className={styles.detalheInfoLabel}>Título</span>
                         <NextLink
-                          href={`/catec/projetos/${projeto.id}`}
+                          href={`/catec/servicos/${servico.id}`}
                           className={`${styles.detalheInfoValueStatic} text-primary hover:underline`}
                         >
-                          <span className='truncate'>{projeto.titulo || '—'}</span>
+                          <span className='truncate'>{servico.titulo || '—'}</span>
                         </NextLink>
                       </div>
 
                       <div className={styles.detalheInfoRow}>
                         <span className={styles.detalheInfoLabel}>Cliente</span>
                         <span className={styles.detalheInfoValueStatic}>
-                          <span className='truncate'>{projeto.clienteNome || 'Nenhum'}</span>
+                          <span className='truncate'>{servico.clienteNome || 'Nenhum'}</span>
                         </span>
                       </div>
 
                       <div className={styles.detalheInfoRow}>
                         <span className={styles.detalheInfoLabel}>Status</span>
                         <span className={styles.detalheInfoValueStatic}>
-                          {STATUS_PROJETO_ROTULO[projeto.status]}
+                          {STATUS_SERVICO_ROTULO[servico.status]}
                         </span>
                       </div>
 
                       <div className={styles.detalheInfoRow}>
                         <span className={styles.detalheInfoLabel}>Conclusão</span>
                         <span className={styles.detalheInfoValueStatic}>
-                          {formatarDataExibicao(projeto.previsaoConclusaoEm)}
+                          {formatarDataExibicao(servico.previsaoConclusaoEm)}
                         </span>
                       </div>
 
                       <div className={styles.detalheInfoRow}>
                         <span className={styles.detalheInfoLabel}>Criado por</span>
                         <span className={styles.detalheInfoValueStatic}>
-                          {projeto.criadoPorNome ? (
+                          {servico.criadoPorNome ? (
                             <>
                               <Avatar className={`bs-6 is-6 text-xs ${styles.avatarUsuario}`}>
-                                {iniciais(projeto.criadoPorNome)}
+                                {iniciais(servico.criadoPorNome)}
                               </Avatar>
-                              <span className='truncate'>{projeto.criadoPorNome}</span>
+                              <span className='truncate'>{servico.criadoPorNome}</span>
                             </>
                           ) : (
                             '—'
@@ -1149,7 +1149,7 @@ const AtividadeDrawer = ({
                     </>
                   ) : (
                     <Typography variant='body2' color='text.secondary'>
-                      {atividade.projetoTitulo || `Projeto #${atividade.projetoId}`}
+                      {atividade.servicoTitulo || `Servico #${atividade.servicoId}`}
                     </Typography>
                   )
                 ) : null}

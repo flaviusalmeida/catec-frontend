@@ -1,17 +1,17 @@
 import type { CatecAtividade, CatecAtividadeStatus } from '@/types/catec/atividadeTypes'
-import type { CatecProjeto, CatecProjetoStatus } from '@/types/catec/projetoTypes'
+import type { CatecServico, CatecServicoStatus } from '@/types/catec/servicoTypes'
 
-export const STATUS_PROJETO_MUTACAO_ATIVIDADE: CatecProjetoStatus[] = [
+export const STATUS_SERVICO_MUTACAO_ATIVIDADE: CatecServicoStatus[] = [
   'AGUARDANDO_EXECUCAO',
   'EM_EXECUCAO'
 ]
 
-export function projetoPermiteMutacaoAtividade(status: CatecProjetoStatus): boolean {
-  return STATUS_PROJETO_MUTACAO_ATIVIDADE.includes(status)
+export function servicoPermiteMutacaoAtividade(status: CatecServicoStatus): boolean {
+  return STATUS_SERVICO_MUTACAO_ATIVIDADE.includes(status)
 }
 
-export function filtrarProjetosParaCriacaoAtividade(projetos: CatecProjeto[]): CatecProjeto[] {
-  return projetos.filter(p => projetoPermiteMutacaoAtividade(p.status))
+export function filtrarServicosParaCriacaoAtividade(servicos: CatecServico[]): CatecServico[] {
+  return servicos.filter(p => servicoPermiteMutacaoAtividade(p.status))
 }
 
 /** Extrai YYYY-MM-DD em fuso America/Sao_Paulo (alinhado ao backend). */
@@ -30,7 +30,7 @@ export function dataCivilSp(iso: string | null | undefined): string {
   }).format(d)
 }
 
-export function prazoAposPrevisaoProjeto(
+export function prazoAposPrevisaoServico(
   prazoYmd: string,
   previsaoConclusaoEm: string | null | undefined
 ): boolean {
@@ -54,7 +54,7 @@ export function temFilhasNaoConcluidas(
 }
 
 export const MSG_PRAZO_APOS_PREVISAO =
-  'O prazo da atividade não pode ser posterior à previsão de entrega do projeto.'
+  'O prazo da atividade não pode ser posterior à previsão de entrega do servico.'
 
 export const MSG_CONCLUSAO_COM_FILHAS =
   'Não é possível concluir enquanto houver atividades ou subatividades filhas sem conclusão.'

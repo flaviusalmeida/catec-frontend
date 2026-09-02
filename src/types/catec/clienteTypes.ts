@@ -151,7 +151,7 @@ export type CatecClienteFormState = {
   enderecoCep: string
   periodoFaturamento: string
   observacoes: string
-  responsavel: CatecClienteResponsavelFormState
+  responsaveis: CatecClienteResponsavelFormState[]
 }
 
 export const EMPTY_RESPONSAVEL_FORM: CatecClienteResponsavelFormState = {
@@ -175,7 +175,7 @@ export const EMPTY_CLIENTE_FORM: CatecClienteFormState = {
   enderecoCep: '',
   periodoFaturamento: '',
   observacoes: '',
-  responsavel: { ...EMPTY_RESPONSAVEL_FORM }
+  responsaveis: [{ ...EMPTY_RESPONSAVEL_FORM }]
 }
 
 export function rotuloTipoPessoa(tipo: TipoPessoa): string {

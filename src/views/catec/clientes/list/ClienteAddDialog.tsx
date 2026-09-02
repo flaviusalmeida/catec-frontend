@@ -12,8 +12,14 @@ import MenuItem from '@mui/material/MenuItem'
 import Typography from '@mui/material/Typography'
 import { toast } from 'react-toastify'
 
-import type { CatecCliente, CatecClienteFormState, CatecClienteRequest, TipoPessoa } from '@/types/catec/clienteTypes'
-import { EMPTY_CLIENTE_FORM } from '@/types/catec/clienteTypes'
+import type {
+  CatecCliente,
+  CatecClienteFormState,
+  CatecClienteRequest,
+  CatecClienteResponsavelFormState,
+  TipoPessoa
+} from '@/types/catec/clienteTypes'
+import { EMPTY_CLIENTE_FORM, EMPTY_RESPONSAVEL_FORM } from '@/types/catec/clienteTypes'
 
 import DialogCloseButton from '@components/dialogs/DialogCloseButton'
 import CustomTextField from '@core/components/mui/TextField'
@@ -29,7 +35,7 @@ type Props = {
 
 const emptyForm = (): CatecClienteFormState => ({
   ...EMPTY_CLIENTE_FORM,
-  responsavel: { ...EMPTY_CLIENTE_FORM.responsavel }
+  responsaveis: [{ ...EMPTY_RESPONSAVEL_FORM }]
 })
 
 const ClienteAddDialog = ({ open, setOpen, onAdd }: Props) => {
@@ -69,6 +75,15 @@ const ClienteAddDialog = ({ open, setOpen, onAdd }: Props) => {
     }
   }
 
+  const contato = form.responsaveis[0] ?? EMPTY_RESPONSAVEL_FORM
+
+  function atualizarContato(patch: Partial<CatecClienteResponsavelFormState>) {
+    setForm(f => ({
+      ...f,
+      responsaveis: [{ ...contato, ...patch }]
+    }))
+  }
+
   return (
     <Dialog
       fullWidth
@@ -86,7 +101,7 @@ const ClienteAddDialog = ({ open, setOpen, onAdd }: Props) => {
         Novo cliente
         <Typography component='span' className='flex flex-col text-center' color='text.secondary'>
           Nome fantasia, endereço e observações são opcionais e podem ser preenchidos na página de
-          detalhe.
+          detalhe. Contatos adicionais também podem ser incluídos depois.
         </Typography>
       </DialogTitle>
       <form onSubmit={handleSubmit}>
@@ -175,18 +190,16 @@ const ClienteAddDialog = ({ open, setOpen, onAdd }: Props) => {
 
             <Grid size={{ xs: 12 }}>
               <Typography variant='subtitle1' className='font-medium'>
-                Responsável
+                Contato
               </Typography>
             </Grid>
             <Grid size={{ xs: 12 }}>
               <CustomTextField
                 fullWidth
                 required
-                label='Nome do responsável'
-                value={form.responsavel.nome}
-                onChange={e =>
-                  setForm(f => ({ ...f, responsavel: { ...f.responsavel, nome: e.target.value } }))
-                }
+                label='Nome do contato'
+                value={contato.nome}
+                onChange={e => atualizarContato({ nome: e.target.value })}
               />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
@@ -194,26 +207,21 @@ const ClienteAddDialog = ({ open, setOpen, onAdd }: Props) => {
                 fullWidth
                 required
                 type='email'
-                label='E-mail do responsável'
-                value={form.responsavel.email}
-                onChange={e =>
-                  setForm(f => ({ ...f, responsavel: { ...f.responsavel, email: e.target.value } }))
-                }
+                label='E-mail do contato'
+                value={contato.email}
+                onChange={e => atualizarContato({ email: e.target.value })}
               />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
               <CustomTextField
                 fullWidth
                 required
-                label='Telefone do responsável'
-                value={form.responsavel.telefone}
+                label='Telefone do contato'
+                value={contato.telefone}
                 onChange={e => {
                   const d = onlyDigits(e.target.value).slice(0, 11)
 
-                  setForm(f => ({
-                    ...f,
-                    responsavel: { ...f.responsavel, telefone: d ? formatTelefoneBrasil(d) : '' }
-                  }))
+                  atualizarContato({ telefone: d ? formatTelefoneBrasil(d) : '' })
                 }}
                 placeholder='(00) 00000-0000'
               />
@@ -221,8 +229,8 @@ const ClienteAddDialog = ({ open, setOpen, onAdd }: Props) => {
           </Grid>
         </DialogContent>
         <DialogActions className='justify-center pbs-0 sm:pbe-16 sm:pli-16'>
-          <Button variant='contained' type='submit'>
-            Criar
+          <Button variant='contained' type='submit' disabled={salvando}>
+            {salvando ? 'Criando…' : 'Criar'}
           </Button>
           <Button variant='tonal' color='secondary' type='button' onClick={handleClose}>
             Cancelar

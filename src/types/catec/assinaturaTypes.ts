@@ -60,29 +60,38 @@ export type CatecAssinaturaProviderInfo = {
 export type CatecEnviarAssinaturaPayload = {
   prazoInicioExecucaoDias: number
   prazoConclusaoDias: number
-  emails: string[]
-  papel?: 'EMPRESA' | 'RESPONSAVEL'
+  chavesCliente: string[]
+  usuariosCatecIds: number[]
 }
 
 export type CatecSignatarioDisponivel = {
+  chave: string
   nome: string
   email: string
   papel: string
   rotulo: string
 }
 
-export function chaveSignatarioCliente(s: Pick<CatecSignatarioDisponivel, 'papel' | 'email'>): string {
+export function chaveSignatarioCliente(s: Pick<CatecSignatarioDisponivel, 'chave' | 'papel' | 'email'>): string {
+  if (s.chave?.trim()) {
+    return s.chave
+  }
+
   return `${s.papel}|${s.email}`
 }
 
 export function parseChaveSignatarioCliente(chave: string): { papel: string; email: string } {
-  const i = chave.indexOf('|')
+  const parts = chave.split('|')
 
-  if (i < 0) {
-    return { papel: '', email: chave }
+  if (parts[0] === 'RESPONSAVEL' && parts.length >= 3) {
+    return { papel: 'RESPONSAVEL', email: parts.slice(2).join('|') }
   }
 
-  return { papel: chave.slice(0, i), email: chave.slice(i + 1) }
+  if (parts.length >= 2) {
+    return { papel: parts[0], email: parts.slice(1).join('|') }
+  }
+
+  return { papel: '', email: chave }
 }
 
 export type CatecSignatarioCatec = {
@@ -118,7 +127,12 @@ export type CatecAssinaturaConfigUpdate = {
   exigeSignatarioCatec: boolean
   permiteInteracaoManualContrato: boolean
   desativaAssinaturaViaApi: boolean
-  clientePapelPreferido: 'EMPRESA' | 'RESPONSAVEL'
+}
+
+export type CatecAssinaturaTesteConexao = {
+  ok: boolean
+  mensagem: string
+  providerAtivo: boolean
 }
 
 export type CatecUsuarioCandidatoSignatario = {
@@ -129,11 +143,15 @@ export type CatecUsuarioCandidatoSignatario = {
 
 export function parseCatecSignatarioDisponivel(data: unknown): CatecSignatarioDisponivel {
   const raw = (data ?? {}) as Record<string, unknown>
+  const email = String(raw.email ?? '')
+  const papel = String(raw.papel ?? '')
+  const chaveApi = raw.chave == null ? '' : String(raw.chave)
 
   return {
+    chave: chaveApi || `${papel}|${email}`,
     nome: String(raw.nome ?? ''),
-    email: String(raw.email ?? ''),
-    papel: String(raw.papel ?? ''),
+    email,
+    papel,
     rotulo: String(raw.rotulo ?? raw.papel ?? 'Signatário')
   }
 }
@@ -270,6 +288,16 @@ export function parseCatecAssinaturaConfig(data: unknown): CatecAssinaturaConfig
     webhookSecretConfigurado: raw.webhookSecretConfigurado === true,
     webhookEventosEsperados: eventosWebhookRaw.map(String),
     signatariosCatec: signatariosRaw.map(parseCatecSignatarioCatec)
+  }
+}
+
+export function parseCatecAssinaturaTesteConexao(data: unknown): CatecAssinaturaTesteConexao {
+  const raw = (data ?? {}) as Record<string, unknown>
+
+  return {
+    ok: raw.ok === true,
+    mensagem: String(raw.mensagem ?? ''),
+    providerAtivo: raw.providerAtivo === true
   }
 }
 

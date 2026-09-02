@@ -49,16 +49,16 @@ export async function obterBoardAtividadesCatec(
   filtros: CatecAtividadeBoardFiltros = {}
 ): Promise<CatecBoardComCatalogo> {
   const qs = buildQuery({
-    projetoId: filtros.projetoId ?? undefined,
+    servicoId: filtros.servicoId ?? undefined,
     responsavelId: filtros.responsavelId ?? undefined,
     q: filtros.q?.trim() || undefined,
-    agrupar: filtros.agrupar ?? 'PROJETO'
+    agrupar: filtros.agrupar ?? 'SERVICO'
   })
 
   const [boardRes, catalogo] = await Promise.all([
     catecApiFetch(`/api/v1/atividades/board${qs}`),
     listarAtividadesCatec({
-      projetoId: filtros.projetoId ?? undefined,
+      servicoId: filtros.servicoId ?? undefined,
       responsavelId: filtros.responsavelId ?? undefined,
       q: filtros.q ?? undefined
     }).catch(() => {
@@ -103,13 +103,13 @@ export async function obterBoardAtividadesCatec(
 }
 
 export async function listarAtividadesCatec(filtros: {
-  projetoId?: number | null
+  servicoId?: number | null
   status?: CatecAtividadeStatus | null
   responsavelId?: number | null
   q?: string | null
 } = {}): Promise<CatecAtividade[]> {
   const qs = buildQuery({
-    projetoId: filtros.projetoId ?? undefined,
+    servicoId: filtros.servicoId ?? undefined,
     status: filtros.status ?? undefined,
     responsavelId: filtros.responsavelId ?? undefined,
     q: filtros.q?.trim() || undefined
@@ -123,11 +123,11 @@ export async function listarAtividadesCatec(filtros: {
   return parseCatecAtividadeList(data)
 }
 
-export async function listarAtividadesPorProjetoCatec(projetoId: number): Promise<CatecAtividade[]> {
-  const res = await catecApiFetch(`/api/v1/projetos/${projetoId}/atividades`)
+export async function listarAtividadesPorServicoCatec(servicoId: number): Promise<CatecAtividade[]> {
+  const res = await catecApiFetch(`/api/v1/servicos/${servicoId}/atividades`)
   const data = await readCatecJsonBody(res)
 
-  assertCatecOk(res, data, 'Não foi possível carregar as atividades do projeto.')
+  assertCatecOk(res, data, 'Não foi possível carregar as atividades do servico.')
 
   return parseCatecAtividadeList(data)
 }
@@ -142,10 +142,10 @@ export async function obterAtividadeCatec(id: number): Promise<CatecAtividade> {
 }
 
 export async function criarAtividadeRaizCatec(
-  projetoId: number,
+  servicoId: number,
   body: CatecAtividadeCreateInput
 ): Promise<CatecAtividade> {
-  const res = await catecApiFetch(`/api/v1/projetos/${projetoId}/atividades`, {
+  const res = await catecApiFetch(`/api/v1/servicos/${servicoId}/atividades`, {
     method: 'POST',
     body: JSON.stringify(body)
   })

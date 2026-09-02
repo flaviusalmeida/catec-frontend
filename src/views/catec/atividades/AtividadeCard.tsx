@@ -91,7 +91,7 @@ const AtividadeCard = ({ atividade, onOpen, podeMover }: Props) => {
     >
       <CardContent className='flex flex-col gap-y-2 items-start relative overflow-hidden !p-3'>
         <Typography variant='body2' color='text.secondary' className='leading-none max-is-full truncate'>
-          {atividade.projetoTitulo}
+          {atividade.servicoTitulo}
         </Typography>
 
         <Typography

@@ -51,7 +51,7 @@ const CARD_DEFS: CardDef[] = [
   },
   {
     tipo: 'COM_RESPONSAVEL',
-    title: 'Com responsável',
+    title: 'Com contatos',
     avatarIcon: 'tabler-user-check',
     avatarColor: 'warning',
     subtitle: 'Comparativo com o início do trimestre',

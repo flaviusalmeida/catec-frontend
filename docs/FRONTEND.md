@@ -8,7 +8,7 @@
 | Package manager | **pnpm** |
 | URL dev | http://localhost:3000 |
 | Login | `/login` |
-| Home pós-login | `/catec/projetos` |
+| Home pós-login | `/catec/servicos` |
 
 Interface em **português** (sem i18n / sem prefixo de idioma nas URLs).
 
@@ -68,7 +68,7 @@ Requer API e `NEXTAUTH_SECRET` no `.env`.
 |------|-----------|
 | `/login` | Entrada |
 | `/catec/definir-senha` | Troca de senha obrigatória |
-| `/catec/projetos` | Lista de projetos |
+| `/catec/servicos` | Lista de servicos |
 | `/catec/clientes` | Clientes |
 | `/catec/usuarios` | Usuários |
 | `/catec/grupos` | Grupos de acesso |

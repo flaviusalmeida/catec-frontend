@@ -1,7 +1,7 @@
 export type CatecPropostaPendenteSocio = {
   propostaId: number
-  projetoId: number
-  projetoTitulo: string
+  servicoId: number
+  servicoTitulo: string
   clienteNome: string | null
   versao: number
   elaboradoPorNome: string
@@ -16,8 +16,8 @@ export function parseCatecPropostaPendenteSocioList(raw: unknown): CatecProposta
 
     return {
       propostaId: Number(data.propostaId),
-      projetoId: Number(data.projetoId),
-      projetoTitulo: String(data.projetoTitulo ?? ''),
+      servicoId: Number(data.servicoId),
+      servicoTitulo: String(data.servicoTitulo ?? ''),
       clienteNome: data.clienteNome == null ? null : String(data.clienteNome),
       versao: Number(data.versao ?? 1),
       elaboradoPorNome: String(data.elaboradoPorNome ?? ''),
