@@ -10,9 +10,15 @@ import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import Chip from '@mui/material/Chip'
 import CircularProgress from '@mui/material/CircularProgress'
+import Dialog from '@mui/material/Dialog'
+import DialogActions from '@mui/material/DialogActions'
+import DialogContent from '@mui/material/DialogContent'
+import DialogTitle from '@mui/material/DialogTitle'
 import Grid from '@mui/material/Grid'
 import IconButton from '@mui/material/IconButton'
 import Switch from '@mui/material/Switch'
+import ToggleButton from '@mui/material/ToggleButton'
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import Typography from '@mui/material/Typography'
 import { toast } from 'react-toastify'
 
@@ -21,11 +27,15 @@ import {
   obterAssinaturaConfigCatec,
   testarConexaoAssinaturaCatec
 } from '@/libs/catecAssinaturaConfigApi'
-import type { CatecAssinaturaConfig, CatecAssinaturaConfigUpdate } from '@/types/catec/assinaturaTypes'
+import type { CatecAssinaturaAmbiente, CatecAssinaturaConfig, CatecAssinaturaConfigUpdate } from '@/types/catec/assinaturaTypes'
 import { PermissaoCodigo } from '@/types/catec/permissao'
 import { useCatecPermission } from '@/hooks/useCatecPermission'
 
 type StatusIntegracao = 'ativo' | 'inativo' | 'erro'
+
+function normalizarAmbienteClicksign(ambiente: string | undefined): CatecAssinaturaAmbiente {
+  return ambiente === 'producao' ? 'producao' : 'sandbox'
+}
 
 function rotuloAmbiente(ambiente: string | undefined): string {
   switch (ambiente) {
@@ -81,33 +91,22 @@ function resolverDiagnosticoProvedor(config: CatecAssinaturaConfig | null) {
     config?.webhookUrl?.trim() ||
     (webhookPath ? `http://localhost:8080${webhookPath}` : '')
 
-  let ambiente = config?.ambiente ?? 'desconhecido'
+  const ambienteAtivo = normalizarAmbienteClicksign(config?.ambiente)
+  const ambiente = config?.ambiente?.trim() || ambienteAtivo
   const apiBaseUrl = config?.apiBaseUrl?.trim() || null
 
-  if ((!ambiente || ambiente === 'desconhecido') && apiBaseUrl) {
-    const lower = apiBaseUrl.toLowerCase()
-
-    if (lower.includes('sandbox')) ambiente = 'sandbox'
-    else if (lower.includes('app.clicksign.com') || lower.includes('api.clicksign.com')) ambiente = 'producao'
-  }
-
-  if ((!ambiente || ambiente === 'desconhecido') && codigo === 'clicksign' && config?.providerAtivo) {
-    ambiente = 'sandbox'
-  }
-
-  const tokenOk =
-    codigo === 'clicksign' ? Boolean(config?.accessTokenConfigurado || config?.providerAtivo) : false
-
+  const tokenOk = codigo === 'clicksign' ? Boolean(config?.accessTokenConfigurado) : false
   const secretOk = Boolean(config?.webhookSecretConfigurado)
 
   return {
     codigo,
     webhookPath,
     webhookUrl,
-    apiBaseUrl:
-      apiBaseUrl ||
-      (codigo === 'clicksign' ? 'https://sandbox.clicksign.com/api/v3' : null),
+    apiBaseUrl,
     ambiente,
+    ambienteAtivo,
+    ambienteSandboxConfigurado: config?.ambienteSandboxConfigurado === true,
+    ambienteProducaoConfigurado: config?.ambienteProducaoConfigurado === true,
     tokenOk,
     secretOk,
     aplicaCredenciais: codigo === 'clicksign' || codigo === 'stub'
@@ -262,6 +261,8 @@ const AssinaturaConfigView = () => {
   const [testandoConexao, setTestandoConexao] = useState(false)
   const [erroCarregamento, setErroCarregamento] = useState<string | null>(null)
   const [erroTesteConexao, setErroTesteConexao] = useState<string | null>(null)
+  const [confirmProducaoOpen, setConfirmProducaoOpen] = useState(false)
+  const [ambientePendente, setAmbientePendente] = useState<CatecAssinaturaAmbiente | null>(null)
 
   const [exigeSignatarioCatec, setExigeSignatarioCatec] = useState(true)
   const [permiteInteracaoManualContrato, setPermiteInteracaoManualContrato] = useState(false)
@@ -306,6 +307,7 @@ const AssinaturaConfigView = () => {
       setExigeSignatarioCatec(atualizado.exigeSignatarioCatec)
       setPermiteInteracaoManualContrato(atualizado.permiteInteracaoManualContrato)
       setDesativaAssinaturaViaApi(atualizado.desativaAssinaturaViaApi)
+      setErroTesteConexao(null)
       toast.success('Configuração salva.')
     } catch (err) {
       if (config) {
@@ -318,6 +320,62 @@ const AssinaturaConfigView = () => {
     } finally {
       setSalvando(false)
     }
+  }
+
+  function solicitarTrocaAmbiente(novo: CatecAssinaturaAmbiente | null) {
+    if (!novo || !config || salvando) {
+      return
+    }
+
+    const atual = normalizarAmbienteClicksign(config.ambiente)
+
+    if (novo === atual) {
+      return
+    }
+
+    if (novo === 'producao' && !provedorDiag.ambienteProducaoConfigurado) {
+      toast.error('Ambiente de produção não configurado no servidor (.env).')
+
+      return
+    }
+
+    if (novo === 'sandbox' && !provedorDiag.ambienteSandboxConfigurado) {
+      toast.error('Ambiente sandbox não configurado no servidor (.env).')
+
+      return
+    }
+
+    if (novo === 'producao') {
+      setAmbientePendente(novo)
+      setConfirmProducaoOpen(true)
+
+      return
+    }
+
+    void salvarParametros({
+      exigeSignatarioCatec,
+      permiteInteracaoManualContrato,
+      desativaAssinaturaViaApi,
+      ambienteClicksign: novo
+    })
+  }
+
+  async function confirmarTrocaProducao() {
+    if (!ambientePendente) {
+      setConfirmProducaoOpen(false)
+
+      return
+    }
+
+    setConfirmProducaoOpen(false)
+
+    await salvarParametros({
+      exigeSignatarioCatec,
+      permiteInteracaoManualContrato,
+      desativaAssinaturaViaApi,
+      ambienteClicksign: ambientePendente
+    })
+    setAmbientePendente(null)
   }
 
   async function handleTestarConexao() {
@@ -410,14 +468,46 @@ const AssinaturaConfigView = () => {
                   <InfoLinha
                     rotulo='Ambiente'
                     valor={
-                      <Chip
-                        size='small'
-                        variant='tonal'
-                        color={corAmbiente(provedorDiag.ambiente)}
-                        label={rotuloAmbiente(provedorDiag.ambiente)}
-                      />
+                      podeGerir && provedorDiag.codigo === 'clicksign' ? (
+                        <ToggleButtonGroup
+                          exclusive
+                          size='small'
+                          color='primary'
+                          value={provedorDiag.ambienteAtivo}
+                          disabled={salvando}
+                          onChange={(_e, value: CatecAssinaturaAmbiente | null) => solicitarTrocaAmbiente(value)}
+                        >
+                          <ToggleButton
+                            value='sandbox'
+                            disabled={!provedorDiag.ambienteSandboxConfigurado}
+                            aria-label='Sandbox'
+                          >
+                            Sandbox
+                          </ToggleButton>
+                          <ToggleButton
+                            value='producao'
+                            disabled={!provedorDiag.ambienteProducaoConfigurado}
+                            aria-label='Produção'
+                          >
+                            Produção
+                          </ToggleButton>
+                        </ToggleButtonGroup>
+                      ) : (
+                        <Chip
+                          size='small'
+                          variant='tonal'
+                          color={corAmbiente(provedorDiag.ambiente)}
+                          label={rotuloAmbiente(provedorDiag.ambiente)}
+                        />
+                      )
                     }
                   />
+                  {podeGerir && provedorDiag.codigo === 'clicksign' ? (
+                    <Typography variant='caption' color='text.secondary'>
+                      Credenciais (token, segredo e URL) ficam no .env do servidor. Novos envios usam o ambiente
+                      selecionado; contratos já enviados continuam no ambiente original.
+                    </Typography>
+                  ) : null}
                   {provedorDiag.apiBaseUrl ? (
                     <InfoLinha
                       rotulo='API'
@@ -512,6 +602,22 @@ const AssinaturaConfigView = () => {
           </CardContent>
         </Card>
       </Grid>
+
+      <Dialog open={confirmProducaoOpen} onClose={() => setConfirmProducaoOpen(false)}>
+        <DialogTitle>Ativar ambiente de produção?</DialogTitle>
+        <DialogContent>
+          <Typography variant='body2' color='text.secondary'>
+            Os próximos contratos serão enviados para a ClickSign de produção. Confirme que o token, o segredo do
+            webhook e a URL pública do backend estão corretos no .env.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmProducaoOpen(false)}>Cancelar</Button>
+          <Button color='error' variant='contained' onClick={() => void confirmarTrocaProducao()}>
+            Usar produção
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Grid size={{ xs: 12 }}>
         <Card>

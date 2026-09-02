@@ -104,6 +104,8 @@ export type CatecSignatarioCatec = {
   ordem: number
 }
 
+export type CatecAssinaturaAmbiente = 'sandbox' | 'producao'
+
 export type CatecAssinaturaConfig = {
   exigeSignatarioCatec: boolean
   permiteInteracaoManualContrato: boolean
@@ -114,6 +116,8 @@ export type CatecAssinaturaConfig = {
   providerCodigo: string
   apiBaseUrl: string | null
   ambiente: string
+  ambienteSandboxConfigurado: boolean
+  ambienteProducaoConfigurado: boolean
   webhookPath: string
   webhookUrl: string | null
   webhookUrlPublica: boolean
@@ -127,6 +131,7 @@ export type CatecAssinaturaConfigUpdate = {
   exigeSignatarioCatec: boolean
   permiteInteracaoManualContrato: boolean
   desativaAssinaturaViaApi: boolean
+  ambienteClicksign?: CatecAssinaturaAmbiente
 }
 
 export type CatecAssinaturaTesteConexao = {
@@ -281,6 +286,8 @@ export function parseCatecAssinaturaConfig(data: unknown): CatecAssinaturaConfig
     providerCodigo: String(raw.providerCodigo ?? 'none'),
     apiBaseUrl: raw.apiBaseUrl == null || raw.apiBaseUrl === '' ? null : String(raw.apiBaseUrl),
     ambiente: String(raw.ambiente ?? 'desconhecido'),
+    ambienteSandboxConfigurado: raw.ambienteSandboxConfigurado === true,
+    ambienteProducaoConfigurado: raw.ambienteProducaoConfigurado === true,
     webhookPath: String(raw.webhookPath ?? ''),
     webhookUrl: raw.webhookUrl == null || raw.webhookUrl === '' ? null : String(raw.webhookUrl),
     webhookUrlPublica: raw.webhookUrlPublica === true,
