@@ -13,11 +13,8 @@ import CircularProgress from '@mui/material/CircularProgress'
 import Grid from '@mui/material/Grid'
 import IconButton from '@mui/material/IconButton'
 import Switch from '@mui/material/Switch'
-import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 import { toast } from 'react-toastify'
-
-import CustomAvatar from '@core/components/mui/Avatar'
 
 import {
   atualizarAssinaturaConfigCatec,
@@ -157,11 +154,11 @@ function InfoLinha({
   acao?: ReactNode
 }) {
   return (
-    <Box className='flex flex-col gap-1 sm:flex-row sm:items-start sm:gap-4'>
-      <Typography variant='body2' color='text.secondary' sx={{ minWidth: 76, flexShrink: 0 }}>
+    <Box className='flex flex-col gap-0.5 sm:flex-row sm:items-start sm:gap-3'>
+      <Typography variant='body2' color='text.secondary' sx={{ minWidth: 72, flexShrink: 0 }}>
         {rotulo}
       </Typography>
-      <Box className='flex min-is-0 flex-1 flex-wrap items-center gap-1.5'>
+      <Box className='flex min-is-0 flex-1 flex-wrap items-center gap-1'>
         {typeof valor === 'string' ? (
           <Typography
             variant='body2'
@@ -196,7 +193,6 @@ function RegraFluxoItem({
   titulo,
   descricao,
   icon,
-  iconColor,
   checked,
   disabled,
   onChange
@@ -204,31 +200,53 @@ function RegraFluxoItem({
   titulo: string
   descricao: string
   icon: string
-  iconColor: 'primary' | 'success' | 'warning'
   checked: boolean
   disabled: boolean
   onChange: (event: ChangeEvent<HTMLInputElement>) => void
 }) {
   return (
-    <Box className='flex items-start justify-between gap-4 py-4'>
-      <Box className='flex min-is-0 items-start gap-3'>
-        <CustomAvatar skin='light' color={iconColor} variant='rounded' size={42} className='shrink-0'>
-          <i className={`${icon} text-xl`} />
-        </CustomAvatar>
-        <Box className='flex min-is-0 flex-col gap-1'>
-          <Typography variant='body1' fontWeight={600}>
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 2,
+        p: 2,
+        border: 1,
+        borderColor: 'divider',
+        borderRadius: 1
+      }}
+    >
+      <Box className='flex min-is-0 items-start gap-2.5'>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 36,
+            height: 36,
+            borderRadius: 1,
+            flexShrink: 0,
+            bgcolor: 'action.hover',
+            color: 'text.secondary'
+          }}
+        >
+          <i className={`${icon} text-lg`} />
+        </Box>
+        <Box className='flex min-is-0 flex-col gap-0.5'>
+          <Typography variant='body2' fontWeight={600}>
             {titulo}
           </Typography>
-          <Typography variant='body2' color='text.secondary'>
+          <Typography variant='caption' color='text.secondary'>
             {descricao}
           </Typography>
         </Box>
       </Box>
-      <Box className='flex shrink-0 items-center gap-2'>
-        <Typography variant='body2' color='text.secondary' sx={{ minWidth: 72, textAlign: 'right' }}>
+      <Box className='flex shrink-0 items-center gap-1'>
+        <Typography variant='caption' color='text.secondary' sx={{ whiteSpace: 'nowrap' }}>
           {checked ? 'Ativado' : 'Desativado'}
         </Typography>
-        <Switch checked={checked} disabled={disabled} onChange={onChange} />
+        <Switch size='small' checked={checked} disabled={disabled} onChange={onChange} />
       </Box>
     </Box>
   )
@@ -275,11 +293,6 @@ const AssinaturaConfigView = () => {
   const statusIntegracao = resolverStatusIntegracao(Boolean(config?.providerAtivo), erroTesteConexao)
   const statusChip = chipStatusIntegracao(statusIntegracao)
   const utilizaAssinaturaViaApi = !desativaAssinaturaViaApi
-
-  const tituloIntegracao =
-    provedorDiag.codigo === 'none'
-      ? 'Integração'
-      : `Integração ${rotuloProvedor(provedorDiag.codigo)}`
 
   async function salvarParametros(payload: CatecAssinaturaConfigUpdate) {
     if (!podeGerir) return
@@ -356,22 +369,10 @@ const AssinaturaConfigView = () => {
   return (
     <Grid container spacing={6}>
       <Grid size={{ xs: 12 }}>
-        <Box className='flex flex-wrap items-start justify-between gap-4'>
-          <Box className='flex min-is-0 flex-col gap-1'>
-            <Typography variant='h4'>Assinatura eletrônica</Typography>
-            <Typography variant='body2' color='text.secondary'>
-              Configure a integração com o provedor e defina as regras do fluxo de assinatura.
-            </Typography>
-          </Box>
-          <Tooltip
-            title='Nesta tela você configura a integração com o provedor de assinatura e as regras do fluxo de contratos.'
-            placement='left'
-          >
-            <Button variant='tonal' color='secondary' startIcon={<i className='tabler-help' />}>
-              Ajuda
-            </Button>
-          </Tooltip>
-        </Box>
+        <Typography variant='h4'>Assinatura eletrônica</Typography>
+        <Typography variant='body2' color='text.secondary' className='mbs-1'>
+          Configuração da integração e regras do fluxo de assinatura.
+        </Typography>
       </Grid>
 
       {erroCarregamento ? (
@@ -384,18 +385,26 @@ const AssinaturaConfigView = () => {
 
       <Grid size={{ xs: 12 }}>
         <Card>
-          <CardContent className='flex flex-col gap-5'>
-            <Box className='flex flex-wrap items-center gap-3'>
-              <Typography variant='h6'>{tituloIntegracao}</Typography>
+          <CardContent className='flex flex-col gap-4'>
+            <Box className='flex items-center justify-between gap-3'>
+              <Typography variant='h6'>Integração</Typography>
               <Chip size='small' color={statusChip.color} label={statusChip.label} variant='tonal' />
             </Box>
 
-            <Grid container spacing={5}>
-              <Grid size={{ xs: 12, md: 7 }}>
-                <Typography variant='subtitle2' className='mbe-3'>
+            <Grid container spacing={0}>
+              <Grid
+                size={{ xs: 12, md: 6 }}
+                sx={{
+                  pr: { md: 4 },
+                  pb: { xs: 3, md: 0 },
+                  borderRight: { md: '1px solid' },
+                  borderColor: { md: 'divider' }
+                }}
+              >
+                <Typography variant='subtitle2' className='mbe-2'>
                   Informações da integração
                 </Typography>
-                <Box className='flex flex-col gap-3'>
+                <Box className='flex flex-col gap-2'>
                   <InfoLinha rotulo='Provedor' valor={rotuloProvedor(provedorDiag.codigo)} />
                   <InfoLinha rotulo='Código' valor={provedorDiag.codigo} monospace />
                   <InfoLinha
@@ -420,7 +429,7 @@ const AssinaturaConfigView = () => {
                           aria-label='Copiar URL da API'
                           onClick={() => void copiarTexto(provedorDiag.apiBaseUrl ?? '')}
                         >
-                          <i className='tabler-copy text-lg' />
+                          <i className='tabler-copy text-base' />
                         </IconButton>
                       }
                     />
@@ -436,7 +445,7 @@ const AssinaturaConfigView = () => {
                           aria-label='Copiar URL do webhook'
                           onClick={() => void copiarTexto(provedorDiag.webhookUrl)}
                         >
-                          <i className='tabler-copy text-lg' />
+                          <i className='tabler-copy text-base' />
                         </IconButton>
                       }
                     />
@@ -445,11 +454,11 @@ const AssinaturaConfigView = () => {
               </Grid>
 
               {provedorDiag.aplicaCredenciais ? (
-                <Grid size={{ xs: 12, md: 5 }}>
-                  <Typography variant='subtitle2' className='mbe-3'>
+                <Grid size={{ xs: 12, md: 6 }} sx={{ pl: { md: 4 } }}>
+                  <Typography variant='subtitle2' className='mbe-2'>
                     Credenciais
                   </Typography>
-                  <Box className='flex flex-col gap-3'>
+                  <Box className='flex flex-col gap-2'>
                     {provedorDiag.codigo === 'clicksign' ? (
                       <>
                         <CredencialEstado
@@ -472,7 +481,7 @@ const AssinaturaConfigView = () => {
                     )}
 
                     {erroTesteConexao ? (
-                      <Alert severity='error' variant='outlined' sx={{ mt: 1 }}>
+                      <Alert severity='error' variant='outlined' sx={{ py: 0.5 }}>
                         {erroTesteConexao}
                       </Alert>
                     ) : null}
@@ -480,10 +489,11 @@ const AssinaturaConfigView = () => {
                     {podeGerir && provedorDiag.codigo !== 'none' ? (
                       <Box className='mbs-1'>
                         <Button
+                          size='small'
                           variant='outlined'
                           startIcon={
                             testandoConexao ? (
-                              <CircularProgress size={16} color='inherit' />
+                              <CircularProgress size={14} color='inherit' />
                             ) : (
                               <i className='tabler-bolt' />
                             )
@@ -505,83 +515,93 @@ const AssinaturaConfigView = () => {
 
       <Grid size={{ xs: 12 }}>
         <Card>
-          <CardContent className='flex flex-col gap-2'>
-            <Typography variant='h6' className='mbe-2'>
-              Regras do fluxo de assinatura
-            </Typography>
+          <CardContent className='flex flex-col gap-3'>
+            <Typography variant='h6'>Regras do fluxo de assinatura</Typography>
 
-            <RegraFluxoItem
-              titulo='Exigir responsável CATEC'
-              descricao='Pelo menos um usuário interno deve participar da assinatura do contrato.'
-              icon='tabler-user'
-              iconColor='primary'
-              checked={exigeSignatarioCatec}
-              disabled={!podeGerir || salvando}
-              onChange={e => {
-                const checked = e.target.checked
+            <Box className='flex flex-col gap-2'>
+              <RegraFluxoItem
+                titulo='Exigir responsável CATEC'
+                descricao='Pelo menos um usuário interno deve participar da assinatura do contrato.'
+                icon='tabler-user'
+                checked={exigeSignatarioCatec}
+                disabled={!podeGerir || salvando}
+                onChange={e => {
+                  const checked = e.target.checked
 
-                setExigeSignatarioCatec(checked)
-                void salvarParametros({
-                  exigeSignatarioCatec: checked,
-                  permiteInteracaoManualContrato,
-                  desativaAssinaturaViaApi
-                })
+                  setExigeSignatarioCatec(checked)
+                  void salvarParametros({
+                    exigeSignatarioCatec: checked,
+                    permiteInteracaoManualContrato,
+                    desativaAssinaturaViaApi
+                  })
+                }}
+              />
+
+              <RegraFluxoItem
+                titulo='Utilizar assinatura via API ClickSign'
+                descricao='Os contratos serão enviados automaticamente para assinatura através da API do ClickSign.'
+                icon='tabler-link'
+                checked={utilizaAssinaturaViaApi}
+                disabled={!podeGerir || salvando}
+                onChange={e => {
+                  const utilizarApi = e.target.checked
+                  const desativaApi = !utilizarApi
+
+                  setDesativaAssinaturaViaApi(desativaApi)
+
+                  if (desativaApi) {
+                    setPermiteInteracaoManualContrato(true)
+                  }
+
+                  void salvarParametros({
+                    exigeSignatarioCatec,
+                    permiteInteracaoManualContrato: desativaApi ? true : permiteInteracaoManualContrato,
+                    desativaAssinaturaViaApi: desativaApi
+                  })
+                }}
+              />
+
+              <RegraFluxoItem
+                titulo='Permitir contingência manual'
+                descricao='Permite concluir o fluxo manualmente caso a assinatura eletrônica não esteja disponível.'
+                icon='tabler-shield'
+                checked={permiteInteracaoManualContrato}
+                disabled={!podeGerir || salvando || desativaAssinaturaViaApi}
+                onChange={e => {
+                  const checked = e.target.checked
+
+                  setPermiteInteracaoManualContrato(checked)
+                  void salvarParametros({
+                    exigeSignatarioCatec,
+                    permiteInteracaoManualContrato: checked,
+                    desativaAssinaturaViaApi
+                  })
+                }}
+              />
+            </Box>
+
+            <Box
+              sx={{
+                display: 'flex',
+                gap: 1.5,
+                p: 2,
+                border: 1,
+                borderColor: 'divider',
+                borderRadius: 1,
+                bgcolor: 'action.hover'
               }}
-            />
-
-            <RegraFluxoItem
-              titulo='Utilizar assinatura via API ClickSign'
-              descricao='Os contratos serão enviados automaticamente para assinatura através da API do ClickSign.'
-              icon='tabler-link'
-              iconColor='success'
-              checked={utilizaAssinaturaViaApi}
-              disabled={!podeGerir || salvando}
-              onChange={e => {
-                const utilizarApi = e.target.checked
-                const desativaApi = !utilizarApi
-
-                setDesativaAssinaturaViaApi(desativaApi)
-
-                if (desativaApi) {
-                  setPermiteInteracaoManualContrato(true)
-                }
-
-                void salvarParametros({
-                  exigeSignatarioCatec,
-                  permiteInteracaoManualContrato: desativaApi ? true : permiteInteracaoManualContrato,
-                  desativaAssinaturaViaApi: desativaApi
-                })
-              }}
-            />
-
-            <RegraFluxoItem
-              titulo='Permitir contingência manual'
-              descricao='Permite concluir o fluxo manualmente caso a assinatura eletrônica não esteja disponível.'
-              icon='tabler-shield'
-              iconColor='warning'
-              checked={permiteInteracaoManualContrato}
-              disabled={!podeGerir || salvando || desativaAssinaturaViaApi}
-              onChange={e => {
-                const checked = e.target.checked
-
-                setPermiteInteracaoManualContrato(checked)
-                void salvarParametros({
-                  exigeSignatarioCatec,
-                  permiteInteracaoManualContrato: checked,
-                  desativaAssinaturaViaApi
-                })
-              }}
-            />
-
-            <Alert severity='info' icon={<i className='tabler-info-circle' />} className='mts-2'>
-              <Typography variant='subtitle2' color='info.main' className='mbe-1'>
-                Como funciona o envio
-              </Typography>
-              <Typography variant='body2' color='text.secondary'>
-                Os e-mails do cliente e os responsáveis CATEC são definidos no momento do envio do contrato, na tela
-                de envio.
-              </Typography>
-            </Alert>
+            >
+              <i className='tabler-info-circle text-textSecondary text-lg shrink-0' />
+              <Box className='flex min-is-0 flex-col gap-0.5'>
+                <Typography variant='body2' fontWeight={600}>
+                  Como funciona o envio
+                </Typography>
+                <Typography variant='caption' color='text.secondary'>
+                  Os e-mails do cliente e os responsáveis CATEC são definidos no momento do envio do contrato, na tela
+                  de envio.
+                </Typography>
+              </Box>
+            </Box>
           </CardContent>
         </Card>
       </Grid>
