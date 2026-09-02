@@ -1,12 +1,24 @@
 import type { CatecCliente, CatecClienteFormState, CatecClienteRequest } from '@/types/catec/clienteTypes'
+import { EMPTY_RESPONSAVEL_FORM } from '@/types/catec/clienteTypes'
 
 import { formatCep, formatDocumentoByTipo, formatTelefoneBrasil, onlyDigits } from '@/utils/catec/brFormat'
 
 export function clienteToFormState(cliente: CatecCliente): CatecClienteFormState {
   const docDigits = onlyDigits(cliente.documento ?? '')
   const telDigits = onlyDigits(cliente.telefone ?? '')
-  const primeiroResp = cliente.responsaveis[0]
-  const respTelDigits = onlyDigits(primeiroResp?.telefone ?? '')
+
+  const responsaveis =
+    cliente.responsaveis.length > 0
+      ? cliente.responsaveis.map(r => {
+          const respTelDigits = onlyDigits(r.telefone)
+
+          return {
+            nome: r.nome,
+            email: r.email,
+            telefone: respTelDigits ? formatTelefoneBrasil(respTelDigits) : ''
+          }
+        })
+      : [{ ...EMPTY_RESPONSAVEL_FORM }]
 
   return {
     tipoPessoa: cliente.tipoPessoa,
@@ -27,18 +39,11 @@ export function clienteToFormState(cliente: CatecCliente): CatecClienteFormState
     })(),
     periodoFaturamento: cliente.periodoFaturamento ?? '',
     observacoes: cliente.observacoes ?? '',
-    responsavel: {
-      nome: primeiroResp?.nome ?? '',
-      email: primeiroResp?.email ?? '',
-      telefone: respTelDigits ? formatTelefoneBrasil(respTelDigits) : ''
-    }
+    responsaveis
   }
 }
 
-export function formStateToClientePatch(
-  form: CatecClienteFormState,
-  responsavelId?: number
-): Partial<CatecCliente> {
+export function formStateToClientePatch(form: CatecClienteFormState): Partial<CatecCliente> {
   return {
     tipoPessoa: form.tipoPessoa,
     razaoSocialOuNome: form.razaoSocialOuNome.trim(),
@@ -54,14 +59,12 @@ export function formStateToClientePatch(
     enderecoCep: onlyDigits(form.enderecoCep) || null,
     periodoFaturamento: form.periodoFaturamento.trim(),
     observacoes: form.observacoes.trim() || null,
-    responsaveis: [
-      {
-        id: responsavelId ?? 1,
-        nome: form.responsavel.nome.trim(),
-        email: form.responsavel.email.trim(),
-        telefone: onlyDigits(form.responsavel.telefone)
-      }
-    ]
+    responsaveis: form.responsaveis.map((r, index) => ({
+      id: index + 1,
+      nome: r.nome.trim(),
+      email: r.email.trim(),
+      telefone: onlyDigits(r.telefone)
+    }))
   }
 }
 
@@ -121,9 +124,12 @@ export function validateClienteForm(form: CatecClienteFormState): string | null 
   if (!form.email.trim()) return 'Informe o e-mail.'
   if (!onlyDigits(form.telefone)) return 'Informe o telefone.'
   if (!form.periodoFaturamento.trim()) return 'Informe o período de faturamento.'
-  if (!form.responsavel.nome.trim()) return 'Informe o nome do responsável.'
-  if (!form.responsavel.email.trim()) return 'Informe o e-mail do responsável.'
-  if (!onlyDigits(form.responsavel.telefone)) return 'Informe o telefone do responsável.'
+
+  const primeiro = form.responsaveis[0]
+
+  if (!primeiro?.nome.trim()) return 'Informe o nome do contato.'
+  if (!primeiro.email.trim()) return 'Informe o e-mail do contato.'
+  if (!onlyDigits(primeiro.telefone)) return 'Informe o telefone do contato.'
 
   return null
 }

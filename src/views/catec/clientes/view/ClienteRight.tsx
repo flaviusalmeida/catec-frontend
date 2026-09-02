@@ -12,12 +12,11 @@ import type { CatecCliente } from '@/types/catec/clienteTypes'
 
 import CustomTabList from '@core/components/mui/TabList'
 
-import ClienteContatoTab from './ClienteContatoTab'
+import ClienteContatosTab from './ClienteContatosTab'
 import ClienteEnderecoTab from './ClienteEnderecoTab'
 import ClienteFaturamentoTab from './ClienteFaturamentoTab'
 import ClienteIdentificacaoTab from './ClienteIdentificacaoTab'
 import ClienteObservacoesTab from './ClienteObservacoesTab'
-import ClienteResponsavelTab from './ClienteResponsavelTab'
 
 type Props = {
   cliente: CatecCliente
@@ -43,9 +42,9 @@ const ClienteRight = ({ cliente, onUpdate }: Props) => {
               iconPosition='start'
             />
             <Tab
-              icon={<i className='tabler-phone' />}
-              value='contato'
-              label='Contato'
+              icon={<i className='tabler-users' />}
+              value='contatos'
+              label='Contatos'
               iconPosition='start'
             />
             <Tab
@@ -66,12 +65,6 @@ const ClienteRight = ({ cliente, onUpdate }: Props) => {
               label='Observações'
               iconPosition='start'
             />
-            <Tab
-              icon={<i className='tabler-user-check' />}
-              value='responsavel'
-              label='Responsável'
-              iconPosition='start'
-            />
           </CustomTabList>
         </Grid>
         <Grid size={{ xs: 12 }}>
@@ -79,16 +72,13 @@ const ClienteRight = ({ cliente, onUpdate }: Props) => {
             {activeTab === 'identificacao' ? (
               <ClienteIdentificacaoTab cliente={cliente} onSave={onUpdate} />
             ) : null}
-            {activeTab === 'contato' ? <ClienteContatoTab cliente={cliente} onSave={onUpdate} /> : null}
+            {activeTab === 'contatos' ? <ClienteContatosTab cliente={cliente} onSave={onUpdate} /> : null}
             {activeTab === 'faturamento' ? (
               <ClienteFaturamentoTab cliente={cliente} onSave={onUpdate} />
             ) : null}
             {activeTab === 'endereco' ? <ClienteEnderecoTab cliente={cliente} onSave={onUpdate} /> : null}
             {activeTab === 'observacoes' ? (
               <ClienteObservacoesTab cliente={cliente} onSave={onUpdate} />
-            ) : null}
-            {activeTab === 'responsavel' ? (
-              <ClienteResponsavelTab cliente={cliente} onSave={onUpdate} />
             ) : null}
           </TabPanel>
         </Grid>

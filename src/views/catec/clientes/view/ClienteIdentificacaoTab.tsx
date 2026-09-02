@@ -13,7 +13,7 @@ import { toast } from 'react-toastify'
 import type { CatecCliente, CatecClienteFormState, TipoPessoa } from '@/types/catec/clienteTypes'
 
 import CustomTextField from '@core/components/mui/TextField'
-import { formatDocumentoByTipo, onlyDigits } from '@/utils/catec/brFormat'
+import { formatDocumentoByTipo, formatTelefoneBrasil, onlyDigits } from '@/utils/catec/brFormat'
 
 import { clienteToFormState } from '../clienteFormHelpers'
 
@@ -39,6 +39,12 @@ const ClienteIdentificacaoTab = ({ cliente, onSave }: Props) => {
       return
     }
 
+    if (!form.email.trim() || !onlyDigits(form.telefone)) {
+      toast.error('Informe e-mail e telefone de contato da empresa.')
+
+      return
+    }
+
     setSalvando(true)
 
     try {
@@ -46,7 +52,9 @@ const ClienteIdentificacaoTab = ({ cliente, onSave }: Props) => {
         tipoPessoa: form.tipoPessoa,
         razaoSocialOuNome: form.razaoSocialOuNome.trim(),
         nomeFantasia: form.nomeFantasia.trim() || null,
-        documento: onlyDigits(form.documento) || null
+        documento: onlyDigits(form.documento) || null,
+        email: form.email.trim(),
+        telefone: onlyDigits(form.telefone) || null
       })
       toast.success('Identificação atualizada.')
     } catch {
@@ -111,6 +119,28 @@ const ClienteIdentificacaoTab = ({ cliente, onSave }: Props) => {
                 label='Nome fantasia'
                 value={form.nomeFantasia}
                 onChange={e => setForm(f => ({ ...f, nomeFantasia: e.target.value }))}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <CustomTextField
+                fullWidth
+                type='email'
+                label='E-mail'
+                value={form.email}
+                onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <CustomTextField
+                fullWidth
+                label='Telefone'
+                value={form.telefone}
+                onChange={e => {
+                  const d = onlyDigits(e.target.value).slice(0, 11)
+
+                  setForm(f => ({ ...f, telefone: d ? formatTelefoneBrasil(d) : '' }))
+                }}
+                placeholder='(00) 00000-0000'
               />
             </Grid>
             <Grid size={{ xs: 12 }}>
