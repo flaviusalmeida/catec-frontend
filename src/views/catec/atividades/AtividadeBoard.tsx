@@ -40,7 +40,7 @@ export type CatecAtividadeNovaNaColunaOpts = {
 
   /** Pai pré-fixido: etapa (criar ATIVIDADE) ou atividade (criar SUBATIVIDADE). */
   paiId?: number | null
-  projetoId?: number | null
+  servicoId?: number | null
   tipo?: CatecAtividadeTipo | null
 }
 
@@ -51,10 +51,10 @@ type Props = {
   podeMover: boolean
   podeCriar: boolean
 
-  /** Projetos em AGUARDANDO_EXECUCAO / EM_EXECUCAO — criação contextual só nestes. */
-  projetoIdsCriacao?: ReadonlySet<number>
+  /** Servicos em AGUARDANDO_EXECUCAO / EM_EXECUCAO — criação contextual só nestes. */
+  servicoIdsCriacao?: ReadonlySet<number>
   onNovaNaColuna?: (opts: CatecAtividadeNovaNaColunaOpts) => void
-  onNovaEtapa?: (projetoId: number) => void
+  onNovaEtapa?: (servicoId: number) => void
 
   /** Modal livre (mesmo comportamento do Agrupar=Responsável). */
   onNovaAtividade?: () => void
@@ -70,24 +70,24 @@ function iniciais(nome: string): string {
   return `${partes[0][0]}${partes[partes.length - 1][0]}`.toUpperCase()
 }
 
-function projetoIdDaFaixa(
+function servicoIdDaFaixa(
   faixa: CatecAtividadeBoardFaixa,
   obter: (id: number) => CatecAtividade | null
 ): number | null {
   if (faixa.atividadeId != null) {
-    const doCatalogo = obter(faixa.atividadeId)?.projetoId
+    const doCatalogo = obter(faixa.atividadeId)?.servicoId
 
     if (doCatalogo != null && doCatalogo > 0) return doCatalogo
   }
 
   for (const coluna of faixa.colunas) {
     for (const atividade of coluna.atividades) {
-      if (atividade.projetoId > 0) return atividade.projetoId
+      if (atividade.servicoId > 0) return atividade.servicoId
     }
   }
 
   for (const sub of faixa.subFaixas) {
-    const pid = projetoIdDaFaixa(sub, obter)
+    const pid = servicoIdDaFaixa(sub, obter)
 
     if (pid != null) return pid
   }
@@ -101,7 +101,7 @@ const AtividadeBoard = ({
   onAgruparChange,
   podeMover,
   podeCriar,
-  projetoIdsCriacao,
+  servicoIdsCriacao,
   onNovaNaColuna,
   onNovaEtapa,
   onNovaAtividade
@@ -111,17 +111,17 @@ const AtividadeBoard = ({
   const [atividadeAtual, setAtividadeAtual] = useState<CatecAtividade | null>(null)
   const [menuAgrupar, setMenuAgrupar] = useState<null | HTMLElement>(null)
 
-  /** true = colapsada. Projeto: default expandido; sub-faixa Etapa: default colapsada. */
+  /** true = colapsada. Servico: default expandido; sub-faixa Etapa: default colapsada. */
   const [faixasColapsadas, setFaixasColapsadas] = useState<Record<string, boolean>>({})
 
-  const permiteCriarNoProjeto = useCallback(
-    (projetoId: number | null | undefined) => {
-      if (projetoId == null || projetoId <= 0) return true
-      if (!projetoIdsCriacao) return true
+  const permiteCriarNoServico = useCallback(
+    (servicoId: number | null | undefined) => {
+      if (servicoId == null || servicoId <= 0) return true
+      if (!servicoIdsCriacao) return true
 
-      return projetoIdsCriacao.has(projetoId)
+      return servicoIdsCriacao.has(servicoId)
     },
-    [projetoIdsCriacao]
+    [servicoIdsCriacao]
   )
 
   const handleOpen = useCallback((atividade: CatecAtividade) => {
@@ -188,14 +188,14 @@ const AtividadeBoard = ({
     collapseKey: string,
     opts: {
       paiId?: number | null
-      projetoId?: number | null
+      servicoId?: number | null
       tipo?: CatecAtividadeTipo | null
     } = {}
   ) => {
     const podeCriarAqui =
       podeCriar &&
       Boolean(onNovaNaColuna) &&
-      (opts.projetoId == null || permiteCriarNoProjeto(opts.projetoId))
+      (opts.servicoId == null || permiteCriarNoServico(opts.servicoId))
 
     return (
       <div className={styles.board}>
@@ -213,7 +213,7 @@ const AtividadeBoard = ({
                     onNovaNaColuna({
                       status,
                       paiId: opts.paiId ?? null,
-                      projetoId: opts.projetoId ?? null,
+                      servicoId: opts.servicoId ?? null,
                       tipo: opts.tipo ?? null
                     })
                 : undefined
@@ -232,7 +232,7 @@ const AtividadeBoard = ({
     collapseKey,
     colapsada,
     defaultColapsada,
-    porProjeto,
+    porServico,
     porResponsavel,
     mostrarMetaFaixa,
     totalItens,
@@ -242,7 +242,7 @@ const AtividadeBoard = ({
     collapseKey: string
     colapsada: boolean
     defaultColapsada: boolean
-    porProjeto: boolean
+    porServico: boolean
     porResponsavel: boolean
     mostrarMetaFaixa: boolean
     totalItens: number
@@ -260,7 +260,7 @@ const AtividadeBoard = ({
         >
           <i className={colapsada ? 'tabler-chevron-right' : 'tabler-chevron-down'} />
         </button>
-        {porProjeto ? <i className='tabler-folder text-lg text-primary shrink-0' aria-hidden /> : null}
+        {porServico ? <i className='tabler-folder text-lg text-primary shrink-0' aria-hidden /> : null}
         {porResponsavel ? (
           semResponsavel ? (
             <Tooltip title='Sem responsável'>
@@ -364,17 +364,17 @@ const AtividadeBoard = ({
       <div className={styles.boardFaixas}>
         {board.faixas.map(faixa => {
           const porResponsavel = agrupar === 'RESPONSAVEL'
-          const porProjeto = agrupar === 'PROJETO'
+          const porServico = agrupar === 'SERVICO'
           const porAtividade = agrupar === 'ATIVIDADE'
           const porEtapa = agrupar === 'ETAPA'
-          const temSubFaixas = porProjeto && faixa.subFaixas.length > 0
-          const collapseKey = porProjeto ? `projeto:${faixa.chave}` : faixa.chave
+          const temSubFaixas = porServico && faixa.subFaixas.length > 0
+          const collapseKey = porServico ? `servico:${faixa.chave}` : faixa.chave
           const defaultColapsada = false
           const colapsada = isColapsada(collapseKey, defaultColapsada)
           const totalItens = contagemItensFaixa(faixa)
           const mostrarMetaFaixa = porAtividade || porEtapa
-          const projetoIdNumerico = Number(faixa.chave)
-          const projetoIdValido = Number.isFinite(projetoIdNumerico) && projetoIdNumerico > 0
+          const servicoIdNumerico = Number(faixa.chave)
+          const servicoIdValido = Number.isFinite(servicoIdNumerico) && servicoIdNumerico > 0
 
           return (
             <section key={collapseKey} className={styles.boardFaixa}>
@@ -383,22 +383,22 @@ const AtividadeBoard = ({
                 collapseKey,
                 colapsada,
                 defaultColapsada,
-                porProjeto,
+                porServico,
                 porResponsavel,
                 mostrarMetaFaixa,
                 totalItens,
                 extraActions:
-                  porProjeto &&
+                  porServico &&
                   podeCriar &&
                   onNovaEtapa &&
-                  projetoIdValido &&
-                  permiteCriarNoProjeto(projetoIdNumerico) ? (
+                  servicoIdValido &&
+                  permiteCriarNoServico(servicoIdNumerico) ? (
                     <Button
                       size='small'
                       variant='text'
                       className={styles.boardFaixaAcao}
                       startIcon={<i className='tabler-plus text-sm' />}
-                      onClick={() => onNovaEtapa(projetoIdNumerico)}
+                      onClick={() => onNovaEtapa(servicoIdNumerico)}
                     >
                       Nova etapa
                     </Button>
@@ -422,7 +422,7 @@ const AtividadeBoard = ({
                           collapseKey: subKey,
                           colapsada: subColapsada,
                           defaultColapsada: subDefaultColapsada,
-                          porProjeto: false,
+                          porServico: false,
                           porResponsavel: false,
                           mostrarMetaFaixa: mostrarMetaSub,
                           totalItens: subTotal
@@ -430,7 +430,7 @@ const AtividadeBoard = ({
                         {!subColapsada
                           ? renderKanban(sub, subKey, {
                               paiId: etapaId,
-                              projetoId: projetoIdValido ? projetoIdNumerico : null,
+                              servicoId: servicoIdValido ? servicoIdNumerico : null,
                               tipo: 'ATIVIDADE'
                             })
                           : null}
@@ -440,24 +440,24 @@ const AtividadeBoard = ({
                 </div>
               ) : null}
 
-              {!colapsada && !temSubFaixas && porProjeto && faixa.subFaixas.length === 0 ? (
+              {!colapsada && !temSubFaixas && porServico && faixa.subFaixas.length === 0 ? (
                 <div className={styles.boardFaixaVazia}>
-                  <span>Nenhuma etapa neste projeto.</span>
+                  <span>Nenhuma etapa neste servico.</span>
                   {podeCriar &&
                   onNovaEtapa &&
-                  projetoIdValido &&
-                  permiteCriarNoProjeto(projetoIdNumerico) ? (
-                    <Button size='small' variant='outlined' onClick={() => onNovaEtapa(projetoIdNumerico)}>
+                  servicoIdValido &&
+                  permiteCriarNoServico(servicoIdNumerico) ? (
+                    <Button size='small' variant='outlined' onClick={() => onNovaEtapa(servicoIdNumerico)}>
                       Nova etapa
                     </Button>
                   ) : null}
                 </div>
               ) : null}
 
-              {!colapsada && !porProjeto
+              {!colapsada && !porServico
                 ? renderKanban(faixa, collapseKey, {
                     paiId: porEtapa || porAtividade ? faixa.atividadeId : null,
-                    projetoId: porEtapa || porAtividade ? projetoIdDaFaixa(faixa, obter) : null,
+                    servicoId: porEtapa || porAtividade ? servicoIdDaFaixa(faixa, obter) : null,
                     tipo: porAtividade ? 'SUBATIVIDADE' : porEtapa ? 'ATIVIDADE' : null
                   })
                 : null}

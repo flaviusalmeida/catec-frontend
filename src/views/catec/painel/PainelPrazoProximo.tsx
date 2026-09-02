@@ -9,22 +9,22 @@ import Typography from '@mui/material/Typography'
 
 import CustomAvatar from '@core/components/mui/Avatar'
 
-import ProjetoStatusBadge from '@/views/catec/projetos/ProjetoStatusBadge'
-import type { CatecProjetoPainelItem } from '@/types/catec/projetoTypes'
-import { formatarDataCurta } from '@/views/catec/projetos/projetoFluxoHelpers'
+import ServicoStatusBadge from '@/views/catec/servicos/ServicoStatusBadge'
+import type { CatecServicoPainelItem } from '@/types/catec/servicoTypes'
+import { formatarDataCurta } from '@/views/catec/servicos/servicoFluxoHelpers'
 
 import { corProgressoPrazo, formatarDiasRestantes, previsaoAtivaPainelItem } from './painelPrazoUtils'
 
 type Props = {
-  projetos: CatecProjetoPainelItem[]
+  servicos: CatecServicoPainelItem[]
   compact?: boolean
 }
 
-const PainelPrazoProximo = ({ projetos, compact = false }: Props) => {
+const PainelPrazoProximo = ({ servicos, compact = false }: Props) => {
   return (
     <Card className={compact ? 'flex h-full w-full flex-col' : 'bs-full'}>
       <CardHeader
-        title='Projetos vencidos ou com prazo próximo'
+        title='Servicos vencidos ou com prazo próximo'
         subheader='Ordenados pelo prazo ativo (início ou conclusão)'
         className={compact ? '!pb-2' : undefined}
       />
@@ -35,12 +35,12 @@ const PainelPrazoProximo = ({ projetos, compact = false }: Props) => {
             : 'flex flex-col gap-4'
         }
       >
-        {projetos.length === 0 ? (
+        {servicos.length === 0 ? (
           <Typography color='text.secondary' className='text-center p-4'>
-            Nenhum projeto com prazo ativo definido.
+            Nenhum servico com prazo ativo definido.
           </Typography>
         ) : (
-          projetos.map(item => {
+          servicos.map(item => {
             const previsao = previsaoAtivaPainelItem(item)
 
             return (
@@ -55,7 +55,7 @@ const PainelPrazoProximo = ({ projetos, compact = false }: Props) => {
               </CustomAvatar>
               <div className='flex min-is-0 is-full flex-col gap-1'>
                 <Link
-                  href={`/catec/projetos/${item.id}`}
+                  href={`/catec/servicos/${item.id}`}
                   className='font-medium text-textPrimary hover:text-primary no-underline line-clamp-1'
                 >
                   {item.titulo}
@@ -65,7 +65,7 @@ const PainelPrazoProximo = ({ projetos, compact = false }: Props) => {
                   {previsao ? ` · ${formatarDataCurta(previsao)}` : ''}
                 </Typography>
                 <div className='flex flex-wrap items-center gap-2'>
-                  <ProjetoStatusBadge status={item.status} />
+                  <ServicoStatusBadge status={item.status} />
                   <Typography variant='caption' color='text.secondary'>
                     {formatarDiasRestantes(item.diasRestantes)}
                   </Typography>

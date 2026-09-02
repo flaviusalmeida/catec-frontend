@@ -36,7 +36,7 @@ import TablePaginationComponent from '@components/TablePaginationComponent'
 
 import tableStyles from '@core/styles/table.module.css'
 
-import { formatarDataHoraHistorico } from '@/views/catec/projetos/historicoFluxoHelpers'
+import { formatarDataHoraHistorico } from '@/views/catec/servicos/historicoFluxoHelpers'
 
 import SocioPropostaPreviewDrawer from './SocioPropostaPreviewDrawer'
 import SocioPropostaTableFilters from './SocioPropostaTableFilters'
@@ -51,7 +51,7 @@ const globalFilterFn: FilterFn<Row> = (row, _columnId, filterValue) => {
   if (!q) return true
 
   return (
-    row.original.projetoTitulo.toLowerCase().includes(q) ||
+    row.original.servicoTitulo.toLowerCase().includes(q) ||
     (row.original.clienteNome ?? '').toLowerCase().includes(q) ||
     row.original.elaboradoPorNome.toLowerCase().includes(q)
   )
@@ -132,13 +132,13 @@ const SocioPropostaListTable = ({ lista, onRecarregar }: Props) => {
     try {
       if (dialogMode === 'aprovar') {
         await aprovarPropostaSocioCatec(dialogItem.propostaId, {
-          projetoId: dialogItem.projetoId,
+          servicoId: dialogItem.servicoId,
           observacao: observacao.trim() || undefined
         })
         toast.success('Proposta aprovada. O administrativo pode enviar ao cliente.')
       } else {
         await devolverPropostaSocioCatec(dialogItem.propostaId, {
-          projetoId: dialogItem.projetoId,
+          servicoId: dialogItem.servicoId,
           observacao: observacao.trim()
         })
         toast.success('Proposta reprovada. O administrativo deve ajustar e reenviar.')
@@ -156,8 +156,8 @@ const SocioPropostaListTable = ({ lista, onRecarregar }: Props) => {
 
   const columns = useMemo<ColumnDef<Row, unknown>[]>(
     () => [
-      columnHelper.accessor('projetoTitulo', {
-        header: 'Projeto',
+      columnHelper.accessor('servicoTitulo', {
+        header: 'Servico',
         cell: ({ row }) => {
           const cliente = row.original.clienteNome ?? '—'
 
@@ -170,9 +170,9 @@ const SocioPropostaListTable = ({ lista, onRecarregar }: Props) => {
                 <Typography
                   color='text.primary'
                   className='font-medium truncate'
-                  title={row.original.projetoTitulo}
+                  title={row.original.servicoTitulo}
                 >
-                  {row.original.projetoTitulo}
+                  {row.original.servicoTitulo}
                 </Typography>
                 <Typography variant='body2' className='truncate' title={cliente}>
                   {cliente}
@@ -334,7 +334,7 @@ const SocioPropostaListTable = ({ lista, onRecarregar }: Props) => {
         <DialogContent className='flex flex-col gap-4 pbs-2'>
           {dialogItem ? (
             <Typography variant='body2' color='text.secondary'>
-              {dialogItem.projetoTitulo} · v{dialogItem.versao}
+              {dialogItem.servicoTitulo} · v{dialogItem.versao}
             </Typography>
           ) : null}
           <CustomTextField

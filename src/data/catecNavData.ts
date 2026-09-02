@@ -17,7 +17,7 @@ export const catecNavItems: CatecNavItem[] = [
     url: '/catec/dashboard',
     icon: 'tabler-chart-dots',
     section: 'Dashboard',
-    subtitle: 'Visão geral dos projetos',
+    subtitle: 'Visão geral dos serviços',
     permission: PermissaoCodigo.TELA_PAINEL
   },
   {
@@ -30,20 +30,20 @@ export const catecNavItems: CatecNavItem[] = [
     permission: PermissaoCodigo.TELA_ATIVIDADES
   },
   {
-    id: 'projetos',
-    name: 'Projetos',
-    url: '/catec/projetos',
+    id: 'servicos',
+    name: 'Serviços',
+    url: '/catec/servicos',
     icon: 'tabler-briefcase',
-    section: 'Projetos',
-    subtitle: 'Gerir projetos',
-    permission: PermissaoCodigo.TELA_PROJETOS
+    section: 'Serviços',
+    subtitle: 'Gerir serviços',
+    permission: PermissaoCodigo.TELA_SERVICOS
   },
   {
     id: 'socio-propostas',
     name: 'Propostas pendentes',
     url: '/catec/socio/propostas',
     icon: 'tabler-file-check',
-    section: 'Projetos',
+    section: 'Serviços',
     subtitle: 'Parecer do sócio em propostas comerciais',
     permission: PermissaoCodigo.TELA_SOCIO_PROPOSTAS
   },

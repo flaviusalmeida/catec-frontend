@@ -13,17 +13,17 @@ import classnames from 'classnames'
 import type { ThemeColor } from '@core/types'
 import CustomAvatar from '@core/components/mui/Avatar'
 
-import type { CatecProjetoPainel } from '@/types/catec/projetoTypes'
+import type { CatecServicoPainel } from '@/types/catec/servicoTypes'
 
 import type { FaixaFiltroPrazo } from './painelPrazoUtils'
 
 type Props = {
-  painel: CatecProjetoPainel
+  painel: CatecServicoPainel
   compact?: boolean
 }
 
 type CardDef = {
-  key: keyof CatecProjetoPainel['totais']['alertasPrazo']
+  key: keyof CatecServicoPainel['totais']['alertasPrazo']
   faixaPrazo: Exclude<FaixaFiltroPrazo, ''>
   title: string
   subtitle: string
@@ -89,9 +89,9 @@ const PainelAlertaCards = ({ painel, compact = false }: Props) => {
       {CARD_DEFS.map(def => (
         <Grid key={def.key} size={{ xs: 12, sm: 6, md: 3 }} className='flex'>
           <Link
-            href={`/catec/projetos?faixaPrazo=${def.faixaPrazo}`}
+            href={`/catec/servicos?faixaPrazo=${def.faixaPrazo}`}
             className='flex is-full text-inherit no-underline'
-            aria-label={`Ver projetos: ${def.title}`}
+            aria-label={`Ver servicos: ${def.title}`}
           >
             <Card
               bordercolor={def.color}

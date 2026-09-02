@@ -11,12 +11,12 @@ import IconButton from '@mui/material/IconButton'
 import Typography from '@mui/material/Typography'
 import { toast } from 'react-toastify'
 
-import { listarDocumentosPropostaCatec } from '@/libs/catecProjetosApi'
-import type { CatecDocumentoAnexo } from '@/types/catec/projetoFluxoTypes'
+import { listarDocumentosPropostaCatec } from '@/libs/catecServicosApi'
+import type { CatecDocumentoAnexo } from '@/types/catec/servicoFluxoTypes'
 import type { CatecPropostaPendenteSocio } from '@/types/catec/socioPropostaTypes'
 import { downloadDocumentoCatec, fetchDocumentoConteudoCatec } from '@/utils/catec/downloadDocumento'
 
-import { formatarDataHoraHistorico } from '@/views/catec/projetos/historicoFluxoHelpers'
+import { formatarDataHoraHistorico } from '@/views/catec/servicos/historicoFluxoHelpers'
 
 type Props = {
   item: CatecPropostaPendenteSocio | null
@@ -58,7 +58,7 @@ const SocioPropostaPreviewDrawer = ({ item, open, onClose, onAprovar, onReprovar
       setMimeType(null)
 
       try {
-        const docs = await listarDocumentosPropostaCatec(item.projetoId, item.propostaId)
+        const docs = await listarDocumentosPropostaCatec(item.servicoId, item.propostaId)
         const atual = docs[0] ?? null
 
         if (cancelled) return
@@ -129,7 +129,7 @@ const SocioPropostaPreviewDrawer = ({ item, open, onClose, onAprovar, onReprovar
             {item ? (
               <>
                 <Typography variant='body2' color='text.secondary'>
-                  {item.projetoTitulo} · v{item.versao}
+                  {item.servicoTitulo} · v{item.versao}
                 </Typography>
                 <Typography variant='body2' color='text.secondary'>
                   {item.clienteNome ?? '—'} · {item.elaboradoPorNome}
@@ -187,12 +187,12 @@ const SocioPropostaPreviewDrawer = ({ item, open, onClose, onAprovar, onReprovar
           <div className='flex flex-wrap gap-3 p-6 border-bs'>
             <Button
               component={Link}
-              href={`/catec/projetos/${item.projetoId}`}
+              href={`/catec/servicos/${item.servicoId}`}
               variant='tonal'
               color='secondary'
               disabled={processando}
             >
-              Ver projeto
+              Ver servico
             </Button>
             <div className='flex-1' />
             <Button variant='tonal' color='error' disabled={processando} onClick={() => onReprovar(item)}>

@@ -31,7 +31,7 @@ const SocioPropostaTableFilters = ({ setData, tableData }: Props) => {
     const qTitulo = titulo.trim().toLowerCase()
 
     const filtered = tableData.filter(item => {
-      if (qTitulo && !item.projetoTitulo.toLowerCase().includes(qTitulo)) return false
+      if (qTitulo && !item.servicoTitulo.toLowerCase().includes(qTitulo)) return false
       if (cliente && item.clienteNome !== cliente) return false
 
       return true
@@ -46,7 +46,7 @@ const SocioPropostaTableFilters = ({ setData, tableData }: Props) => {
         <Grid size={{ xs: 12, sm: 6 }}>
           <CustomTextField
             fullWidth
-            label='Título do projeto'
+            label='Título do servico'
             value={titulo}
             onChange={e => setTitulo(e.target.value)}
             placeholder='Filtrar por título'

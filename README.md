@@ -23,7 +23,7 @@ pnpm dev
 
 - **App:** http://localhost:3000
 - **Login:** http://localhost:3000/login
-- **Área autenticada:** http://localhost:3000/catec/projetos
+- **Área autenticada:** http://localhost:3000/catec/servicos
 - **Credenciais iniciais:** `consultoria@catec.eng.br` / `Catec@Inicial1` (trocar senha no primeiro login)
 
 Interface em português, sem prefixo `/pt` ou `/en` nas URLs.

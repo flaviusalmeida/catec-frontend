@@ -6,16 +6,16 @@ export type CatecAtividadePrioridade = 'BAIXA' | 'MEDIA' | 'ALTA'
 
 export type CatecAtividadeTipo = 'ETAPA' | 'ATIVIDADE' | 'SUBATIVIDADE'
 
-export type CatecAtividadeBoardAgrupar = 'ETAPA' | 'ATIVIDADE' | 'RESPONSAVEL' | 'PROJETO'
+export type CatecAtividadeBoardAgrupar = 'ETAPA' | 'ATIVIDADE' | 'RESPONSAVEL' | 'SERVICO'
 
-export const AGRUPAR_BOARD_DEFAULT: CatecAtividadeBoardAgrupar = 'PROJETO'
+export const AGRUPAR_BOARD_DEFAULT: CatecAtividadeBoardAgrupar = 'SERVICO'
 
 export type CatecAtividade = {
   id: number
   numero: number
   codigo: string
-  projetoId: number
-  projetoTitulo: string
+  servicoId: number
+  servicoTitulo: string
   paiId: number | null
   paiCodigo: string | null
   nivel: number
@@ -84,7 +84,7 @@ export type CatecAtividadeStatusPatchInput = {
 }
 
 export type CatecAtividadeBoardFiltros = {
-  projetoId?: number | null
+  servicoId?: number | null
   responsavelId?: number | null
   q?: string | null
   agrupar?: CatecAtividadeBoardAgrupar | null
@@ -154,14 +154,14 @@ export const TIPO_ATIVIDADE_SIGLA: Record<CatecAtividadeTipo, string> = {
 }
 
 export const AGRUPAR_BOARD_ROTULO: Record<CatecAtividadeBoardAgrupar, string> = {
-  PROJETO: 'Projeto',
+  SERVICO: 'Servico',
   ETAPA: 'Etapa',
   ATIVIDADE: 'Atividade',
   RESPONSAVEL: 'Responsável'
 }
 
 export const ORDEM_AGRUPAR_BOARD: CatecAtividadeBoardAgrupar[] = [
-  'PROJETO',
+  'SERVICO',
   'ETAPA',
   'ATIVIDADE',
   'RESPONSAVEL'
@@ -205,8 +205,8 @@ export function parseCatecAtividade(raw: unknown): CatecAtividade {
     id: Number(data.id),
     numero: Number(data.numero ?? data.id ?? 0),
     codigo: String(data.codigo ?? `CAT-${data.numero ?? data.id ?? 0}`),
-    projetoId: Number(data.projetoId),
-    projetoTitulo: String(data.projetoTitulo ?? ''),
+    servicoId: Number(data.servicoId),
+    servicoTitulo: String(data.servicoTitulo ?? ''),
     paiId: data.paiId == null ? null : Number(data.paiId),
     paiCodigo: data.paiCodigo == null ? null : String(data.paiCodigo),
     nivel,

@@ -164,7 +164,7 @@ export const getAuthSession = async () => {
   try {
     return await getServerSession(authOptions)
   } catch {
-    // Cookie de sessão inválido (ex.: NEXTAUTH_SECRET mudou após mover o projeto).
+    // Cookie de sessão inválido (ex.: NEXTAUTH_SECRET mudou após mover o servico).
     return null
   }
 }

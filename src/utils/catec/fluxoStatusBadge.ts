@@ -1,7 +1,7 @@
 import type { SxProps, Theme } from '@mui/material/styles'
 
-import type { CatecContratoStatus, CatecPropostaStatus } from '@/types/catec/projetoFluxoTypes'
-import type { CatecProjetoStatus } from '@/types/catec/projetoTypes'
+import type { CatecContratoStatus, CatecPropostaStatus } from '@/types/catec/servicoFluxoTypes'
+import type { CatecServicoStatus } from '@/types/catec/servicoTypes'
 
 export type FluxoStatusSemantica =
   | 'emAndamento'
@@ -26,7 +26,7 @@ export const FLUXO_STATUS_SEMANTICA_ROTULO: Record<FluxoStatusSemantica, string>
   neutro: 'Estado neutro'
 }
 
-const SEMANTICA_PROJETO: Record<CatecProjetoStatus, FluxoStatusSemantica> = {
+const SEMANTICA_SERVICO: Record<CatecServicoStatus, FluxoStatusSemantica> = {
   PENDENTE_CLIENTE: 'aguardandoAcao',
   AGUARDANDO_PROPOSTA_COMERCIAL: 'aguardandoAcao',
   ELABORANDO_PROPOSTA: 'emAndamento',
@@ -62,8 +62,8 @@ const SEMANTICA_CONTRATO: Record<CatecContratoStatus, FluxoStatusSemantica> = {
   RECUSADO: 'encerradoNegativo'
 }
 
-export function semanticaProjetoStatus(status: CatecProjetoStatus): FluxoStatusSemantica {
-  return SEMANTICA_PROJETO[status]
+export function semanticaServicoStatus(status: CatecServicoStatus): FluxoStatusSemantica {
+  return SEMANTICA_SERVICO[status]
 }
 
 export function semanticaPropostaStatus(status: CatecPropostaStatus): FluxoStatusSemantica {

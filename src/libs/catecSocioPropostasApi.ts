@@ -14,7 +14,7 @@ export async function listarPropostasPendentesSocioCatec(): Promise<CatecPropost
 
 export async function aprovarPropostaSocioCatec(
   propostaId: number,
-  body: { projetoId: number; observacao?: string }
+  body: { servicoId: number; observacao?: string }
 ): Promise<void> {
   const res = await catecApiFetch(`/api/v1/socio/propostas/${propostaId}/aprovar`, {
     method: 'POST',
@@ -28,7 +28,7 @@ export async function aprovarPropostaSocioCatec(
 
 export async function devolverPropostaSocioCatec(
   propostaId: number,
-  body: { projetoId: number; observacao: string }
+  body: { servicoId: number; observacao: string }
 ): Promise<void> {
   const res = await catecApiFetch(`/api/v1/socio/propostas/${propostaId}/devolver`, {
     method: 'POST',

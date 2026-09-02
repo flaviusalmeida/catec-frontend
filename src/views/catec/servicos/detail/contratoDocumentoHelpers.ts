@@ -1,0 +1,98 @@
+import type { CatecServico } from '@/types/catec/servicoTypes'
+import type { CatecContrato, CatecDocumentoAnexo } from '@/types/catec/servicoFluxoTypes'
+
+import { formatarDataCurta } from '../servicoFluxoHelpers'
+
+import type { ServicoMetaItem } from './ServicoMetaItensGrid'
+
+const STATUS_CONTRATO_COM_PRAZO_SALVO = [
+  'ENVIADO_AO_CLIENTE',
+  'AGUARDANDO_ASSINATURA',
+  'ACEITO',
+  'RECUSADO',
+  'AGUARDANDO_AJUSTE'
+] as const
+
+type PrazosContratoMeta = {
+  prazoInicioExecucaoDias?: number | null
+  prazoConclusaoDias?: number | null
+}
+
+function formatarPrazoDias(dias: number | null | undefined): string | null {
+  if (dias == null || !Number.isFinite(dias) || dias < 1) return null
+
+  return `${dias} dias`
+}
+
+function parsePrazoFormulario(valor: string): number | null {
+  const dias = Number.parseInt(valor.trim(), 10)
+
+  if (!Number.isFinite(dias) || dias < 1) return null
+
+  return dias
+}
+
+/** Combina prazos salvos no servico com os digitados no formulário (quando ainda disponíveis). */
+export function resolverPrazosContratoMeta(
+  servico: CatecServico,
+  prazoInicioForm: string,
+  prazoConclusaoForm: string
+): PrazosContratoMeta {
+  return {
+    prazoInicioExecucaoDias: servico.prazoInicioExecucaoDias ?? parsePrazoFormulario(prazoInicioForm),
+    prazoConclusaoDias: servico.prazoConclusaoDias ?? parsePrazoFormulario(prazoConclusaoForm)
+  }
+}
+
+export function buildContratoDocumentoMetaItens(
+  servico: CatecServico,
+  contrato?: CatecContrato | null,
+  prazosOverride?: PrazosContratoMeta
+): ServicoMetaItem[] {
+  const itens: ServicoMetaItem[] = []
+
+  if (
+    contrato &&
+    STATUS_CONTRATO_COM_PRAZO_SALVO.includes(
+      contrato.status as (typeof STATUS_CONTRATO_COM_PRAZO_SALVO)[number]
+    )
+  ) {
+    const prazoInicio =
+      prazosOverride?.prazoInicioExecucaoDias !== undefined
+        ? prazosOverride.prazoInicioExecucaoDias
+        : servico.prazoInicioExecucaoDias
+
+    const prazoConclusao =
+      prazosOverride?.prazoConclusaoDias !== undefined
+        ? prazosOverride.prazoConclusaoDias
+        : servico.prazoConclusaoDias
+
+    // Sempre exibe as duas linhas nesta etapa do contrato.
+    itens.push({
+      label: 'Prazo para início',
+      value: formatarPrazoDias(prazoInicio) ?? '—'
+    })
+    itens.push({
+      label: 'Prazo para conclusão',
+      value: formatarPrazoDias(prazoConclusao) ?? '—'
+    })
+  }
+
+  if (contrato?.status === 'ACEITO' && contrato.aceitoClienteEm) {
+    itens.push({ label: 'Aceito em', value: formatarDataCurta(contrato.aceitoClienteEm) })
+  }
+
+  if (contrato?.status === 'ACEITO' && servico.previsaoInicioExecucaoEm) {
+    itens.push({ label: 'Início previsto', value: formatarDataCurta(servico.previsaoInicioExecucaoEm) })
+  }
+
+  if (servico.previsaoConclusaoEm) {
+    itens.push({ label: 'Conclusão prevista', value: formatarDataCurta(servico.previsaoConclusaoEm) })
+  }
+
+  return itens
+}
+
+export function metaDocumentoResumo(documento: CatecDocumentoAnexo): string {
+  return `Versão ${documento.versao}${documento.criadoEm ? ` • ${formatarDataCurta(documento.criadoEm)}` : ''}`
+}

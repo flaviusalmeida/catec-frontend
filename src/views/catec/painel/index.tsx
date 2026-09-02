@@ -9,12 +9,12 @@ import IconButton from '@mui/material/IconButton'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 
-import type { CatecProjetoStatus } from '@/types/catec/projetoTypes'
+import type { CatecServicoStatus } from '@/types/catec/servicoTypes'
 
 import PainelAlertaCards from './PainelAlertaCards'
 import PainelKpiCards from './PainelKpiCards'
 import PainelPrazoProximo from './PainelPrazoProximo'
-import PainelProjetosTable from './PainelProjetosTable'
+import PainelServicosTable from './PainelServicosTable'
 import PainelStatusDonut from './PainelStatusDonut'
 import { useFullscreen } from './useFullscreen'
 import { usePainelAutoAtualizacao, usePainelStore } from './usePainelStore'
@@ -23,7 +23,7 @@ const PainelView = () => {
   const { painel, carregando, erro, carregar } = usePainelStore()
 
   usePainelAutoAtualizacao(carregar)
-  const [statusFiltro, setStatusFiltro] = useState<CatecProjetoStatus | null>(null)
+  const [statusFiltro, setStatusFiltro] = useState<CatecServicoStatus | null>(null)
   const { ref, ativo: telaCheia, alternar: alternarTelaCheia } = useFullscreen<HTMLDivElement>()
 
   const gridSpacing = telaCheia ? 3 : 6
@@ -51,7 +51,7 @@ const PainelView = () => {
             />
           </div>
           <div className='col-span-12 flex min-h-0 w-full md:col-span-7 lg:col-span-8'>
-            <PainelPrazoProximo projetos={painel.projetosPrazoProximo} compact />
+            <PainelPrazoProximo servicos={painel.servicosPrazoProximo} compact />
           </div>
         </div>
       </div>
@@ -71,11 +71,11 @@ const PainelView = () => {
           />
         </Grid>
         <Grid size={{ xs: 12, md: 7, lg: 8 }}>
-          <PainelPrazoProximo projetos={painel.projetosPrazoProximo} />
+          <PainelPrazoProximo servicos={painel.servicosPrazoProximo} />
         </Grid>
         <Grid size={{ xs: 12 }}>
-          <PainelProjetosTable
-            projetos={painel.projetos}
+          <PainelServicosTable
+            servicos={painel.servicos}
             statusFiltro={statusFiltro}
             onStatusFiltroChange={setStatusFiltro}
           />

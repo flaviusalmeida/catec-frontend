@@ -10,7 +10,7 @@ import classnames from 'classnames'
 import { toast } from 'react-toastify'
 
 import { useCatecPermission } from '@/hooks/useCatecPermission'
-import { listarProjetosCatec } from '@/libs/catecProjetosApi'
+import { listarServicosCatec } from '@/libs/catecServicosApi'
 import type {
   CatecAtividadeBoardAgrupar,
   CatecAtividadeStatus,
@@ -18,19 +18,19 @@ import type {
 } from '@/types/catec/atividadeTypes'
 import { AGRUPAR_BOARD_DEFAULT, ORDEM_AGRUPAR_BOARD } from '@/types/catec/atividadeTypes'
 import { PermissaoCodigo } from '@/types/catec/permissao'
-import type { CatecProjeto } from '@/types/catec/projetoTypes'
+import type { CatecServico } from '@/types/catec/servicoTypes'
 import { commonLayoutClasses } from '@layouts/utils/layoutClasses'
 
 import AtividadeBoard from './AtividadeBoard'
 import type { CatecAtividadeNovaNaColunaOpts } from './AtividadeBoard'
 import AtividadeNovaDialog from './AtividadeNovaDialog'
-import { filtrarProjetosParaCriacaoAtividade } from './atividadeFluxoRules'
+import { filtrarServicosParaCriacaoAtividade } from './atividadeFluxoRules'
 import { useAtividadesStore } from './useAtividadesStore'
 import styles from './styles.module.css'
 
 const AGRUPAR_STORAGE_KEY = 'catec-atividades-board-agrupar'
 
-function parseProjetoId(value: string | null): number | null {
+function parseServicoId(value: string | null): number | null {
   if (!value) return null
 
   const n = Number(value)
@@ -67,27 +67,27 @@ const AtividadesView = () => {
   const { hasPermission } = useCatecPermission()
   const { board, carregando, erro, carregar, criarRaiz, criarFilha } = useAtividadesStore()
 
-  const projetoIdUrl = useMemo(() => parseProjetoId(searchParams.get('projetoId')), [searchParams])
+  const servicoIdUrl = useMemo(() => parseServicoId(searchParams.get('servicoId')), [searchParams])
   const agruparUrlRaw = searchParams.get('agrupar')
   const agruparUrl = isAgruparValido(agruparUrlRaw) ? agruparUrlRaw : null
 
   const [agruparSalvo, setAgruparSalvo] = useState<CatecAtividadeBoardAgrupar | null>(null)
   const [storageLido, setStorageLido] = useState(false)
-  const [projetos, setProjetos] = useState<CatecProjeto[]>([])
+  const [servicos, setServicos] = useState<CatecServico[]>([])
   const [dialogOpen, setDialogOpen] = useState(false)
   const [statusPrefill, setStatusPrefill] = useState<CatecAtividadeStatus | null>(null)
-  const [projetoIdFixoDialog, setProjetoIdFixoDialog] = useState<number | null>(null)
+  const [servicoIdFixoDialog, setServicoIdFixoDialog] = useState<number | null>(null)
   const [tipoFixo, setTipoFixo] = useState<CatecAtividadeTipo | null>(null)
   const [paiIdFixo, setPaiIdFixo] = useState<number | null>(null)
 
   const podeMover = hasPermission(PermissaoCodigo.ACAO_ATIVIDADE_MOVER_STATUS)
   const podeCriar = hasPermission(PermissaoCodigo.ACAO_ATIVIDADE_CRIAR)
 
-  const projetosParaCriacao = useMemo(() => filtrarProjetosParaCriacaoAtividade(projetos), [projetos])
+  const servicosParaCriacao = useMemo(() => filtrarServicosParaCriacaoAtividade(servicos), [servicos])
 
-  const projetoIdsCriacao = useMemo(
-    () => new Set(projetosParaCriacao.map(p => p.id)),
-    [projetosParaCriacao]
+  const servicoIdsCriacao = useMemo(
+    () => new Set(servicosParaCriacao.map(p => p.id)),
+    [servicosParaCriacao]
   )
 
   useEffect(() => {
@@ -95,14 +95,14 @@ const AtividadesView = () => {
     setStorageLido(true)
   }, [])
 
-  // URL válida > última escolha > Projeto. Só resolve após ler o storage (ou se a URL já define).
+  // URL válida > última escolha > Servico. Só resolve após ler o storage (ou se a URL já define).
   const agruparPronto = agruparUrl != null || storageLido
   const agrupar = agruparUrl ?? agruparSalvo ?? AGRUPAR_BOARD_DEFAULT
 
   useEffect(() => {
-    void listarProjetosCatec()
-      .then(setProjetos)
-      .catch(() => setProjetos([]))
+    void listarServicosCatec()
+      .then(setServicos)
+      .catch(() => setServicos([]))
   }, [])
 
   useEffect(() => {
@@ -130,11 +130,11 @@ const AtividadesView = () => {
     }
 
     void carregar({
-      projetoId: projetoIdUrl,
+      servicoId: servicoIdUrl,
       q: null,
       agrupar
     })
-  }, [projetoIdUrl, agrupar, agruparPronto, carregar])
+  }, [servicoIdUrl, agrupar, agruparPronto, carregar])
 
   const setAgrupar = useCallback(
     (proximo: CatecAtividadeBoardAgrupar) => {
@@ -154,7 +154,7 @@ const AtividadesView = () => {
   const fecharDialog = useCallback(() => {
     setDialogOpen(false)
     setStatusPrefill(null)
-    setProjetoIdFixoDialog(null)
+    setServicoIdFixoDialog(null)
     setTipoFixo(null)
     setPaiIdFixo(null)
   }, [])
@@ -163,46 +163,46 @@ const AtividadesView = () => {
     (opts?: {
       status?: CatecAtividadeStatus | null
 
-      /** `undefined` = herda projeto da URL; `null` = deixa o usuário escolher. */
-      projetoId?: number | null
+      /** `undefined` = herda servico da URL; `null` = deixa o usuário escolher. */
+      servicoId?: number | null
       tipo?: CatecAtividadeTipo | null
       paiId?: number | null
     }) => {
       setStatusPrefill(opts?.status ?? null)
-      setProjetoIdFixoDialog(
-        opts != null && 'projetoId' in opts ? (opts.projetoId ?? null) : projetoIdUrl
+      setServicoIdFixoDialog(
+        opts != null && 'servicoId' in opts ? (opts.servicoId ?? null) : servicoIdUrl
       )
       setTipoFixo(opts?.tipo ?? null)
       setPaiIdFixo(opts?.paiId ?? null)
       setDialogOpen(true)
     },
-    [projetoIdUrl]
+    [servicoIdUrl]
   )
 
   const handleNovaNaColuna = useCallback(
-    ({ status, paiId, projetoId, tipo }: CatecAtividadeNovaNaColunaOpts) => {
-      // Agrupamento por responsável (sem pai/tipo/projeto de contexto): formulário livre.
-      const livre = projetoId == null && paiId == null && tipo == null
+    ({ status, paiId, servicoId, tipo }: CatecAtividadeNovaNaColunaOpts) => {
+      // Agrupamento por responsável (sem pai/tipo/servico de contexto): formulário livre.
+      const livre = servicoId == null && paiId == null && tipo == null
 
       abrirDialogNova({
         status,
-        projetoId: livre ? null : (projetoId ?? projetoIdUrl),
+        servicoId: livre ? null : (servicoId ?? servicoIdUrl),
         tipo: tipo ?? null,
         paiId: paiId ?? null
       })
     },
-    [abrirDialogNova, projetoIdUrl]
+    [abrirDialogNova, servicoIdUrl]
   )
 
   const handleNovaEtapa = useCallback(
-    (projetoId: number) => {
-      abrirDialogNova({ projetoId, tipo: 'ETAPA' })
+    (servicoId: number) => {
+      abrirDialogNova({ servicoId, tipo: 'ETAPA' })
     },
     [abrirDialogNova]
   )
 
   const handleNovaAtividadeToolbar = useCallback(() => {
-    abrirDialogNova({ projetoId: null })
+    abrirDialogNova({ servicoId: null })
   }, [abrirDialogNova])
 
   const boardVazio = board.faixas.every(
@@ -238,7 +238,7 @@ const AtividadesView = () => {
           onAgruparChange={setAgrupar}
           podeMover={podeMover}
           podeCriar={podeCriar}
-          projetoIdsCriacao={projetoIdsCriacao}
+          servicoIdsCriacao={servicoIdsCriacao}
           onNovaNaColuna={handleNovaNaColuna}
           onNovaEtapa={handleNovaEtapa}
           onNovaAtividade={handleNovaAtividadeToolbar}
@@ -248,12 +248,12 @@ const AtividadesView = () => {
       <AtividadeNovaDialog
         open={dialogOpen}
         onClose={fecharDialog}
-        projetos={projetosParaCriacao}
-        projetoIdFixo={projetoIdFixoDialog}
+        servicos={servicosParaCriacao}
+        servicoIdFixo={servicoIdFixoDialog}
         statusInicial={statusPrefill}
         tipoFixo={tipoFixo}
         paiIdFixo={paiIdFixo}
-        onCreate={async ({ projetoId: pid, tipo, paiId, body }) => {
+        onCreate={async ({ servicoId: pid, tipo, paiId, body }) => {
           const payload = {
             ...body,
             status: body.status ?? statusPrefill ?? undefined

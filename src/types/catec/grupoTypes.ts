@@ -84,7 +84,7 @@ export type CatecGrupoFormState = {
 export const MODULO_LABEL: Record<string, string> = {
   acesso: 'Acesso',
   painel: 'Painel',
-  projeto: 'Projeto',
+  servico: 'Serviço',
   atividade: 'Atividades',
   cliente: 'Clientes',
   usuario: 'Usuários',

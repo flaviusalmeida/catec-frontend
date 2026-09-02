@@ -68,7 +68,7 @@ function getSnapshot() {
 
 function sameFiltros(a: CatecAtividadeBoardFiltros, b: CatecAtividadeBoardFiltros): boolean {
   return (
-    (a.projetoId ?? null) === (b.projetoId ?? null) &&
+    (a.servicoId ?? null) === (b.servicoId ?? null) &&
     (a.responsavelId ?? null) === (b.responsavelId ?? null) &&
     (a.q ?? '') === (b.q ?? '') &&
     (a.agrupar ?? AGRUPAR_BOARD_DEFAULT) === (b.agrupar ?? AGRUPAR_BOARD_DEFAULT)
@@ -218,8 +218,8 @@ async function alterarStatusStore(
   }
 }
 
-async function criarRaizStore(projetoId: number, body: CatecAtividadeCreateInput): Promise<CatecAtividade> {
-  const criada = await criarAtividadeRaizCatec(projetoId, body)
+async function criarRaizStore(servicoId: number, body: CatecAtividadeCreateInput): Promise<CatecAtividade> {
+  const criada = await criarAtividadeRaizCatec(servicoId, body)
 
   await carregarBoardStore()
 
@@ -273,7 +273,7 @@ export function useAtividadesStore() {
   )
 
   const criarRaiz = useCallback(
-    async (projetoId: number, body: CatecAtividadeCreateInput) => criarRaizStore(projetoId, body),
+    async (servicoId: number, body: CatecAtividadeCreateInput) => criarRaizStore(servicoId, body),
     []
   )
 
