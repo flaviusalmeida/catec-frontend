@@ -3,9 +3,11 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import Button from '@mui/material/Button'
+import Box from '@mui/material/Box'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import CardHeader from '@mui/material/CardHeader'
+import Checkbox from '@mui/material/Checkbox'
 import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
@@ -16,6 +18,7 @@ import { toast } from 'react-toastify'
 
 import type { CatecServico } from '@/types/catec/servicoTypes'
 import type {
+  CatecDestinatarioProposta,
   CatecPropostaWorkflowActionKey,
   CatecTipoInteracaoFluxo
 } from '@/types/catec/servicoFluxoTypes'
@@ -29,6 +32,7 @@ import {
 } from '@/types/catec/servicoFluxoTypes'
 
 import { downloadDocumentoCatec } from '@/utils/catec/downloadDocumento'
+import { listarDestinatariosPropostaCatec } from '@/libs/catecServicosApi'
 
 import { useCatecPermission } from '@/hooks/useCatecPermission'
 import { PermissaoCodigo } from '@/types/catec/permissao'
@@ -54,11 +58,19 @@ type Props = {
 type DialogParecerMode = 'aprovar-socio' | 'reprovar-socio' | null
 type DialogInteracaoCliente = CatecTipoInteracaoFluxo | null
 
+function rotuloContadorSelecionados(quantidade: number): string {
+  return quantidade === 1 ? '1 selecionado' : `${quantidade} selecionados`
+}
+
 const ServicoTabPropostas = ({ servico, fluxo }: Props) => {
   const { data, propostaAtual, uploadProposta, acaoProposta, registrarInteracao, processando } = fluxo
   const { hasPermission } = useCatecPermission()
   const [dialogParecer, setDialogParecer] = useState<DialogParecerMode>(null)
   const [dialogInteracaoCliente, setDialogInteracaoCliente] = useState<DialogInteracaoCliente>(null)
+  const [dialogEnvioClienteAberto, setDialogEnvioClienteAberto] = useState(false)
+  const [destinatariosDisponiveis, setDestinatariosDisponiveis] = useState<CatecDestinatarioProposta[]>([])
+  const [chavesSelecionadas, setChavesSelecionadas] = useState<string[]>([])
+  const [carregandoDestinatarios, setCarregandoDestinatarios] = useState(false)
   const [observacao, setObservacao] = useState('')
   const [textoInteracaoCliente, setTextoInteracaoCliente] = useState('')
   const [arquivoSubstituidoNoAjuste, setArquivoSubstituidoNoAjuste] = useState(false)
@@ -170,7 +182,7 @@ const ServicoTabPropostas = ({ servico, fluxo }: Props) => {
 
   const acoesEnviarClienteCard = acoesEnviarCliente.map(acao => ({
     ...acao,
-    onClick: () => handleAcaoWorkflow(acao.key as CatecPropostaWorkflowActionKey, acao.label)
+    onClick: () => abrirDialogEnvioCliente()
   }))
 
   const aguardandoRespostaCliente =
@@ -240,13 +252,83 @@ const ServicoTabPropostas = ({ servico, fluxo }: Props) => {
       .catch(err => toast.error(err instanceof Error ? err.message : 'Erro ao registrar interação.'))
   }
 
-  function executarAcaoProposta(
-    key: CatecPropostaWorkflowActionKey,
-    label: string,
-    parecer?: string
-  ) {
+  function executarAcaoProposta(key: CatecPropostaWorkflowActionKey, label: string, parecer?: string) {
     void acaoProposta(key, parecer)
       .then(() => toast.success(`Ação "${label}" executada.`))
+      .catch(err => toast.error(err instanceof Error ? err.message : 'Ação não concluída.'))
+  }
+
+  function abrirDialogEnvioCliente() {
+    if (!propostaAtual) return
+
+    setCarregandoDestinatarios(true)
+    setDialogEnvioClienteAberto(true)
+    setChavesSelecionadas([])
+
+    void listarDestinatariosPropostaCatec(servico.id, propostaAtual.id)
+      .then(lista => {
+        const ordenada = [...lista].sort((a, b) => {
+          if (a.papel === 'EMPRESA' && b.papel !== 'EMPRESA') return -1
+          if (b.papel === 'EMPRESA' && a.papel !== 'EMPRESA') return 1
+
+          return 0
+        })
+
+        setDestinatariosDisponiveis(ordenada)
+
+        if (ordenada.length === 0) {
+          toast.error('Cadastre o e-mail oficial da empresa e/ou dos contatos no cliente.')
+          setDialogEnvioClienteAberto(false)
+
+          return
+        }
+
+        setChavesSelecionadas([])
+      })
+      .catch(err => {
+        toast.error(err instanceof Error ? err.message : 'Não foi possível carregar os e-mails.')
+        setDialogEnvioClienteAberto(false)
+      })
+      .finally(() => setCarregandoDestinatarios(false))
+  }
+
+  function fecharDialogEnvioCliente() {
+    if (processando || carregandoDestinatarios) return
+
+    setDialogEnvioClienteAberto(false)
+  }
+
+  function alternarDestinatario(chave: string, marcado: boolean) {
+    setChavesSelecionadas(prev => {
+      if (marcado) {
+        return prev.includes(chave) ? prev : [...prev, chave]
+      }
+
+      return prev.filter(c => c !== chave)
+    })
+  }
+
+  function confirmarEnvioCliente() {
+    if (chavesSelecionadas.length === 0) {
+      toast.error('Selecione ao menos um destinatário.')
+
+      return
+    }
+
+    const emails = [
+      ...new Set(
+        destinatariosDisponiveis
+          .filter(d => chavesSelecionadas.includes(d.chave))
+          .map(d => d.email.trim())
+          .filter(Boolean)
+      )
+    ]
+
+    void acaoProposta('enviar-cliente', undefined, { chaves: chavesSelecionadas, emails })
+      .then(() => {
+        toast.success('Proposta enviada ao cliente.')
+        setDialogEnvioClienteAberto(false)
+      })
       .catch(err => toast.error(err instanceof Error ? err.message : 'Ação não concluída.'))
   }
 
@@ -285,6 +367,12 @@ const ServicoTabPropostas = ({ servico, fluxo }: Props) => {
   function handleAcaoWorkflow(key: CatecPropostaWorkflowActionKey, label: string) {
     if (key === 'aprovar-socio' || key === 'reprovar-socio') {
       abrirDialogParecer(key)
+
+      return
+    }
+
+    if (key === 'enviar-cliente') {
+      abrirDialogEnvioCliente()
 
       return
     }
@@ -613,6 +701,115 @@ const ServicoTabPropostas = ({ servico, fluxo }: Props) => {
           </Card>
         </Grid>
       ) : null}
+
+      <Dialog
+        open={dialogEnvioClienteAberto}
+        onClose={fecharDialogEnvioCliente}
+        fullWidth
+        maxWidth={false}
+        slotProps={{
+          paper: {
+            sx: { width: '100%', maxWidth: 680 }
+          }
+        }}
+      >
+        <DialogTitle>Enviar proposta ao cliente</DialogTitle>
+        <DialogContent className='flex flex-col gap-4 pbs-2'>
+          <Typography variant='body2' color='text.secondary'>
+            Selecione os destinatários que receberão a proposta por e-mail.
+          </Typography>
+          {carregandoDestinatarios ? (
+            <Typography variant='body2' color='text.secondary'>
+              Carregando e-mails…
+            </Typography>
+          ) : (
+            <Box className='flex flex-col gap-3'>
+              <Box className='flex items-center justify-between gap-3'>
+                <Typography variant='subtitle2' color='text.primary'>
+                  Destinatários
+                </Typography>
+                <Typography variant='body2' color='text.secondary'>
+                  {rotuloContadorSelecionados(chavesSelecionadas.length)}
+                </Typography>
+              </Box>
+
+              <Box
+                role='group'
+                aria-label='Destinatários'
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 1.5,
+                  maxHeight: { xs: 280, sm: 340 },
+                  overflowY: 'auto',
+                  pr: 0.5
+                }}
+              >
+                {destinatariosDisponiveis.map(d => {
+                  const selecionado = chavesSelecionadas.includes(d.chave)
+
+                  return (
+                    <Box
+                      key={d.chave}
+                      component='label'
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: 1.5,
+                        p: 2,
+                        border: 1,
+                        borderColor: selecionado ? 'primary.main' : 'divider',
+                        borderRadius: 1,
+                        bgcolor: 'background.paper',
+                        cursor: 'pointer',
+                        transition: theme =>
+                          theme.transitions.create(['border-color', 'background-color'], {
+                            duration: theme.transitions.duration.shorter
+                          }),
+                        '&:hover': {
+                          borderColor: selecionado ? 'primary.main' : 'action.disabled'
+                        }
+                      }}
+                    >
+                      <Checkbox
+                        checked={selecionado}
+                        onChange={e => alternarDestinatario(d.chave, e.target.checked)}
+                        sx={{ p: 0.5, mt: -0.25 }}
+                        inputProps={{ 'aria-label': `Selecionar ${d.nome}` }}
+                      />
+                      <Box className='min-is-0 flex flex-col gap-0.5'>
+                        <Typography variant='body1' fontWeight={600} color='text.primary' className='break-words'>
+                          {d.nome}
+                        </Typography>
+                        <Typography variant='body2' color='text.secondary' className='break-all'>
+                          {d.email}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  )
+                })}
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button
+            variant='tonal'
+            color='secondary'
+            onClick={fecharDialogEnvioCliente}
+            disabled={processando || carregandoDestinatarios}
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant='contained'
+            onClick={confirmarEnvioCliente}
+            disabled={processando || carregandoDestinatarios || chavesSelecionadas.length === 0}
+          >
+            Enviar
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog open={dialogInteracaoCliente != null} onClose={fecharDialogInteracaoCliente} fullWidth maxWidth='sm'>
         <DialogTitle>

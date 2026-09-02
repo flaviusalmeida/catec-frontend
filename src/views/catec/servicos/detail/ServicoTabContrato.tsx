@@ -2,34 +2,33 @@
 
 import { useEffect, useState } from 'react'
 
-import Link from 'next/link'
-
-import Alert from '@mui/material/Alert'
+import Autocomplete from '@mui/material/Autocomplete'
+import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import CardHeader from '@mui/material/CardHeader'
+import Checkbox from '@mui/material/Checkbox'
+import Chip from '@mui/material/Chip'
+import CircularProgress from '@mui/material/CircularProgress'
 import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
 import DialogTitle from '@mui/material/DialogTitle'
-import FormControl from '@mui/material/FormControl'
-import FormControlLabel from '@mui/material/FormControlLabel'
-import FormLabel from '@mui/material/FormLabel'
+
 import Grid from '@mui/material/Grid'
-import Radio from '@mui/material/Radio'
-import RadioGroup from '@mui/material/RadioGroup'
 import Typography from '@mui/material/Typography'
 import { toast } from 'react-toastify'
 
+import DialogCloseButton from '@components/dialogs/DialogCloseButton'
+
 import type { CatecServico } from '@/types/catec/servicoTypes'
-import {
-  chaveSignatarioCliente,
-  isFalhaUltimaIteracao,
-  parseChaveSignatarioCliente,
-  type CatecAssinaturaConfig,
-  type CatecSignatarioDisponivel
+import type {
+  CatecAssinaturaConfig,
+  CatecSignatarioDisponivel,
+  CatecUsuarioCandidatoSignatario
 } from '@/types/catec/assinaturaTypes'
+import { isFalhaUltimaIteracao } from '@/types/catec/assinaturaTypes'
 import {
   STATUS_CONTRATO_INTERACAO_CLIENTE,
   STATUS_CONTRATO_ROTULO,
@@ -39,7 +38,10 @@ import {
 } from '@/types/catec/servicoFluxoTypes'
 
 import { downloadDocumentoCatec } from '@/utils/catec/downloadDocumento'
-import { obterAssinaturaConfigCatec } from '@/libs/catecAssinaturaConfigApi'
+import {
+  listarUsuariosCandidatosAssinaturaCatec,
+  obterAssinaturaConfigCatec
+} from '@/libs/catecAssinaturaConfigApi'
 import { listarSignatariosAssinaturaCatec } from '@/libs/catecServicosApi'
 
 import { useCatecPermission } from '@/hooks/useCatecPermission'
@@ -62,6 +64,14 @@ type Props = {
 
 type DialogInteracaoCliente = CatecTipoInteracaoFluxo | null
 
+function rotuloContadorSelecionados(quantidade: number): string {
+  return quantidade === 1 ? '1 selecionado' : `${quantidade} selecionados`
+}
+
+function rotuloContadorResponsaveis(quantidade: number): string {
+  return quantidade === 1 ? '1 responsável' : `${quantidade} responsáveis`
+}
+
 const ServicoTabContrato = ({ servico, fluxo }: Props) => {
   const {
     data,
@@ -82,7 +92,15 @@ const ServicoTabContrato = ({ servico, fluxo }: Props) => {
   const [textoInteracaoCliente, setTextoInteracaoCliente] = useState('')
   const [dialogEnvioAssinaturaAberto, setDialogEnvioAssinaturaAberto] = useState(false)
   const [signatariosDisponiveis, setSignatariosDisponiveis] = useState<CatecSignatarioDisponivel[]>([])
-  const [chaveSignatarioSelecionado, setChaveSignatarioSelecionado] = useState('')
+  const [chavesClienteSelecionadas, setChavesClienteSelecionadas] = useState<string[]>([])
+
+  const [signatariosCatecSelecionados, setSignatariosCatecSelecionados] = useState<
+    CatecUsuarioCandidatoSignatario[]
+  >([])
+
+  const [buscaCatec, setBuscaCatec] = useState('')
+  const [opcoesCatec, setOpcoesCatec] = useState<CatecUsuarioCandidatoSignatario[]>([])
+  const [carregandoCatec, setCarregandoCatec] = useState(false)
   const [carregandoSignatarios, setCarregandoSignatarios] = useState(false)
   const [assinaturaConfig, setAssinaturaConfig] = useState<CatecAssinaturaConfig | null>(null)
 
@@ -260,20 +278,12 @@ const ServicoTabContrato = ({ servico, fluxo }: Props) => {
       return
     }
 
-    const catecAtivos =
-      assinaturaConfig?.signatariosCatec.filter(s => s.ativo && s.usuarioAtivo) ?? []
-
-    if (assinaturaConfig?.exigeSignatarioCatec && catecAtivos.length === 0) {
-      toast.error(
-        'Configure ao menos um responsável CATEC em Configurações → Assinatura eletrônica antes de enviar.'
-      )
-
-      return
-    }
-
     setCarregandoSignatarios(true)
     setDialogEnvioAssinaturaAberto(true)
-    setChaveSignatarioSelecionado('')
+    setChavesClienteSelecionadas([])
+    setSignatariosCatecSelecionados([])
+    setBuscaCatec('')
+    setOpcoesCatec([])
 
     void Promise.all([
       listarSignatariosAssinaturaCatec(servico.id, contrato.id),
@@ -284,23 +294,19 @@ const ServicoTabContrato = ({ servico, fluxo }: Props) => {
           setAssinaturaConfig(cfg)
         }
 
-        setSignatariosDisponiveis(lista)
+        const ordenada = [...lista].sort((a, b) => {
+          if (a.papel === 'EMPRESA' && b.papel !== 'EMPRESA') return -1
+          if (b.papel === 'EMPRESA' && a.papel !== 'EMPRESA') return 1
 
-        if (lista.length === 0) {
-          toast.error('Cadastre o e-mail da empresa e/ou do responsável no cliente.')
+          return 0
+        })
+
+        setSignatariosDisponiveis(ordenada)
+
+        if (ordenada.length === 0) {
+          toast.error('Cadastre o e-mail da empresa e/ou dos contatos no cliente.')
           setDialogEnvioAssinaturaAberto(false)
-
-          return
         }
-
-        const papelPreferido = cfg?.clientePapelPreferido ?? 'RESPONSAVEL'
-
-        const preferido =
-          lista.find(s => s.papel === papelPreferido) ??
-          lista.find(s => s.papel === 'RESPONSAVEL') ??
-          lista[0]
-
-        setChaveSignatarioSelecionado(chaveSignatarioCliente(preferido))
       })
       .catch(err => {
         toast.error(err instanceof Error ? err.message : 'Não foi possível carregar os e-mails.')
@@ -317,28 +323,68 @@ const ServicoTabContrato = ({ servico, fluxo }: Props) => {
     setDialogEnvioAssinaturaAberto(false)
   }
 
+  function alternarClienteSignatario(chave: string, marcado: boolean) {
+    setChavesClienteSelecionadas(prev => {
+      if (marcado) {
+        return prev.includes(chave) ? prev : [...prev, chave]
+      }
+
+      return prev.filter(c => c !== chave)
+    })
+  }
+
+  function adicionarSignatarioCatec(usuario: CatecUsuarioCandidatoSignatario | null) {
+    if (!usuario) return
+
+    setSignatariosCatecSelecionados(prev => {
+      if (prev.some(u => u.id === usuario.id)) {
+        return prev
+      }
+
+      return [...prev, usuario]
+    })
+    setBuscaCatec('')
+  }
+
+  function removerSignatarioCatec(usuarioId: number) {
+    setSignatariosCatecSelecionados(prev => prev.filter(u => u.id !== usuarioId))
+  }
+
+  function buscarUsuariosCatec(termo: string) {
+    setBuscaCatec(termo)
+    setCarregandoCatec(true)
+
+    void listarUsuariosCandidatosAssinaturaCatec(termo)
+      .then(lista => {
+        const idsSelecionados = new Set(signatariosCatecSelecionados.map(u => u.id))
+
+        setOpcoesCatec(lista.filter(u => !idsSelecionados.has(u.id)))
+      })
+      .catch(() => setOpcoesCatec([]))
+      .finally(() => setCarregandoCatec(false))
+  }
+
   function confirmarEnvioAssinatura() {
     const diasInicio = Number.parseInt(prazoInicioExecucaoDias.trim(), 10)
     const diasConclusao = Number.parseInt(prazoConclusaoDias.trim(), 10)
 
-    if (!chaveSignatarioSelecionado.trim()) {
-      toast.error('Selecione para quem enviar a assinatura.')
+    if (chavesClienteSelecionadas.length === 0) {
+      toast.error('Selecione ao menos um destinatário do cliente.')
 
       return
     }
 
-    const selecionado = parseChaveSignatarioCliente(chaveSignatarioSelecionado)
+    if (signatariosCatecSelecionados.length === 0) {
+      toast.error('Selecione ao menos um responsável CATEC para assinar.')
 
-    const papel =
-      selecionado.papel === 'EMPRESA' || selecionado.papel === 'RESPONSAVEL'
-        ? selecionado.papel
-        : undefined
+      return
+    }
 
     void enviarAssinatura({
       prazoInicioExecucaoDias: diasInicio,
       prazoConclusaoDias: diasConclusao,
-      emails: [selecionado.email.trim()],
-      papel
+      chavesCliente: chavesClienteSelecionadas,
+      usuariosCatecIds: signatariosCatecSelecionados.map(u => u.id)
     })
       .then(() => {
         toast.success('Contrato enviado para assinatura eletrônica.')
@@ -766,63 +812,142 @@ const ServicoTabContrato = ({ servico, fluxo }: Props) => {
         </Grid>
       ) : null}
 
-      <Dialog open={dialogEnvioAssinaturaAberto} onClose={fecharDialogEnvioAssinatura} fullWidth maxWidth='sm'>
+      <Dialog
+        open={dialogEnvioAssinaturaAberto}
+        onClose={fecharDialogEnvioAssinatura}
+        fullWidth
+        maxWidth={false}
+        scroll='body'
+        closeAfterTransition={false}
+        slotProps={{ paper: { sx: { width: '100%', maxWidth: 680, overflow: 'visible' } } }}
+      >
+        <DialogCloseButton onClick={fecharDialogEnvioAssinatura} disableRipple>
+          <i className='tabler-x' />
+        </DialogCloseButton>
         <DialogTitle>Enviar para assinatura</DialogTitle>
-        <DialogContent className='flex flex-col gap-4 pbs-2'>
+        <DialogContent className='flex flex-col gap-5 pbs-2'>
           <Typography variant='body2' color='text.secondary'>
-            Escolha o e-mail do cliente. Os responsáveis CATEC ativos entram automaticamente no envelope.
+            Selecione os destinatários do cliente e os responsáveis CATEC que assinarão o contrato.
           </Typography>
           {carregandoSignatarios ? (
             <Typography variant='body2' color='text.secondary'>
-              Carregando e-mails…
+              Carregando destinatários…
             </Typography>
           ) : (
             <>
-              <FormControl>
-                <FormLabel id='signatario-assinatura-label'>Assinatura do cliente</FormLabel>
-                <RadioGroup
-                  aria-labelledby='signatario-assinatura-label'
-                  name='signatario-assinatura'
-                  value={chaveSignatarioSelecionado}
-                  onChange={e => setChaveSignatarioSelecionado(e.target.value)}
+              <Box className='flex flex-col gap-3'>
+                <Box className='flex items-center justify-between gap-3'>
+                  <Typography variant='subtitle2'>Assinatura do cliente</Typography>
+                  <Typography variant='body2' color='text.secondary'>
+                    {rotuloContadorSelecionados(chavesClienteSelecionadas.length)}
+                  </Typography>
+                </Box>
+                <Box
+                  role='group'
+                  aria-label='Destinatários do cliente'
+                  sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 1.5,
+                    maxHeight: { xs: 220, sm: 260 },
+                    overflowY: 'auto',
+                    pr: 0.5
+                  }}
                 >
-                  {signatariosDisponiveis.map(s => (
-                    <FormControlLabel
-                      key={chaveSignatarioCliente(s)}
-                      value={chaveSignatarioCliente(s)}
-                      control={<Radio />}
-                      label={
-                        <span>
-                          <strong>{s.rotulo}</strong> — {s.nome} ({s.email})
-                        </span>
-                      }
+                  {signatariosDisponiveis.map(s => {
+                    const selecionado = chavesClienteSelecionadas.includes(s.chave)
+
+                    return (
+                      <Box
+                        key={s.chave}
+                        component='label'
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: 1.5,
+                          p: 2,
+                          border: 1,
+                          borderColor: selecionado ? 'primary.main' : 'divider',
+                          borderRadius: 1,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <Checkbox
+                          checked={selecionado}
+                          onChange={e => alternarClienteSignatario(s.chave, e.target.checked)}
+                          sx={{ p: 0.5, mt: -0.25 }}
+                        />
+                        <Box className='min-is-0 flex flex-col gap-0.5'>
+                          <Typography variant='body1' fontWeight={600} className='break-words'>
+                            {s.nome}
+                          </Typography>
+                          <Typography variant='body2' color='text.secondary' className='break-all'>
+                            {s.email}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    )
+                  })}
+                </Box>
+              </Box>
+
+              <Box className='flex flex-col gap-3'>
+                <Box className='flex items-center justify-between gap-3'>
+                  <Typography variant='subtitle2'>Assinatura da CATEC</Typography>
+                  <Typography variant='body2' color='text.secondary'>
+                    {rotuloContadorResponsaveis(signatariosCatecSelecionados.length)}
+                  </Typography>
+                </Box>
+                <Autocomplete
+                  options={opcoesCatec}
+                  loading={carregandoCatec}
+                  inputValue={buscaCatec}
+                  value={null}
+                  onInputChange={(_, value, reason) => {
+                    if (reason === 'input' || reason === 'clear') {
+                      buscarUsuariosCatec(value)
+                    }
+                  }}
+                  onChange={(_, value) => adicionarSignatarioCatec(value)}
+                  onOpen={() => {
+                    if (opcoesCatec.length === 0) {
+                      buscarUsuariosCatec(buscaCatec)
+                    }
+                  }}
+                  getOptionLabel={o => `${o.nome} (${o.email})`}
+                  isOptionEqualToValue={(a, b) => a.id === b.id}
+                  noOptionsText={buscaCatec.trim() ? 'Nenhum usuário encontrado' : 'Digite para pesquisar'}
+                  renderInput={params => (
+                    <CustomTextField
+                      {...params}
+                      label='Adicionar responsável CATEC'
+                      placeholder='Nome ou e-mail'
+                      InputProps={{
+                        ...params.InputProps,
+                        endAdornment: (
+                          <>
+                            {carregandoCatec ? <CircularProgress color='inherit' size={16} /> : null}
+                            {params.InputProps.endAdornment}
+                          </>
+                        )
+                      }}
                     />
-                  ))}
-                </RadioGroup>
-              </FormControl>
-
-              {(() => {
-                const catecAtivos =
-                  assinaturaConfig?.signatariosCatec.filter(s => s.ativo && s.usuarioAtivo) ?? []
-
-                if (catecAtivos.length === 0) {
-                  return (
-                    <Alert severity='warning' variant='outlined'>
-                      Nenhum responsável CATEC ativo.{' '}
-                      <Link href='/catec/configuracoes/assinatura' className='underline'>
-                        Abrir configuração
-                      </Link>
-                    </Alert>
-                  )
-                }
-
-                return (
-                  <Alert severity='info' variant='outlined'>
-                    Também assinam (CATEC):{' '}
-                    {catecAtivos.map(s => `${s.nome} (${s.email})`).join('; ')}
-                  </Alert>
-                )
-              })()}
+                  )}
+                />
+                {signatariosCatecSelecionados.length > 0 ? (
+                  <Box className='flex flex-wrap gap-2'>
+                    {signatariosCatecSelecionados.map(u => (
+                      <Chip
+                        key={u.id}
+                        size='small'
+                        label={`${u.nome} (${u.email})`}
+                        onDelete={() => removerSignatarioCatec(u.id)}
+                        sx={{ maxWidth: '100%', '& .MuiChip-label': { whiteSpace: 'normal' } }}
+                      />
+                    ))}
+                  </Box>
+                ) : null}
+              </Box>
             </>
           )}
         </DialogContent>
@@ -838,7 +963,12 @@ const ServicoTabContrato = ({ servico, fluxo }: Props) => {
           <Button
             variant='contained'
             onClick={confirmarEnvioAssinatura}
-            disabled={processando || carregandoSignatarios || !chaveSignatarioSelecionado}
+            disabled={
+              processando ||
+              carregandoSignatarios ||
+              chavesClienteSelecionadas.length === 0 ||
+              signatariosCatecSelecionados.length === 0
+            }
           >
             Enviar
           </Button>

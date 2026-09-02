@@ -16,6 +16,7 @@ import {
 } from '@/types/catec/assinaturaTypes'
 import type {
   CatecContrato,
+  CatecDestinatarioProposta,
   CatecDocumentoAnexo,
   CatecHistoricoPage,
   CatecInteracaoTimelineItem,
@@ -25,6 +26,7 @@ import type {
 } from '@/types/catec/servicoFluxoTypes'
 import {
   parseCatecContrato,
+  parseCatecDestinatariosProposta,
   parseCatecDocumentoAnexo,
   parseCatecHistoricoFluxoItem,
   parseCatecPropostaList,
@@ -189,11 +191,23 @@ export async function uploadDocumentoPropostaCatec(
   assertCatecOk(res, data, 'Erro no upload da proposta.')
 }
 
+export async function listarDestinatariosPropostaCatec(
+  servicoId: number,
+  propostaId: number
+): Promise<CatecDestinatarioProposta[]> {
+  const res = await catecApiFetch(`/api/v1/servicos/${servicoId}/propostas/${propostaId}/destinatarios`)
+  const data = await readCatecJsonBody(res)
+
+  assertCatecOk(res, data, 'Não foi possível carregar os e-mails do cliente.')
+
+  return parseCatecDestinatariosProposta(data)
+}
+
 export async function acaoPropostaCatec(
   servicoId: number,
   propostaId: number,
   acao: CatecPropostaWorkflowActionKey,
-  opts?: { observacao?: string }
+  opts?: { observacao?: string; chaves?: string[]; emails?: string[] }
 ): Promise<void> {
   if (acao === 'solicitar-revisao') {
     const res = await catecApiFetch(
@@ -231,7 +245,11 @@ export async function acaoPropostaCatec(
   }
 
   const res = await catecApiFetch(`/api/v1/servicos/${servicoId}/propostas/${propostaId}${pathMap[acao as 'enviar-cliente']}`, {
-    method: 'POST'
+    method: 'POST',
+    body: JSON.stringify({
+      chaves: opts?.chaves ?? [],
+      emails: opts?.emails ?? []
+    })
   })
 
   const data = await readCatecJsonBody(res)

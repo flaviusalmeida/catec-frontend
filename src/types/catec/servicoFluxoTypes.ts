@@ -219,6 +219,37 @@ export type CatecPropostaWorkflowActionKey =
   | 'reprovar-socio'
   | 'enviar-cliente'
 
+export type CatecDestinatarioProposta = {
+  chave: string
+  nome: string
+  email: string
+  papel: string
+  rotulo: string
+}
+
+export function parseCatecDestinatarioProposta(data: unknown): CatecDestinatarioProposta {
+  const raw = (data ?? {}) as Record<string, unknown>
+  const email = String(raw.email ?? '')
+  const papel = String(raw.papel ?? '')
+  const chaveApi = raw.chave == null ? '' : String(raw.chave)
+
+  return {
+    chave: chaveApi || `${papel}|${email}`,
+    nome: String(raw.nome ?? ''),
+    email,
+    papel,
+    rotulo: String(raw.rotulo ?? raw.papel ?? 'Destinatário')
+  }
+}
+
+export function parseCatecDestinatariosProposta(data: unknown): CatecDestinatarioProposta[] {
+  if (!Array.isArray(data)) {
+    return []
+  }
+
+  return data.map(parseCatecDestinatarioProposta)
+}
+
 export function parseCatecDocumentoAnexo(raw: unknown): CatecDocumentoAnexo {
   const data = raw as Record<string, unknown>
 

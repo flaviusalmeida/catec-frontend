@@ -158,13 +158,21 @@ export function useServicoFluxoStore(servicoId: number, onAfterMutation?: () => 
   )
 
   const acaoProposta = useCallback(
-    async (acao: CatecPropostaWorkflowActionKey, observacao?: string) => {
+    async (
+      acao: CatecPropostaWorkflowActionKey,
+      observacao?: string,
+      destinos?: { chaves?: string[]; emails?: string[] }
+    ) => {
       if (!propostaAtual) return
 
       setProcessando(true)
 
       try {
-        await acaoPropostaCatec(servicoId, propostaAtual.id, acao, { observacao })
+        await acaoPropostaCatec(servicoId, propostaAtual.id, acao, {
+          observacao,
+          chaves: destinos?.chaves,
+          emails: destinos?.emails
+        })
         await recarregar()
       } finally {
         setProcessando(false)
